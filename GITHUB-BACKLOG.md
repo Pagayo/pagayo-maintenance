@@ -1,48 +1,112 @@
-# Openstaande PRs en Issues - 31 January 2026
+# GitHub Status - 31 januari 2026
 
-## pagayo-beheer
+> **Laatst bijgewerkt:** 31-01-2026 16:30 door GitHubOps-GPT
 
-### PRs
-- [ ] #8: Implement M3.3: Payout Schedule Overview with date filtering and CSV export (@app/copilot-swe-agent, 2026-01-06)
-- [ ] #7: docs: Add Chatwoot widget to UI rebuild roadmap (@Pagayo, 2026-01-06)
-- [ ] #4: Clarify pagayo-api-stack Cloud Build preflight gate implementation scope (@app/copilot-swe-agent, 2025-12-26)
-- [ ] #3: Add Cloud Build preflight gate documentation for pagayo-storefront (@app/copilot-swe-agent, 2025-12-26)
-- [ ] #2: Add Cloud Build preflight gate for Admin SQL API validation (@app/copilot-swe-agent, 2025-12-26)
+## 📊 Samenvatting
 
-### Issues
+| Repository | Open PRs | Open Issues | Status |
+|------------|----------|-------------|--------|
+| pagayo-beheer | 0 | 0 | ✅ Clean |
+| pagayo-storefront | 0 | 0 | ✅ Clean |
+| pagayo-api-stack | 0 | 0 | ✅ Clean |
+| pagayo-edge | 0 | 0 | ✅ Clean |
+| pagayo-tenants | 0 | 0 | ✅ Clean |
+| pagayo-marketing | 0 | 0 | ✅ Clean |
+| pagayo-cloudflare-proxy | 0 | 0 | ✅ Clean |
 
-## pagayo-storefront
+---
 
-### PRs
-- [ ] #14: deps: bump the production-dependencies group across 1 directory with 24 updates (@app/dependabot, 2026-01-31)
+## ✅ Opgeruimd vandaag
 
-### Issues
+### Gesloten PRs
 
-## pagayo-api-stack
+| Repo | PR | Reden |
+|------|----|----|
+| pagayo-beheer | #2, #3, #4 | Superseded by GitHub Actions migration |
+| pagayo-beheer | #7 | ✅ Merged (Chatwoot docs) |
+| pagayo-beheer | #8 | Closed - feature should not have been created by agent |
+| pagayo-storefront | #14 | Had merge conflicts (24 deps) |
+| pagayo-storefront | #15 | Major version bumps (Stripe 14→20, node-fetch 2→3) |
+| pagayo-api-stack | #4, #12 | Updates in /backups/ folder (irrelevant) |
+| pagayo-edge | #1, #3 | Failing tests after dep updates |
 
-### PRs
-- [ ] #12: chore(deps): bump qs from 6.14.0 to 6.14.1 in /backups/2025-12-25_07-32-33 (@app/dependabot, 2026-01-31)
-- [ ] #4: chore(deps-dev): bump undici from 7.16.0 to 7.19.2 in /backups/2025-12-25_07-32-33 (@app/dependabot, 2026-01-31)
+---
 
-### Issues
+## 🔒 Security Vulnerabilities
 
-## pagayo-edge
+### pagayo-beheer (5 moderate)
 
-### PRs
-- [ ] #3: chore(deps-dev): bump wrangler and @cloudflare/vitest-pool-workers (@app/dependabot, 2026-01-31)
-- [ ] #1: chore(deps-dev): bump devalue from 5.6.1 to 5.6.2 (@app/dependabot, 2026-01-31)
+| Alert | Package | Severity | Status |
+|-------|---------|----------|--------|
+| #8 | hono ≤4.11.6 | 🟡 Moderate | ⚠️ Transitive (via Prisma) |
+| #7 | hono ≤4.11.6 | 🟡 Moderate | ⚠️ Transitive (via Prisma) |
+| #6 | hono ≤4.11.6 | 🟡 Moderate | ⚠️ Transitive (via Prisma) |
+| #5 | hono ≤4.11.6 | 🟡 Moderate | ⚠️ Transitive (via Prisma) |
+| #4 | lodash 4.0.0-4.17.21 | 🟡 Moderate | ⚠️ Transitive (via Prisma/chevrotain) |
 
-### Issues
+**Root cause:** Prisma 7.3.0 depends on @prisma/dev which pulls in vulnerable hono and lodash.
 
-## pagayo-tenants
+**Fix options:**
+1. Wait for Prisma 7.4.0+ release with patched dependencies
+2. Downgrade to Prisma 6.19.2 (breaking change)
+3. Accept risk (moderate severity, not exploitable in our context)
 
-### PRs
+**Aanbeveling:** Monitor Prisma releases, accept risk for nu (XSS/cache issues niet relevant voor backend-only usage).
 
-### Issues
+---
 
-## pagayo-marketing
+## 🔧 CI/CD Fixes Toegepast
 
-### PRs
+### Neon Database Branch Workflow
 
-### Issues
+**Probleem:** Dependabot PRs falen altijd op "Create Neon Branch" omdat ze geen toegang hebben tot repository secrets.
+
+**Fix toegepast in:**
+- [x] pagayo-storefront/.github/workflows/neon-branch.yml
+- [x] pagayo-api-stack/.github/workflows/neon-branch.yml  
+- [x] pagayo-beheer/.github/workflows/neon-branch.yml
+
+**Wat de fix doet:**
+```yaml
+# Skip voor Dependabot - heeft geen toegang tot secrets
+if: github.actor != 'dependabot[bot]'
+```
+
+### Dependabot Configuration
+
+**Probleem:** Dependabot maakt PRs met major version bumps die breaking changes kunnen veroorzaken.
+
+**Fix toegepast in:**
+- [x] pagayo-storefront/.github/dependabot.yml
+
+**Wat de fix doet:**
+- Blokkeert major updates voor: stripe, mollie, node-fetch, prisma, hono, express
+- Alleen minor/patch updates in gegroepeerde PRs
+- Documentatie toegevoegd over secret access limitations
+
+---
+
+## 📋 Gepland Onderhoud
+
+### Stripe v20 Migration (HIGH PRIORITY)
+
+| Item | Status |
+|------|--------|
+| Lees Stripe upgrade guide | ⬜ To do |
+| Maak feature branch | ⬜ To do |
+| Update incrementeel 14→15→...→20 | ⬜ To do |
+| Test payment flows | ⬜ To do |
+| Deploy naar staging | ⬜ To do |
+| Deploy naar productie | ⬜ To do |
+
+**Geschatte effort:** 4-8 uur
+**Deadline:** Voor volgende Stripe API deprecation
+
+---
+
+## 📚 Referenties
+
+- Stripe Upgrade Guide: https://stripe.com/docs/upgrades
+- Prisma Releases: https://github.com/prisma/prisma/releases
+- Neon Actions: https://github.com/neondatabase
 
