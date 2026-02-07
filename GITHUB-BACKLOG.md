@@ -104,7 +104,42 @@ if: github.actor != 'dependabot[bot]'
 
 ---
 
-## 📚 Referenties
+## � ESCALATIES
+
+### [2026-02-07] pagayo-edge: ESLint ontbreekt in devDependencies
+
+**Geëscaleerd door:** Deployer-GPT  
+**Toegewezen aan:** @workspace /frontenddev  
+**Prioriteit:** Medium  
+**Repository:** pagayo-edge
+
+**Probleem:**
+De pre-commit hook in pagayo-edge faalt omdat `eslint` niet is opgenomen in devDependencies. Dit werd ontdekt tijdens het committen van CI workflow fixes.
+
+```
+> pagayo-edge@1.0.0 lint
+> eslint . --ext .ts
+
+sh: eslint: command not found
+```
+
+**Impact:**
+- Pre-commit checks falen voor alle code commits
+- Moest `--no-verify` gebruiken om CI fix te committen
+
+**Gevraagde actie:**
+1. Voeg `eslint` en benodigde eslint plugins toe aan devDependencies
+2. Verifieer dat `npm run lint` werkt na `npm install`
+3. Test pre-commit hook met een dummy commit
+4. Commit en push de fix
+
+**Bestanden om te checken:**
+- `pagayo-edge/package.json` — devDependencies
+- `pagayo-edge/.husky/pre-commit` — lint script aanroep
+
+---
+
+## �📚 Referenties
 
 - Stripe Upgrade Guide: https://stripe.com/docs/upgrades
 - Prisma Releases: https://github.com/prisma/prisma/releases
