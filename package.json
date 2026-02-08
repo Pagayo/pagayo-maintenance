@@ -1,0 +1,24 @@
+{
+  "name": "pagayo-maintenance",
+  "version": "1.0.0",
+  "description": "Central maintenance and testing for Pagayo platform",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:smoke": "vitest run tests/smoke/",
+    "test:smoke:all": "./scripts/run-all-smoke-tests.sh",
+    "test:integration": "vitest run tests/integration/",
+    "test:security": "vitest run tests/security/",
+    "test:contracts": "vitest run tests/contracts/",
+    "test:performance": "vitest run tests/performance/",
+    "test:all": "vitest run",
+    "health": "./scripts/health-check.sh",
+    "health:quick": "./scripts/health-check.sh --quick",
+    "health:access": "./scripts/health-check.sh --access"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8",
+    "typescript": "^5.7.3"
+  }
+}
