@@ -60,35 +60,32 @@ describe('Storefront Service - Smoke Tests', () => {
       expect(response.headers.get('content-type')).toContain('text/html');
     });
 
-    it('Products API returns data (KNOWN ISSUE: may return 500)', async () => {
+    it('Products API returns data', async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/products`);
       
       if (response.status === 200) {
         log('products-api', 'PASS', 'Products endpoint working');
-      } else if (response.status === 500) {
-        log('products-api', 'WARN', 'KNOWN ISSUE: Returns 500',
-          'Fix: Check Neon DB connection or tenant schema', 'MEDIUM');
       } else {
-        log('products-api', 'WARN', `HTTP ${response.status}`);
+        log('products-api', 'FAIL', `HTTP ${response.status}`,
+          'Check Worker logs for SQL errors', 'HIGH');
       }
       
-      // Accept 500 for now (known issue), but track it
-      expect([200, 404, 500]).toContain(response.status);
+      // Products API should return 200 with data array
+      expect(response.status).toBe(200);
     });
 
-    it('Categories API returns data (KNOWN ISSUE: may return 500)', async () => {
+    it('Categories API returns data', async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/categories`);
       
       if (response.status === 200) {
         log('categories-api', 'PASS', 'Categories endpoint working');
-      } else if (response.status === 500) {
-        log('categories-api', 'WARN', 'KNOWN ISSUE: Returns 500',
-          'Fix: Check Neon DB connection or tenant schema', 'MEDIUM');
       } else {
-        log('categories-api', 'WARN', `HTTP ${response.status}`);
+        log('categories-api', 'FAIL', `HTTP ${response.status}`,
+          'Check Worker logs for SQL errors', 'HIGH');
       }
       
-      expect([200, 404, 500]).toContain(response.status);
+      // Categories API should return 200 with data array
+      expect(response.status).toBe(200);
     });
   });
 
