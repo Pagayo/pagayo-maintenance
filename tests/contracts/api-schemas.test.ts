@@ -220,6 +220,9 @@ describe('Contract Tests - Registration Response', () => {
       expect(data).toHaveProperty('subdomain');
       expect(typeof data.workflowId).toBe('string');
       expect(typeof data.statusUrl).toBe('string');
+    } else if (response.status === 409) {
+      // Conflict - email/subdomain already exists (expected for repeated tests)
+      console.log('Conflict (409) - email/subdomain already exists, this is OK for repeated tests');
     } else if (response.status === 429) {
       // Rate limited - test passes (endpoint works, just limited)
       console.log('Rate limited - skipping response validation');

@@ -25,8 +25,8 @@ describe("Cross-Service Integration - Registration Flow", () => {
       }),
     });
 
-    // 200 = success, 202 = async workflow started, 400 = validation, 429 = rate limited
-    expect([200, 202, 400, 429]).toContain(response.status);
+    // 200 = success, 202 = async workflow started, 400 = validation, 409 = conflict (email/subdomain exists), 429 = rate limited
+    expect([200, 202, 400, 409, 429]).toContain(response.status);
 
     if (response.status === 200 || response.status === 202) {
       const data = await response.json();
