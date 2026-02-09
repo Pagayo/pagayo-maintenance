@@ -12,7 +12,11 @@
     "test:security": "vitest run tests/security/",
     "test:contracts": "vitest run tests/contracts/",
     "test:performance": "vitest run tests/performance/",
+    "test:quality": "vitest run tests/quality/",
+    "test:quality:lint": "vitest run tests/quality/lint.test.ts",
+    "test:quality:typecheck": "vitest run tests/quality/typecheck.test.ts",
     "test:all": "vitest run",
+    "test:precommit": "vitest run tests/quality/",
     "health": "./scripts/health-check.sh",
     "health:quick": "./scripts/health-check.sh --quick",
     "health:access": "./scripts/health-check.sh --access"
