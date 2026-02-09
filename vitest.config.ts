@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    testTimeout: 30000, // 30s for network calls
+    testTimeout: 60000, // 60s for network calls + workflow polling
     hookTimeout: 10000,
     include: ['tests/**/*.test.ts'],
     reporters: ['verbose'],

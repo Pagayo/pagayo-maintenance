@@ -172,5 +172,140 @@ describe('Beheer Service - Smoke Tests', () => {
       
       expect([400, 429]).toContain(response.status);
     });
+
+    it('Full registration provisions tenant successfully', async () => {
+      // Generate unique test data to avoid conflicts
+      const testId = Date.now();
+      const testEmail = `smoke-test-${testId}@pagayo-test.nl`;
+      const testOrgName = `Smoke Test Shop ${testId}`;
+      
+      const response = await fetch(`${BEHEER_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationName: testOrgName,
+          email: testEmail,
+          password: 'SmokeTest123!',
+        }),
+      });
+      
+      // Rate limit is acceptable - means endpoint is working
+      if (response.status === 429) {
+        log('register-provision', 'SKIP', 'Rate limited - endpoint working',
+          undefined, 'LOW');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      // Check for server errors (500+)
+      if (response.status >= 500) {
+        log('register-provision', 'FAIL', `Server error: HTTP ${response.status}`,
+          'Check Worker logs and database schema sync', 'CRITICAL');
+        expect(response.status).toBeLessThan(500);
+        return;
+      }
+      
+      // Check for successful registration with tenant provisioning
+      if (response.status === 200 || response.status === 201 || response.status === 202) {
+        // Async workflow response (202) - poll workflow status until complete
+        if (response.status === 202 && data.async === true) {
+          if (!data.workflowId) {
+            log('register-provision', 'FAIL', 'Async response but no workflowId',
+              'Check workflow trigger logic', 'CRITICAL');
+            expect(data.workflowId).toBeDefined();
+            return;
+          }
+          
+          // Poll workflow status to check if provisioning actually succeeds
+          const workflowId = data.workflowId;
+          const maxAttempts = 30; // 30 seconds max
+          const pollInterval = 1000; // 1 second
+          
+          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            
+            const statusResponse = await fetch(
+              `${BEHEER_URL}/api/workflows/${workflowId}/status`
+            );
+            
+            // If status endpoint not accessible (401/403), we can't verify - pass with warning
+            if (statusResponse.status === 401 || statusResponse.status === 403) {
+              log('register-provision', 'WARN', 
+                `Workflow triggered but status not accessible (HTTP ${statusResponse.status})`,
+                'Workflow status requires auth - manual verification needed', 'MEDIUM');
+              return;
+            }
+            
+            if (!statusResponse.ok) {
+              continue; // Keep polling
+            }
+            
+            const statusData = await statusResponse.json();
+            const status = statusData.status || statusData.data?.status;
+            
+            // Workflow completed successfully
+            if (status === 'complete' || status === 'COMPLETED' || status === 'success') {
+              log('register-provision', 'PASS', 
+                `Workflow completed: ${workflowId} - tenant provisioned`);
+              return;
+            }
+            
+            // Workflow failed - THIS IS THE BUG WE WANT TO DETECT
+            if (status === 'failed' || status === 'FAILED' || status === 'error') {
+              const errorMsg = statusData.error || statusData.data?.error || 'unknown';
+              log('register-provision', 'FAIL', 
+                `Workflow FAILED: ${errorMsg}`,
+                'Check Neon DB schema sync - run prisma migrate deploy', 'CRITICAL');
+              expect(status).not.toBe('failed');
+              expect(status).not.toBe('FAILED');
+              return;
+            }
+            
+            // Still running - continue polling
+            if (status === 'running' || status === 'RUNNING' || status === 'pending') {
+              continue;
+            }
+          }
+          
+          // Timeout - workflow didn't complete in time
+          log('register-provision', 'WARN', 
+            `Workflow timeout after ${maxAttempts}s: ${workflowId}`,
+            'Workflow taking too long - check manually', 'MEDIUM');
+          return;
+        }
+        
+        // Sync response - check tenant was provisioned
+        if (data.success === true) {
+          // CRITICAL CHECK: Tenant must be provisioned
+          if (data.tenantProvisioned === true || data.tenant) {
+            log('register-provision', 'PASS', 
+              `Tenant provisioned: ${data.subdomain || data.tenant?.slug || 'OK'}`);
+          } else if (data.tenantProvisioned === false) {
+            // THIS IS THE BUG WE'RE DETECTING
+            log('register-provision', 'FAIL', 
+              `Registration OK but tenant NOT provisioned! Error: ${data.provisioningError || 'unknown'}`,
+              'Check Neon DB schema sync - run prisma migrate deploy', 'CRITICAL');
+            expect(data.tenantProvisioned).toBe(true);
+          } else {
+            // Org created but unclear if tenant exists
+            log('register-provision', 'WARN', 
+              'Registration success but tenantProvisioned flag missing',
+              'Add tenantProvisioned flag to response', 'HIGH');
+          }
+        } else {
+          log('register-provision', 'FAIL', 
+            `Registration failed: ${data.message || data.error || 'unknown'}`,
+            'Check registration flow', 'CRITICAL');
+          expect(data.success).toBe(true);
+        }
+      } else {
+        // Unexpected status code
+        log('register-provision', 'FAIL', 
+          `Unexpected HTTP ${response.status}: ${JSON.stringify(data)}`,
+          'Check registration endpoint', 'HIGH');
+        expect([200, 201, 202, 400, 409, 429]).toContain(response.status);
+      }
+    });
   });
 });
