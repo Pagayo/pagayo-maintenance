@@ -165,4 +165,110 @@ describe('Storefront Service - Smoke Tests', () => {
       expect([200, 401, 404]).toContain(response.status);
     });
   });
+
+  describe('New Endpoints - Auth Required', () => {
+    it('PUT /api/admin/orders/batch/status requires auth', async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/orders/batch/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderIds: [], status: 'shipped' }),
+      });
+
+      if ([401, 403].includes(response.status)) {
+        log('batch-status', 'PASS', 'Properly protected');
+      } else if (response.status >= 500) {
+        log('batch-status', 'FAIL', `Server error: HTTP ${response.status}`,
+          'Check admin-orders routes', 'HIGH');
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it('POST /api/admin/forgot-password returns valid response', async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'nonexistent@smoke-test.com' }),
+      });
+
+      if ([200, 400].includes(response.status)) {
+        log('forgot-password', 'PASS', `Status: ${response.status}`);
+      } else if (response.status >= 500) {
+        log('forgot-password', 'FAIL', `Server error: HTTP ${response.status}`,
+          'Check admin-auth routes forgot-password handler', 'HIGH');
+      }
+
+      // 200 = anti-enumeration success, 400 = validation error — both acceptable
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it('POST /api/admin/reset-password validates input', async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: 'invalid', newPassword: '123' }),
+      });
+
+      if (response.status === 400) {
+        log('reset-password', 'PASS', 'Validation works');
+      } else if (response.status >= 500) {
+        log('reset-password', 'FAIL', `Server error: HTTP ${response.status}`,
+          'Check admin-auth routes reset-password handler', 'HIGH');
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it('GET /api/admin/ai/config requires auth', async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/ai/config`);
+
+      if ([401, 403].includes(response.status)) {
+        log('ai-config', 'PASS', 'Properly protected');
+      } else if (response.status >= 500) {
+        log('ai-config', 'FAIL', `Server error: HTTP ${response.status}`,
+          'Check admin-ai routes', 'HIGH');
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it('GET /api/admin/organization/onboarding requires auth', async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/organization/onboarding`);
+
+      if ([401, 403].includes(response.status)) {
+        log('organization-onboarding', 'PASS', 'Properly protected');
+      } else if (response.status >= 500) {
+        log('organization-onboarding', 'FAIL', `Server error: HTTP ${response.status}`,
+          'Check admin-organization routes', 'HIGH');
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it('GET /api/admin/roles-ui requires auth', async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/roles-ui`);
+
+      if ([401, 403].includes(response.status)) {
+        log('roles-ui', 'PASS', 'Properly protected');
+      } else if (response.status >= 500) {
+        log('roles-ui', 'FAIL', `Server error: HTTP ${response.status}`,
+          'Check admin-roles-ui routes', 'HIGH');
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it('GET /api/admin/integrations/stripe/connect/status requires auth', async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/integrations/stripe/connect/status`);
+
+      if ([401, 403].includes(response.status)) {
+        log('integrations-stripe', 'PASS', 'Properly protected');
+      } else if (response.status >= 500) {
+        log('integrations-stripe', 'FAIL', `Server error: HTTP ${response.status}`,
+          'Check admin-integrations routes', 'HIGH');
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+  });
 });
