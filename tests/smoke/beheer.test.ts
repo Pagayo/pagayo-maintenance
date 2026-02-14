@@ -590,4 +590,96 @@ describe("Beheer Service - Smoke Tests", () => {
       expect([400, 401, 429]).toContain(response.status);
     });
   });
+
+  // ==========================================================================
+  // SEAMLESS UPGRADE SMOKE TESTS
+  // ==========================================================================
+
+  describe("Seamless Upgrade Endpoints", () => {
+    it("POST /api/anon/claim rejects without session", async () => {
+      const response = await fetch(`${BEHEER_URL}/api/anon/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: "nonexistent",
+          provider: "email",
+          email: "test@example.com",
+          password: "testpassword123",
+        }),
+      });
+
+      if ([400, 401, 403].includes(response.status)) {
+        log(
+          "anon-claim-no-session",
+          "PASS",
+          `Properly protected: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "anon-claim-no-session",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check claim endpoint",
+          "HIGH",
+        );
+      }
+
+      expect([400, 401, 403, 429]).toContain(response.status);
+    });
+
+    it("POST /api/auth/register rejects without email", async () => {
+      const response = await fetch(`${BEHEER_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          password: "testpassword123",
+          // organizationName is optioneel (Seamless Upgrade)
+          // email is verplicht maar ontbreekt → 400
+        }),
+      });
+
+      if (response.status === 400) {
+        log("register-no-email", "PASS", "Rejects missing email with 400");
+      } else if (response.status >= 500) {
+        log(
+          "register-no-email",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check register endpoint validation",
+          "HIGH",
+        );
+      }
+
+      expect([400, 429]).toContain(response.status);
+    });
+
+    it("POST /api/auth/register rejects short password", async () => {
+      const response = await fetch(`${BEHEER_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "smoketest@pagayo.com",
+          password: "kort", // < 8 chars
+        }),
+      });
+
+      if (response.status === 400) {
+        log(
+          "register-short-password",
+          "PASS",
+          "Rejects short password with 400",
+        );
+      } else if (response.status >= 500) {
+        log(
+          "register-short-password",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check password validation",
+          "HIGH",
+        );
+      }
+
+      expect([400, 429]).toContain(response.status);
+    });
+  });
 });
