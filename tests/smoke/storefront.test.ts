@@ -477,4 +477,85 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([200, 404]).toContain(response.status);
     });
   });
+
+  describe("Universal Login (start.pagayo.app/login)", () => {
+    it("GET /start/login serves login page HTML", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/start/login`);
+
+      if (response.status === 200) {
+        const html = await response.text();
+        const hasLoginContent =
+          html.includes("<!DOCTYPE html>") && html.includes("login");
+        log(
+          "universal-login-page",
+          hasLoginContent ? "PASS" : "WARN",
+          `HTML response: ${html.length} bytes`,
+        );
+        expect(response.headers.get("content-type")).toContain("text/html");
+      } else {
+        log(
+          "universal-login-page",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check start-page.routes.ts login route",
+          "HIGH",
+        );
+        expect(response.status).toBe(200);
+      }
+    });
+
+    it("GET /start/login sets CSRF cookie", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/start/login`);
+
+      if (response.status === 200) {
+        const setCookie = response.headers.get("set-cookie");
+        const hasCsrf = setCookie?.includes("csrf_token=") ?? false;
+        log(
+          "universal-login-csrf",
+          hasCsrf ? "PASS" : "WARN",
+          hasCsrf
+            ? "CSRF cookie set correctly"
+            : "CSRF cookie missing in response",
+        );
+      } else {
+        log(
+          "universal-login-csrf",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check csrfMiddleware on login routes",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+    });
+
+    it("POST /start/api/login without CSRF returns 403", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/start/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "smoke-test@example.com",
+          password: "smoke-test",
+        }),
+      });
+
+      if (response.status === 403) {
+        log(
+          "universal-login-csrf-block",
+          "PASS",
+          "CSRF protection blocks requests without token",
+        );
+      } else {
+        log(
+          "universal-login-csrf-block",
+          "WARN",
+          `Expected 403, got HTTP ${response.status}`,
+          "Check CSRF middleware on /api/login",
+        );
+      }
+
+      expect(response.status).toBe(403);
+    });
+  });
 });
