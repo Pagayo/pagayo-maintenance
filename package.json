@@ -15,6 +15,7 @@
     "test:quality": "vitest run tests/quality/",
     "test:quality:lint": "vitest run tests/quality/lint.test.ts",
     "test:quality:typecheck": "vitest run tests/quality/typecheck.test.ts",
+    "test:quality:deps": "vitest run tests/quality/dependency-sync.test.ts",
     "test:all": "vitest run",
     "test:precommit": "vitest run tests/quality/",
     "health": "./scripts/health-check.sh",
