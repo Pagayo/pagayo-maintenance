@@ -558,4 +558,53 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(403);
     });
   });
+
+  // ============================================================================
+  // SUBSCRIPTION ENDPOINTS
+  // ============================================================================
+  describe("Subscription API", () => {
+    it("GET /api/admin/subscriptions returns 401 without auth", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/subscriptions`);
+      log(
+        "admin-subscriptions-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("GET /api/subscription returns 401 without auth", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/subscription`);
+      log(
+        "customer-subscriptions-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("GET /api/admin/subscriptions/lookup without code returns 400", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/lookup`,
+      );
+      log(
+        "admin-subscription-lookup-no-code",
+        response.status === 400 || response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([400, 401]).toContain(response.status);
+    });
+
+    it("GET /api/internal/active-tenants requires secret", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/internal/active-tenants`,
+      );
+      log(
+        "internal-active-tenants-no-secret",
+        response.status === 401 || response.status === 403 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+  });
 });
