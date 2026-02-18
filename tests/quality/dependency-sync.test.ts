@@ -51,15 +51,15 @@ const SYNCED_DEPENDENCIES: Array<{
     field: "devDependencies",
   },
   {
-    // NOTE: pagayo-workflows excluded - needs vitest ^3.2.0 for
+    // NOTE: pagayo-workflows AND pagayo-edge excluded - need vitest ~3.2.x for
     // @cloudflare/vitest-pool-workers compatibility (doesn't support 4.x)
     package: "vitest",
     repos: [
       "pagayo-beheer",
       "pagayo-storefront",
       "pagayo-api-stack",
-      "pagayo-edge",
-      // "pagayo-workflows", // Uses ^3.2.0 for Cloudflare Workers pool
+      // "pagayo-edge",       // Uses ~3.2.4 for Cloudflare Workers pool
+      // "pagayo-workflows",  // Uses ^3.2.0 for Cloudflare Workers pool
       "pagayo-config",
     ],
     field: "devDependencies",

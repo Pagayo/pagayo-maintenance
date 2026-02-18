@@ -10,12 +10,20 @@
     "test:smoke:all": "./scripts/run-all-smoke-tests.sh",
     "test:integration": "vitest run tests/integration/",
     "test:security": "vitest run tests/security/",
+    "test:security:tenant": "vitest run tests/security/tenant-isolation.test.ts",
+    "test:security:csrf": "vitest run tests/security/csrf-bypass.test.ts",
+    "test:security:webhook": "vitest run tests/security/webhook-replay.test.ts",
+    "test:security:ratelimit": "vitest run tests/security/rate-limit-behavior.test.ts",
+    "test:security:checkout-fuzz": "vitest run tests/security/checkout-fuzz.test.ts",
+    "test:security:payment-fuzz": "vitest run tests/security/payment-fuzz.test.ts",
     "test:contracts": "vitest run tests/contracts/",
     "test:performance": "vitest run tests/performance/",
     "test:quality": "vitest run tests/quality/",
     "test:quality:lint": "vitest run tests/quality/lint.test.ts",
     "test:quality:typecheck": "vitest run tests/quality/typecheck.test.ts",
     "test:quality:deps": "vitest run tests/quality/dependency-sync.test.ts",
+    "test:quality:units": "vitest run tests/quality/unit-tests.test.ts",
+    "test:units": "./scripts/run-all-unit-tests.sh",
     "test:all": "vitest run",
     "test:precommit": "vitest run tests/quality/",
     "health": "./scripts/health-check.sh",
@@ -26,5 +34,8 @@
     "@neondatabase/serverless": "^1.0.2",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

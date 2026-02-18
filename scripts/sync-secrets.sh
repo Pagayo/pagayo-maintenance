@@ -43,13 +43,22 @@ get_workers_for_secret() {
         WORKFLOW_API_KEY)
             echo "pagayo-beheer:production pagayo-beheer:staging"
             ;;
+        AWS_SES_ACCESS_KEY)
+            echo "pagayo-api-stack:production pagayo-api-stack:staging pagayo-storefront:production pagayo-storefront:staging pagayo-beheer:production pagayo-beheer:staging"
+            ;;
+        AWS_SES_SECRET_KEY)
+            echo "pagayo-api-stack:production pagayo-api-stack:staging pagayo-storefront:production pagayo-storefront:staging pagayo-beheer:production pagayo-beheer:staging"
+            ;;
+        AWS_SES_REGION)
+            echo "pagayo-api-stack:production pagayo-api-stack:staging pagayo-storefront:production pagayo-storefront:staging pagayo-beheer:production pagayo-beheer:staging"
+            ;;
         *)
             echo ""
             ;;
     esac
 }
 
-ALL_SECRETS="DATABASE_URL DATABASE_URL_STOREFRONT DATABASE_URL_API EDGE_SECRET ADMIN_SECRET PROVISIONING_API_KEY WORKFLOW_API_KEY"
+ALL_SECRETS="DATABASE_URL DATABASE_URL_STOREFRONT DATABASE_URL_API EDGE_SECRET ADMIN_SECRET PROVISIONING_API_KEY WORKFLOW_API_KEY AWS_SES_ACCESS_KEY AWS_SES_SECRET_KEY AWS_SES_REGION"
 
 # Colors
 RED='\033[0;31m'
