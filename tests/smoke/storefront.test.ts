@@ -78,15 +78,26 @@ describe("Storefront Service - Smoke Tests", () => {
 
     it("Products API returns data", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/products`);
+      const body = await response.text();
 
       if (response.status === 200) {
         log("products-api", "PASS", "Products endpoint working");
       } else {
+        // Parse error body for diagnostics
+        let errorDetail = `HTTP ${response.status}`;
+        try {
+          const parsed = JSON.parse(body);
+          errorDetail += ` — ${parsed.message || parsed.error || "unknown"}`;
+          if (parsed.debug) errorDetail += ` (debug: ${parsed.debug})`;
+        } catch {
+          errorDetail += ` — ${body.slice(0, 200)}`;
+        }
+
         log(
           "products-api",
           "FAIL",
-          `HTTP ${response.status}`,
-          "Check Worker logs for SQL errors",
+          errorDetail,
+          "Check Worker logs: wrangler tail pagayo-storefront. Likely DB query error (salesContexts column or join).",
           "HIGH",
         );
       }
@@ -593,6 +604,67 @@ describe("Storefront Service - Smoke Tests", () => {
         `Status: ${response.status}`,
       );
       expect([400, 401]).toContain(response.status);
+    });
+
+    it("POST /api/admin/subscriptions/scan without auth returns 401 or 403", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/scan`,
+        { method: "POST" },
+      );
+      log(
+        "admin-subscription-scan-no-auth",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("GET /api/admin/subscriptions/visits/today without auth returns 401", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/visits/today`,
+      );
+      log(
+        "admin-subscription-visits-today-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("GET /api/admin/subscriptions/visits/feed without auth returns 401", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/visits/feed`,
+      );
+      log(
+        "admin-subscription-visits-feed-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("GET /api/admin/subscriptions/holders without auth returns 401", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/holders`,
+      );
+      log(
+        "admin-subscription-holders-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("GET /api/admin/subscriptions/holders/:holderId without auth returns 401", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/holders/sub_1`,
+      );
+      log(
+        "admin-subscription-holder-detail-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
     });
 
     it("GET /api/internal/active-tenants requires secret", async () => {

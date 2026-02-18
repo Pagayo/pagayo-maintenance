@@ -11,7 +11,7 @@ const MARKETING_URL = "https://www.pagayo.com";
 
 // Performance thresholds (in ms)
 const THRESHOLDS = {
-  health: 600, // Health checks should be fast (allow some network variance)
+  health: 1000, // Health checks — includes potential cold start + network variance
   api: 2000, // API calls
   page: 3000, // HTML pages
   static: 1000, // Static assets

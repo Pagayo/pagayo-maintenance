@@ -33,6 +33,7 @@ describe("Code Quality - ESLint", () => {
   for (const repo of REPOS_WITH_LINT) {
     it(
       `${repo} passes ESLint (0 errors)`,
+      { timeout: 180000 },
       async () => {
         const repoPath = `${WORKSPACE_ROOT}/${repo}`;
 
@@ -104,7 +105,7 @@ describe("Code Quality - ESLint", () => {
           );
         }
       },
-      { timeout: 180000 },
+
     ); // 3 min timeout per repo
   }
 });

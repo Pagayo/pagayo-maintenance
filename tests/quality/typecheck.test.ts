@@ -32,6 +32,7 @@ describe("Code Quality - TypeScript", () => {
   for (const repo of REPOS_WITH_TYPESCRIPT) {
     it(
       `${repo} passes TypeScript check (0 errors)`,
+      { timeout: 240000 },
       async () => {
         const repoPath = `${WORKSPACE_ROOT}/${repo}`;
 
@@ -80,7 +81,7 @@ describe("Code Quality - TypeScript", () => {
           );
         }
       },
-      { timeout: 240000 },
+
     ); // 4 min timeout per repo
   }
 });
