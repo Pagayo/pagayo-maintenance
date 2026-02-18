@@ -4,11 +4,11 @@ Centrale plek voor alle onderhoud, monitoring en testing van het Pagayo platform
 
 ---
 
-## � Huidige Status (102 tests)
+## 🧪 Huidige Status (121 tests)
 
 | Test Type | Count | Status |
 |-----------|-------|--------|
-| Smoke | 51 | ✅ All Pass |
+| Smoke | 70 | ✅ All Pass |
 | Security | 14 | ✅ All Pass |
 | Integration | 6 | ✅ All Pass |
 | Contracts | 8 | ✅ All Pass |
@@ -31,6 +31,7 @@ pagayo-maintenance/
 │   └── sync-secrets.sh         # Secrets naar Workers
 ├── tests/
 │   ├── smoke/                  # Productie endpoint tests
+│   │   ├── header-compliance.test.ts  # ⚠️ POST-DEPLOY: CORS, CORP, Cache, middleware leaks
 │   │   ├── beheer.test.ts      # beheer.pagayo.com
 │   │   ├── storefront.test.ts  # test-3.pagayo.app
 │   │   ├── api-stack.test.ts   # api.pagayo.com
@@ -39,6 +40,7 @@ pagayo-maintenance/
 │   ├── integration/            # Cross-service tests
 │   ├── security/               # Security validatie
 │   ├── contracts/              # API schema tests
+│   ├── quality/                # ESLint + TypeScript checks
 │   └── performance/            # Response time tests
 └── utils/
     └── test-reporter.ts        # AI-readable output
@@ -66,7 +68,8 @@ npm run test        # Alle tests
 
 ### Per Categorie
 ```bash
-npm run test:smoke        # Smoke tests (51 tests)
+npm run test:smoke        # Smoke tests (70 tests)
+npm run test:smoke:headers # Post-deploy header compliance (19 tests)
 npm run test:security     # Security tests (14 tests)
 npm run test:integration  # Cross-service tests (6 tests)
 npm run test:contracts    # API schema tests (8 tests)
@@ -103,9 +106,11 @@ Alle tests genereren gestructureerde output voor AI agents:
 | Test Type | Wat het test | Detecteert |
 |-----------|--------------|------------|
 | **Smoke** | Productie endpoints | Worker crashes, 500 errors |
+| **Header Compliance** | HTTP headers op productie | CORS dubbel, CORP blocking, cache mis, auth leaks, asset failures |
 | **Security** | Auth, Cloudflare Access | 403 blocks, auth bypass |
 | **Integration** | Cross-service flows | Service bindings, RPC issues |
 | **Contracts** | API response schemas | Breaking changes |
+| **Quality** | ESLint, TypeScript | Code kwaliteit platform-breed |
 | **Performance** | Response times | Slow endpoints, cold starts |
 
 ---
@@ -127,6 +132,7 @@ Alle tests genereren gestructureerde output voor AI agents:
 | Frequentie | Actie | Commando |
 |------------|-------|----------|
 | **Dagelijks** | Quick health check | `./scripts/health-check.sh --quick` |
+| **Na elke deploy** | Header compliance check | `npm run test:smoke:headers` |
 | **Wekelijks** | Volledige test suite | `npm run test:all` |
 | **Wekelijks** | Dependabot PRs reviewen | Vraag Copilot |
 | **Maandelijks** | Security audit | `npm run test:security` |

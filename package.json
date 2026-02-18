@@ -7,6 +7,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:smoke": "vitest run tests/smoke/",
+    "test:smoke:headers": "vitest run tests/smoke/header-compliance.test.ts",
     "test:smoke:all": "./scripts/run-all-smoke-tests.sh",
     "test:integration": "vitest run tests/integration/",
     "test:security": "vitest run tests/security/",
