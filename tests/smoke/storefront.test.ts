@@ -361,26 +361,6 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect([401, 403]).toContain(response.status);
     });
-
-    it("GET /api/admin/integrations/stripe/connect/status requires auth", async () => {
-      const response = await fetch(
-        `${STOREFRONT_URL}/api/admin/integrations/stripe/connect/status`,
-      );
-
-      if ([401, 403].includes(response.status)) {
-        log("integrations-stripe", "PASS", "Properly protected");
-      } else if (response.status >= 500) {
-        log(
-          "integrations-stripe",
-          "FAIL",
-          `Server error: HTTP ${response.status}`,
-          "Check admin-integrations routes",
-          "HIGH",
-        );
-      }
-
-      expect([401, 403]).toContain(response.status);
-    });
   });
 
   describe("Anonymous Onboarding Routes", () => {
@@ -676,6 +656,62 @@ describe("Storefront Service - Smoke Tests", () => {
         response.status === 401 || response.status === 403 ? "PASS" : "FAIL",
         `Status: ${response.status}`,
       );
+      expect([401, 403]).toContain(response.status);
+    });
+  });
+
+  describe("Stripe Connect Integration", () => {
+    it("GET /api/admin/integrations/stripe/connect/status requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/stripe/connect/status`,
+      );
+      log(
+        "stripe-connect-status-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("POST /api/admin/integrations/stripe/connect/start requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/stripe/connect/start`,
+        { method: "POST" },
+      );
+      log(
+        "stripe-connect-start-no-auth",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      // 403 = CSRF middleware rejects before auth, 401 = auth rejects
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("POST /api/admin/integrations/stripe/connect/disconnect requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/stripe/connect/disconnect`,
+        { method: "POST" },
+      );
+      log(
+        "stripe-connect-disconnect-no-auth",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      // 403 = CSRF middleware rejects before auth, 401 = auth rejects
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("POST /api/admin/integrations/stripe/test requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/stripe/test`,
+        { method: "POST" },
+      );
+      log(
+        "stripe-test-no-auth",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      // 403 = CSRF middleware rejects before auth, 401 = auth rejects
       expect([401, 403]).toContain(response.status);
     });
   });

@@ -1,0 +1,95 @@
+# =============================================================================
+# Pagayo Platform Smoke Tests — Geautomatiseerd
+# =============================================================================
+# Draait alle smoke tests tegen productie elke 6 uur.
+# Tests maken live HTTP calls naar:
+#   - beheer.pagayo.com
+#   - test-3.pagayo.app (storefront)
+#   - api.pagayo.com
+#   - www.pagayo.com
+#
+# Manueel triggeren: Actions → "Platform Smoke Tests" → Run workflow
+# =============================================================================
+
+name: Platform Smoke Tests
+
+on:
+  schedule:
+    # Elke 6 uur: 00:00, 06:00, 12:00, 18:00 UTC
+    - cron: "0 0,6,12,18 * * *"
+
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Welke test suite draaien?"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - beheer
+          - storefront
+          - api-stack
+          - marketing
+          - infrastructure
+          - headers
+
+concurrency:
+  group: smoke-tests
+  cancel-in-progress: true
+
+jobs:
+  smoke-tests:
+    name: "Smoke Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run smoke tests (all)
+        if: ${{ github.event_name == 'schedule' || inputs.suite == 'all' }}
+        run: npm run test:smoke
+        env:
+          CI: true
+
+      - name: Run smoke tests (specifieke suite)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.suite != 'all' }}
+        run: npx vitest run tests/smoke/${{ inputs.suite }}.test.ts
+        env:
+          CI: true
+
+  header-compliance:
+    name: "Header Compliance"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Headers apart — dit is een zwaardere test suite
+    if: ${{ github.event_name == 'schedule' || inputs.suite == 'all' || inputs.suite == 'headers' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run header compliance tests
+        run: npm run test:smoke:headers
+        env:
+          CI: true
