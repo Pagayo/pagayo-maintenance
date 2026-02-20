@@ -213,6 +213,26 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect([401, 403]).toContain(response.status);
     });
+
+    it("Cache version endpoint requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/cache-version`,
+      );
+
+      if ([401, 403].includes(response.status)) {
+        log("cache-version", "PASS", "Properly protected");
+      } else if (response.status >= 500) {
+        log(
+          "cache-version",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check cache-version route or response-cache lib",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
   });
 
   describe("Cart & Checkout", () => {
