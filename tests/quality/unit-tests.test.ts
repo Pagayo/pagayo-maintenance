@@ -65,7 +65,7 @@ const REPOS_WITH_TESTS: Array<{
   {
     name: "pagayo-config",
     command: "npx vitest run",
-    minTests: 1,
+    minTests: 450,
   },
   {
     name: "pagayo-schema",

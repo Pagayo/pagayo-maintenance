@@ -111,9 +111,19 @@ describe('Security - Session Handling', () => {
     
     // If a cookie is set, it should be secure
     if (setCookie) {
-      expect(setCookie.toLowerCase()).toContain('secure');
-      expect(setCookie.toLowerCase()).toContain('httponly');
-      expect(setCookie.toLowerCase()).toMatch(/samesite=(strict|lax)/i);
+      const cookies = setCookie.toLowerCase().split(',').map(c => c.trim());
+
+      // Check each cookie individually
+      for (const cookie of cookies) {
+        expect(cookie).toContain('secure');
+        expect(cookie).toMatch(/samesite=(strict|lax)/i);
+
+        // csrf_token is bewust NIET httpOnly (Double-Submit Cookie pattern:
+        // JavaScript moet het cookie lezen om als header mee te sturen)
+        if (!cookie.startsWith('csrf_token=')) {
+          expect(cookie).toContain('httponly');
+        }
+      }
     }
   });
 });
