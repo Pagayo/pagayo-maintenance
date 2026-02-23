@@ -17,8 +17,7 @@
  * @module tests/security/rate-limit-behavior
  */
 
-const BEHEER_URL = "https://beheer.pagayo.com";
-const STOREFRONT_URL = "https://test-3.pagayo.app";
+import { BEHEER_URL, STOREFRONT_URL } from "../utils/test-config";
 
 describe("Security - Rate Limiting Behavior", () => {
   // ==============================

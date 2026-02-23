@@ -7,8 +7,7 @@
  * Dit zijn de tests die het hele platform als geheel valideren.
  */
 
-const BEHEER_URL = "https://beheer.pagayo.com";
-const STOREFRONT_URL = "https://test-3.pagayo.app";
+import { BEHEER_URL, STOREFRONT_URL } from "../utils/test-config";
 
 describe("Cross-Service Integration - Registration Flow", () => {
   it("should validate registration endpoint returns workflow ID", async () => {

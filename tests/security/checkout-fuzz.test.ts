@@ -21,9 +21,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-
-const STOREFRONT_URL =
-  process.env.STOREFRONT_URL || "https://test-3.pagayo.app";
+import { STOREFRONT_URL } from "../utils/test-config";
 
 /**
  * Helper: POST JSON to checkout endpoint
@@ -124,8 +122,8 @@ describe("Checkout Endpoint Fuzz Tests", () => {
       "'; DROP TABLE orders; --",
       "1 OR 1=1",
       "1; SELECT * FROM users",
-      "' UNION SELECT * FROM \"User\" --",
-      "Robert'); DROP TABLE \"Order\";--",
+      '\' UNION SELECT * FROM "User" --',
+      'Robert\'); DROP TABLE "Order";--',
     ];
 
     it.each(sqlPayloads)(

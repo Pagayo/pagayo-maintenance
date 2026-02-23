@@ -13,8 +13,7 @@
  */
 
 import { logTestResult, type TestResult } from "../utils/test-reporter";
-
-const STOREFRONT_URL = "https://test-3.pagayo.app";
+import { STOREFRONT_URL } from "../utils/test-config";
 
 function log(
   test: string,
@@ -215,9 +214,7 @@ describe("Storefront Service - Smoke Tests", () => {
     });
 
     it("Cache version endpoint requires auth", async () => {
-      const response = await fetch(
-        `${STOREFRONT_URL}/api/admin/cache-version`,
-      );
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/cache-version`);
 
       if ([401, 403].includes(response.status)) {
         log("cache-version", "PASS", "Properly protected");

@@ -13,7 +13,7 @@
  * @module tests/security/tenant-isolation
  */
 
-const STOREFRONT_URL = "https://test-3.pagayo.app";
+import { STOREFRONT_URL } from "../utils/test-config";
 
 describe("Security - Tenant Isolation", () => {
   // ==============================

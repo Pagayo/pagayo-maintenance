@@ -23,8 +23,7 @@
  */
 
 import { logTestResult, type TestResult } from "../utils/test-reporter";
-
-const STOREFRONT_URL = "https://test-3.pagayo.app";
+import { STOREFRONT_URL } from "../utils/test-config";
 
 function log(
   test: string,
@@ -716,11 +715,7 @@ describe("Header Compliance - Edge-First Caching (Pijler 5)", () => {
         );
         expect(cfStatus).not.toBe("BYPASS");
       } else {
-        log(
-          "edge-cf-status-marketing",
-          "PASS",
-          `cf-cache-status: ${cfStatus}`,
-        );
+        log("edge-cf-status-marketing", "PASS", `cf-cache-status: ${cfStatus}`);
       }
     });
 

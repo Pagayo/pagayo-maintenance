@@ -1,0 +1,31 @@
+/**
+ * Gedeelde test configuratie — Single Source of Truth
+ *
+ * Alle service URLs op één plek. Override via environment variables
+ * voor lokale tests of alternatieve test tenants.
+ *
+ * @module tests/utils/test-config
+ */
+
+/** Storefront test tenant URL */
+export const STOREFRONT_URL =
+  process.env.STOREFRONT_TEST_URL ?? "https://test-3.pagayo.app";
+
+/** Beheer (admin) URL */
+export const BEHEER_URL =
+  process.env.BEHEER_TEST_URL ?? "https://beheer.pagayo.com";
+
+/** API Stack URL */
+export const API_URL = process.env.API_TEST_URL ?? "https://api.pagayo.com";
+
+/** Marketing site URL */
+export const MARKETING_URL =
+  process.env.MARKETING_TEST_URL ?? "https://www.pagayo.com";
+
+/** Service domains for infrastructure tests */
+export const SERVICE_DOMAINS = {
+  storefront: new URL(STOREFRONT_URL).hostname,
+  beheer: new URL(BEHEER_URL).hostname,
+  api: new URL(API_URL).hostname,
+  marketing: new URL(MARKETING_URL).hostname,
+} as const;

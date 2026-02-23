@@ -13,28 +13,27 @@
  * @module tests/security/csrf-bypass
  */
 
-const STOREFRONT_URL = 'https://test-3.pagayo.app';
+import { STOREFRONT_URL } from "../utils/test-config";
 
-describe('Security - CSRF Bypass Prevention', () => {
-
+describe("Security - CSRF Bypass Prevention", () => {
   // ==============================
   // Mutation Without CSRF Token
   // ==============================
 
-  describe('Mutations Without CSRF Token', () => {
+  describe("Mutations Without CSRF Token", () => {
     const mutationEndpoints = [
-      { path: '/api/admin/products', method: 'POST' },
-      { path: '/api/admin/orders', method: 'PUT' },
-      { path: '/api/admin/settings', method: 'PATCH' },
+      { path: "/api/admin/products", method: "POST" },
+      { path: "/api/admin/orders", method: "PUT" },
+      { path: "/api/admin/settings", method: "PATCH" },
     ];
 
     test.each(mutationEndpoints)(
-      '$method $path should reject without CSRF token',
+      "$method $path should reject without CSRF token",
       async ({ path, method }) => {
         const response = await fetch(`${STOREFRONT_URL}${path}`, {
           method,
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ test: true }),
         });
@@ -50,7 +49,7 @@ describe('Security - CSRF Bypass Prevention', () => {
   // Path Traversal Bypass Attempts
   // ==============================
 
-  describe('Path Traversal to Bypass CSRF Exemption', () => {
+  describe("Path Traversal to Bypass CSRF Exemption", () => {
     /**
      * The CSRF middleware uses startsWith() for exempt path matching.
      * An attacker might try path traversal to make a non-exempt path
@@ -61,21 +60,21 @@ describe('Security - CSRF Bypass Prevention', () => {
      * but the raw path might match the exempt prefix /api/auth/login
      */
     const traversalPayloads = [
-      '/api/auth/login/../admin/products',
-      '/api/auth/login/../../admin/settings',
-      '/api/checkout/../admin/orders',
-      '/api/auth/register/../admin/customers',
-      '/api/auth/login%2F..%2F..%2Fadmin%2Fproducts',
-      '/api/auth/login/./../../admin/settings',
+      "/api/auth/login/../admin/products",
+      "/api/auth/login/../../admin/settings",
+      "/api/checkout/../admin/orders",
+      "/api/auth/register/../admin/customers",
+      "/api/auth/login%2F..%2F..%2Fadmin%2Fproducts",
+      "/api/auth/login/./../../admin/settings",
     ];
 
     test.each(traversalPayloads)(
-      'should not bypass CSRF via path traversal: %s',
+      "should not bypass CSRF via path traversal: %s",
       async (path) => {
         const response = await fetch(`${STOREFRONT_URL}${path}`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ test: true }),
         });
@@ -92,16 +91,16 @@ describe('Security - CSRF Bypass Prevention', () => {
   // Forged CSRF Token
   // ==============================
 
-  describe('Forged CSRF Token', () => {
-    it('should reject a forged CSRF token', async () => {
+  describe("Forged CSRF Token", () => {
+    it("should reject a forged CSRF token", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/products`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': 'forged-csrf-token-12345',
-          'Cookie': 'csrf_token=different-cookie-token',
+          "Content-Type": "application/json",
+          "X-CSRF-Token": "forged-csrf-token-12345",
+          Cookie: "csrf_token=different-cookie-token",
         },
-        body: JSON.stringify({ name: 'Test Product' }),
+        body: JSON.stringify({ name: "Test Product" }),
       });
 
       // Should reject: cookie token != header token
@@ -109,28 +108,28 @@ describe('Security - CSRF Bypass Prevention', () => {
       expect([401, 403]).toContain(response.status);
     });
 
-    it('should reject CSRF token only in cookie without header', async () => {
+    it("should reject CSRF token only in cookie without header", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/products`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Cookie': 'csrf_token=valid-looking-token',
+          "Content-Type": "application/json",
+          Cookie: "csrf_token=valid-looking-token",
         },
-        body: JSON.stringify({ name: 'Test Product' }),
+        body: JSON.stringify({ name: "Test Product" }),
       });
 
       // Should reject: no X-CSRF-Token header provided
       expect([401, 403]).toContain(response.status);
     });
 
-    it('should reject CSRF token only in header without cookie', async () => {
+    it("should reject CSRF token only in header without cookie", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/products`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': 'header-only-token',
+          "Content-Type": "application/json",
+          "X-CSRF-Token": "header-only-token",
         },
-        body: JSON.stringify({ name: 'Test Product' }),
+        body: JSON.stringify({ name: "Test Product" }),
       });
 
       // Should reject: no csrf_token cookie
@@ -142,12 +141,12 @@ describe('Security - CSRF Bypass Prevention', () => {
   // HTTP Method Override Attempts
   // ==============================
 
-  describe('HTTP Method Override Bypass', () => {
-    it('should not allow X-HTTP-Method-Override to bypass CSRF', async () => {
+  describe("HTTP Method Override Bypass", () => {
+    it("should not allow X-HTTP-Method-Override to bypass CSRF", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/products`, {
-        method: 'GET', // Safe method
+        method: "GET", // Safe method
         headers: {
-          'X-HTTP-Method-Override': 'DELETE', // Trying to override to DELETE
+          "X-HTTP-Method-Override": "DELETE", // Trying to override to DELETE
         },
       });
 
@@ -156,10 +155,13 @@ describe('Security - CSRF Bypass Prevention', () => {
       expect(response.status).not.toBe(500);
     });
 
-    it('should not allow _method query parameter to bypass CSRF', async () => {
-      const response = await fetch(`${STOREFRONT_URL}/api/admin/products?_method=DELETE`, {
-        method: 'GET',
-      });
+    it("should not allow _method query parameter to bypass CSRF", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/products?_method=DELETE`,
+        {
+          method: "GET",
+        },
+      );
 
       // Should not honor _method query parameter
       expect(response.status).not.toBe(500);
@@ -170,26 +172,26 @@ describe('Security - CSRF Bypass Prevention', () => {
   // Content-Type Manipulation
   // ==============================
 
-  describe('Content-Type Manipulation', () => {
-    it('should validate CSRF regardless of content type', async () => {
+  describe("Content-Type Manipulation", () => {
+    it("should validate CSRF regardless of content type", async () => {
       // Some CSRF bypasses exploit non-JSON content types
       const response = await fetch(`${STOREFRONT_URL}/api/admin/products`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'text/plain',
+          "Content-Type": "text/plain",
         },
-        body: 'test=value',
+        body: "test=value",
       });
 
       // Should still require CSRF validation
       expect([401, 403]).toContain(response.status);
     });
 
-    it('should validate CSRF for multipart/form-data', async () => {
+    it("should validate CSRF for multipart/form-data", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/products`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'multipart/form-data; boundary=----boundary',
+          "Content-Type": "multipart/form-data; boundary=----boundary",
         },
         body: '------boundary\r\nContent-Disposition: form-data; name="test"\r\n\r\nvalue\r\n------boundary--',
       });

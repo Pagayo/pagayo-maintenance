@@ -6,8 +6,7 @@
  * ACTIE BIJ FAILURE: Check API code voor schema wijzigingen
  */
 
-const BEHEER_URL = "https://beheer.pagayo.com";
-const STOREFRONT_URL = "https://test-3.pagayo.app";
+import { BEHEER_URL, STOREFRONT_URL } from "../utils/test-config";
 
 // Schema validators
 interface HealthResponse {

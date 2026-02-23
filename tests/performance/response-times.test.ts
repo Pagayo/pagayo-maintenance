@@ -5,9 +5,11 @@
  * These are NOT load tests - they validate baseline performance.
  */
 
-const BEHEER_URL = "https://beheer.pagayo.com";
-const STOREFRONT_URL = "https://test-3.pagayo.app";
-const MARKETING_URL = "https://www.pagayo.com";
+import {
+  BEHEER_URL,
+  STOREFRONT_URL,
+  MARKETING_URL,
+} from "../utils/test-config";
 
 // Performance thresholds (in ms)
 const THRESHOLDS = {
