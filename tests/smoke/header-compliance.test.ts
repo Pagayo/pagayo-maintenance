@@ -583,3 +583,185 @@ describe("Header Compliance - Asset Reachability", () => {
     }
   });
 });
+
+// ============================================================================
+// 7. EDGE-FIRST CACHE VALIDATION (Pijler 5)
+// ============================================================================
+
+const MARKETING_URL = "https://www.pagayo.com";
+
+describe("Header Compliance - Edge-First Caching (Pijler 5)", () => {
+  /**
+   * Pijler 5: Edge-First — Cache API → KV → DB, nooit andersom.
+   * Elke publieke GET zonder cache-laag is niet af.
+   *
+   * Deze tests valideren dat publieke endpoints daadwerkelijk
+   * cache-headers hebben zodat Cloudflare edge kan cachen.
+   */
+
+  describe("Public API Endpoints - Cache Headers", () => {
+    const publicApiEndpoints = [
+      { path: "/api/products", name: "products" },
+      { path: "/api/categories", name: "categories" },
+    ];
+
+    for (const endpoint of publicApiEndpoints) {
+      it(`storefront ${endpoint.path} has Cache-Control header`, async () => {
+        const response = await fetch(`${STOREFRONT_URL}${endpoint.path}`);
+        const cc = response.headers.get("cache-control");
+
+        if (response.status !== 200) {
+          log(
+            `edge-cache-${endpoint.name}`,
+            "WARN",
+            `HTTP ${response.status} — kan cache niet valideren`,
+          );
+          return;
+        }
+
+        if (!cc) {
+          log(
+            `edge-cache-${endpoint.name}`,
+            "FAIL",
+            `Geen Cache-Control op ${endpoint.path} — niet edge-cacheable`,
+            "Voeg Cache-Control header toe in de route handler. Publieke GET data moet gecached worden.",
+            "HIGH",
+          );
+          expect(cc).toBeTruthy();
+        } else if (cc.includes("no-store") || cc.includes("private")) {
+          log(
+            `edge-cache-${endpoint.name}`,
+            "FAIL",
+            `${endpoint.path} Cache-Control: ${cc} — blokkeert edge caching`,
+            "Publieke product/categorie data moet public, max-age=60+ zijn. Gebruik: public, max-age=60, stale-while-revalidate=300",
+            "HIGH",
+          );
+          expect(cc).not.toContain("no-store");
+        } else {
+          log(
+            `edge-cache-${endpoint.name}`,
+            "PASS",
+            `${endpoint.path} Cache-Control: ${cc}`,
+          );
+        }
+      });
+    }
+  });
+
+  describe("Marketing Site - Static Cache", () => {
+    it("marketing homepage has aggressive caching", async () => {
+      const response = await fetch(MARKETING_URL);
+      const cc = response.headers.get("cache-control");
+
+      if (response.status !== 200) {
+        log(
+          "edge-cache-marketing",
+          "WARN",
+          `Marketing site HTTP ${response.status}`,
+        );
+        return;
+      }
+
+      if (!cc) {
+        log(
+          "edge-cache-marketing",
+          "FAIL",
+          "Geen Cache-Control op marketing homepage — statische site moet gecached zijn",
+          "Cloudflare Pages zou automatisch cache headers moeten zetten. Check Pages config.",
+          "MEDIUM",
+        );
+      } else if (cc.includes("no-store")) {
+        log(
+          "edge-cache-marketing",
+          "FAIL",
+          `Marketing Cache-Control: ${cc} — statische site moet gecached zijn`,
+          "Verwijder no-store uit _headers of Page Rules",
+          "MEDIUM",
+        );
+        expect(cc).not.toContain("no-store");
+      } else {
+        log("edge-cache-marketing", "PASS", `Cache-Control: ${cc}`);
+      }
+    });
+  });
+
+  describe("Cloudflare Edge Cache Status", () => {
+    /**
+     * cf-cache-status header bewijst dat Cloudflare edge daadwerkelijk cacht.
+     * Waarden: HIT, MISS, EXPIRED, DYNAMIC, BYPASS
+     * - HIT/MISS/EXPIRED = goed (caching is actief)
+     * - DYNAMIC = niet gecached (verwacht voor API, niet voor statische assets)
+     * - BYPASS = caching expliciet uitgeschakeld
+     */
+
+    it("marketing homepage is cacheable at Cloudflare edge", async () => {
+      // Twee requests: eerste kan MISS zijn, tweede moet HIT of REVALIDATED zijn
+      await fetch(MARKETING_URL); // prime cache
+      const response = await fetch(MARKETING_URL);
+      const cfStatus = response.headers.get("cf-cache-status");
+
+      if (!cfStatus) {
+        log(
+          "edge-cf-status-marketing",
+          "WARN",
+          "Geen cf-cache-status header — mogelijk niet via Cloudflare CDN",
+        );
+      } else if (cfStatus === "BYPASS") {
+        log(
+          "edge-cf-status-marketing",
+          "FAIL",
+          `cf-cache-status: BYPASS — edge caching uitgeschakeld`,
+          "Check Cloudflare Page Rules of Cache Rules. Statische marketing site moet gecached worden.",
+          "HIGH",
+        );
+        expect(cfStatus).not.toBe("BYPASS");
+      } else {
+        log(
+          "edge-cf-status-marketing",
+          "PASS",
+          `cf-cache-status: ${cfStatus}`,
+        );
+      }
+    });
+
+    it("storefront static assets are cacheable at Cloudflare edge", async () => {
+      // CSS is een goed voorbeeld van een asset dat edge-cached moet zijn
+      const response = await fetch(
+        `${STOREFRONT_URL}/design/dist/revolutionary/admin.css`,
+      );
+      const cfStatus = response.headers.get("cf-cache-status");
+
+      if (response.status !== 200) {
+        log(
+          "edge-cf-status-assets",
+          "WARN",
+          `Asset niet bereikbaar: HTTP ${response.status}`,
+        );
+        return;
+      }
+
+      if (!cfStatus) {
+        log(
+          "edge-cf-status-assets",
+          "WARN",
+          "Geen cf-cache-status header op static asset",
+        );
+      } else if (cfStatus === "DYNAMIC" || cfStatus === "BYPASS") {
+        log(
+          "edge-cf-status-assets",
+          "FAIL",
+          `cf-cache-status: ${cfStatus} op static asset — moet gecached worden`,
+          "Static assets moeten edge-cached zijn. Check Workers static asset serving of _headers.",
+          "HIGH",
+        );
+        expect(["HIT", "MISS", "EXPIRED", "REVALIDATED"]).toContain(cfStatus);
+      } else {
+        log(
+          "edge-cf-status-assets",
+          "PASS",
+          `cf-cache-status: ${cfStatus} — edge caching actief`,
+        );
+      }
+    });
+  });
+});

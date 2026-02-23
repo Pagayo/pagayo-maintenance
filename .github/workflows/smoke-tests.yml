@@ -93,3 +93,31 @@ jobs:
         run: npm run test:smoke:headers
         env:
           CI: true
+
+  # =========================================================================
+  # JOB 3: Quality Tests (typecheck, lint, dependency-sync, unit-tests)
+  # =========================================================================
+  quality-tests:
+    name: "Quality Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Draait dagelijks om 06:00 UTC (minder frequent dan smoke — zwaarder)
+    if: ${{ github.event_name == 'schedule' || inputs.suite == 'all' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run quality tests
+        run: npm run test:quality
+        env:
+          CI: true
