@@ -484,6 +484,39 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect([200, 404]).toContain(response.status);
     });
+
+    it("POST /api/anon/claim without body returns 400 (validation)", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/anon/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (response.status === 400) {
+        log(
+          "anon-claim-validation",
+          "PASS",
+          "Returns 400 for empty claim body (Zod validation)",
+        );
+      } else if (response.status >= 500) {
+        log(
+          "anon-claim-validation",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check claim.service.ts + anon-api.routes.ts",
+          "CRITICAL",
+        );
+      } else {
+        log(
+          "anon-claim-validation",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      // 400 = Zod validation rejects, 401 = auth rejects first
+      expect([400, 401]).toContain(response.status);
+    });
   });
 
   describe("Universal Login (start.pagayo.app/login)", () => {
