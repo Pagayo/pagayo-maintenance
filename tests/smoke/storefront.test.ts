@@ -1,14 +1,16 @@
 /**
  * SMOKE TESTS - STOREFRONT SERVICE
  * ============================================================================
- * DOEL: Verificatie dat test-3.pagayo.app (tenant shop) operationeel is
- * PRIORITEIT: CRITICAL - Klant-facing webshop functionaliteit
- * SERVICE: test-3.pagayo.app (tenant schema: tenant_518970)
+ * DOEL: Verificatie dat demo.pagayo.app (storefront Worker) operationeel is
+ * PRIORITEIT: CRITICAL - Worker deployment en routing
+ *
+ * OPMERKING: Er is momenteel geen actieve tenant geconfigureerd.
+ * Tenant-specifieke routes (products, categories, admin) retourneren 404.
+ * Dit is CORRECT gedrag — de Worker draait, maar er is geen tenant DB.
  *
  * ACTIE BIJ FAILURE:
  * - Health faalt → Check Cloudflare Worker status
- * - 500 op products/categories → Neon DB connectie of tenant schema issue
- * - Admin 500 → Worker crash, check logs
+ * - 502/503 → Worker niet gedeployed
  * ============================================================================
  */
 

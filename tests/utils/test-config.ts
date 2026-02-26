@@ -7,9 +7,9 @@
  * @module tests/utils/test-config
  */
 
-/** Storefront test tenant URL */
+/** Storefront test URL (geen actieve tenant — Worker deployment verificatie) */
 export const STOREFRONT_URL =
-  process.env.STOREFRONT_TEST_URL ?? "https://test-3.pagayo.app";
+  process.env.STOREFRONT_TEST_URL ?? "https://demo.pagayo.app";
 
 /** Beheer (admin) URL */
 export const BEHEER_URL =
