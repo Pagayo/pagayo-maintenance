@@ -31,3 +31,21 @@ export const SERVICE_DOMAINS = {
   api: new URL(API_URL).hostname,
   marketing: new URL(MARKETING_URL).hostname,
 } as const;
+
+/**
+ * Auto-detect of de STOREFRONT_URL een actieve, geprovisioneerde tenant heeft.
+ * Probeert de homepage — 200 = tenant actief, 404 "Tenant not found" = geen tenant.
+ *
+ * Gebruik in `beforeAll()` van test suites voor conditionele expectations.
+ * Hiermee werken tests correct in BEIDE scenario's:
+ *   - Geen tenant → Worker deployment verificatie (404 is verwacht)
+ *   - Tenant actief → Volledige functionele verificatie
+ */
+export async function detectTenantActive(): Promise<boolean> {
+  try {
+    const response = await fetch(STOREFRONT_URL);
+    return response.status === 200;
+  } catch {
+    return false;
+  }
+}

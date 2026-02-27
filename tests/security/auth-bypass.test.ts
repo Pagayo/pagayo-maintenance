@@ -81,7 +81,8 @@ describe("Security - Auth Bypass Prevention (Storefront)", () => {
         method: endpoint.method,
       });
 
-      expect([401, 403]).toContain(response.status);
+      // 401/403 = auth rejects, 404 = tenant resolution rejects (no provisioned tenant)
+      expect([401, 403, 404]).toContain(response.status);
     },
   );
 });

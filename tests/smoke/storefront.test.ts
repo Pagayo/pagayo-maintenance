@@ -1,21 +1,23 @@
 /**
  * SMOKE TESTS - STOREFRONT SERVICE
  * ============================================================================
- * DOEL: Verificatie dat demo.pagayo.app (storefront Worker) operationeel is
+ * DOEL: Verificatie dat de storefront Worker operationeel is
  * PRIORITEIT: CRITICAL - Worker deployment en routing
  *
- * OPMERKING: Er is momenteel geen actieve tenant geconfigureerd.
- * Tenant-specifieke routes (products, categories, admin) retourneren 404.
- * Dit is CORRECT gedrag — de Worker draait, maar er is geen tenant DB.
+ * TENANT DETECTION:
+ * Tests detecteren automatisch of een tenant geprovisioned is.
+ * - Tenant actief → volledige functionele verificatie (200, 401, 403)
+ * - Geen tenant → Worker deployment verificatie (404 "Tenant not found" is verwacht)
  *
  * ACTIE BIJ FAILURE:
  * - Health faalt → Check Cloudflare Worker status
  * - 502/503 → Worker niet gedeployed
+ * - Onverwachte 500 → Check Worker logs
  * ============================================================================
  */
 
 import { logTestResult, type TestResult } from "../utils/test-reporter";
-import { STOREFRONT_URL } from "../utils/test-config";
+import { STOREFRONT_URL, detectTenantActive } from "../utils/test-config";
 
 function log(
   test: string,
@@ -36,6 +38,31 @@ function log(
 }
 
 describe("Storefront Service - Smoke Tests", () => {
+  /** Of de storefront URL een actieve, geprovisioneerde tenant heeft */
+  let tenantActive = false;
+
+  beforeAll(async () => {
+    tenantActive = await detectTenantActive();
+    if (!tenantActive) {
+      console.log(
+        `⚠️  Geen actieve tenant op ${STOREFRONT_URL} — tenant-afhankelijke tests accepteren 404`,
+      );
+    }
+  });
+
+  /**
+   * Guard voor tenant-afhankelijke tests.
+   * Als geen tenant actief en response = 404 → log WARNING en return true (skip assert).
+   * Dit is CORRECT gedrag: de Worker draait, maar tenant resolution retourneert 404.
+   */
+  function skipIfNoTenant(response: Response, testName: string): boolean {
+    if (!tenantActive && response.status === 404) {
+      log(testName, "WARN", `Geen tenant: HTTP 404 (verwacht gedrag)`);
+      return true;
+    }
+    return false;
+  }
+
   describe("Health Endpoints", () => {
     it("API health endpoint returns 200", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/health`);
@@ -61,6 +88,8 @@ describe("Storefront Service - Smoke Tests", () => {
     it("Homepage serves HTML", async () => {
       const response = await fetch(STOREFRONT_URL);
 
+      if (skipIfNoTenant(response, "homepage")) return;
+
       if (response.status === 200) {
         log("homepage", "PASS", "Homepage accessible");
       } else {
@@ -79,6 +108,9 @@ describe("Storefront Service - Smoke Tests", () => {
 
     it("Products API returns data", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/products`);
+
+      if (skipIfNoTenant(response, "products-api")) return;
+
       const body = await response.text();
 
       if (response.status === 200) {
@@ -109,6 +141,8 @@ describe("Storefront Service - Smoke Tests", () => {
 
     it("Categories API returns data", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/categories`);
+
+      if (skipIfNoTenant(response, "categories-api")) return;
 
       if (response.status === 200) {
         log("categories-api", "PASS", "Categories endpoint working");
@@ -156,6 +190,8 @@ describe("Storefront Service - Smoke Tests", () => {
         }),
       });
 
+      if (skipIfNoTenant(response, "login-invalid")) return;
+
       if ([400, 401].includes(response.status)) {
         log(
           "login-invalid",
@@ -200,6 +236,8 @@ describe("Storefront Service - Smoke Tests", () => {
     it("Admin API requires auth", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/orders`);
 
+      if (skipIfNoTenant(response, "admin-orders")) return;
+
       if ([401, 403].includes(response.status)) {
         log("admin-orders", "PASS", "Properly protected");
       } else if (response.status >= 500) {
@@ -217,6 +255,8 @@ describe("Storefront Service - Smoke Tests", () => {
 
     it("Cache version endpoint requires auth", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/cache-version`);
+
+      if (skipIfNoTenant(response, "cache-version")) return;
 
       if ([401, 403].includes(response.status)) {
         log("cache-version", "PASS", "Properly protected");
@@ -258,6 +298,8 @@ describe("Storefront Service - Smoke Tests", () => {
           body: JSON.stringify({ orderIds: [], status: "shipped" }),
         },
       );
+
+      if (skipIfNoTenant(response, "batch-status")) return;
 
       if ([401, 403].includes(response.status)) {
         log("batch-status", "PASS", "Properly protected");
@@ -328,6 +370,8 @@ describe("Storefront Service - Smoke Tests", () => {
     it("GET /api/admin/ai/config requires auth", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/ai/config`);
 
+      if (skipIfNoTenant(response, "ai-config")) return;
+
       if ([401, 403].includes(response.status)) {
         log("ai-config", "PASS", "Properly protected");
       } else if (response.status >= 500) {
@@ -348,6 +392,8 @@ describe("Storefront Service - Smoke Tests", () => {
         `${STOREFRONT_URL}/api/admin/organization/onboarding`,
       );
 
+      if (skipIfNoTenant(response, "organization-onboarding")) return;
+
       if ([401, 403].includes(response.status)) {
         log("organization-onboarding", "PASS", "Properly protected");
       } else if (response.status >= 500) {
@@ -365,6 +411,8 @@ describe("Storefront Service - Smoke Tests", () => {
 
     it("GET /api/admin/roles-ui requires auth", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/roles-ui`);
+
+      if (skipIfNoTenant(response, "roles-ui")) return;
 
       if ([401, 403].includes(response.status)) {
         log("roles-ui", "PASS", "Properly protected");
@@ -608,6 +656,7 @@ describe("Storefront Service - Smoke Tests", () => {
   describe("Subscription API", () => {
     it("GET /api/admin/subscriptions returns 401 without auth", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/admin/subscriptions`);
+      if (skipIfNoTenant(response, "admin-subscriptions-no-auth")) return;
       log(
         "admin-subscriptions-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -618,6 +667,7 @@ describe("Storefront Service - Smoke Tests", () => {
 
     it("GET /api/subscription returns 401 without auth", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/subscription`);
+      if (skipIfNoTenant(response, "customer-subscriptions-no-auth")) return;
       log(
         "customer-subscriptions-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -630,6 +680,7 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/lookup`,
       );
+      if (skipIfNoTenant(response, "admin-subscription-lookup-no-code")) return;
       log(
         "admin-subscription-lookup-no-code",
         response.status === 400 || response.status === 401 ? "PASS" : "FAIL",
@@ -643,6 +694,7 @@ describe("Storefront Service - Smoke Tests", () => {
         `${STOREFRONT_URL}/api/admin/subscriptions/scan`,
         { method: "POST" },
       );
+      if (skipIfNoTenant(response, "admin-subscription-scan-no-auth")) return;
       log(
         "admin-subscription-scan-no-auth",
         [401, 403].includes(response.status) ? "PASS" : "FAIL",
@@ -655,6 +707,7 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/visits/today`,
       );
+      if (skipIfNoTenant(response, "admin-subscription-visits-today-no-auth")) return;
       log(
         "admin-subscription-visits-today-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -667,6 +720,7 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/visits/feed`,
       );
+      if (skipIfNoTenant(response, "admin-subscription-visits-feed-no-auth")) return;
       log(
         "admin-subscription-visits-feed-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -679,6 +733,7 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/holders`,
       );
+      if (skipIfNoTenant(response, "admin-subscription-holders-no-auth")) return;
       log(
         "admin-subscription-holders-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -691,6 +746,7 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/holders/sub_1`,
       );
+      if (skipIfNoTenant(response, "admin-subscription-holder-detail-no-auth")) return;
       log(
         "admin-subscription-holder-detail-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -717,6 +773,7 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/integrations/stripe/connect/status`,
       );
+      if (skipIfNoTenant(response, "stripe-connect-status-no-auth")) return;
       log(
         "stripe-connect-status-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -730,6 +787,7 @@ describe("Storefront Service - Smoke Tests", () => {
         `${STOREFRONT_URL}/api/admin/integrations/stripe/connect/start`,
         { method: "POST" },
       );
+      if (skipIfNoTenant(response, "stripe-connect-start-no-auth")) return;
       log(
         "stripe-connect-start-no-auth",
         [401, 403].includes(response.status) ? "PASS" : "FAIL",
@@ -744,6 +802,7 @@ describe("Storefront Service - Smoke Tests", () => {
         `${STOREFRONT_URL}/api/admin/integrations/stripe/connect/disconnect`,
         { method: "POST" },
       );
+      if (skipIfNoTenant(response, "stripe-connect-disconnect-no-auth")) return;
       log(
         "stripe-connect-disconnect-no-auth",
         [401, 403].includes(response.status) ? "PASS" : "FAIL",
@@ -758,6 +817,7 @@ describe("Storefront Service - Smoke Tests", () => {
         `${STOREFRONT_URL}/api/admin/integrations/stripe/test`,
         { method: "POST" },
       );
+      if (skipIfNoTenant(response, "stripe-test-no-auth")) return;
       log(
         "stripe-test-no-auth",
         [401, 403].includes(response.status) ? "PASS" : "FAIL",
