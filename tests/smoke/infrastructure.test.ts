@@ -18,11 +18,15 @@ import { logTestResult, type TestResult } from "../utils/test-reporter";
 import { SERVICE_DOMAINS } from "../utils/test-config";
 
 const DOMAINS = {
-  beheer: "beheer.pagayo.com",
-  app: "app.pagayo.com",
   api: "api.pagayo.com",
   www: "www.pagayo.com",
   storefront: SERVICE_DOMAINS.storefront,
+};
+
+/** Legacy domains — verwacht 301 redirect naar www.pagayo.com */
+const LEGACY_DOMAINS = {
+  beheer: "beheer.pagayo.com",
+  app: "app.pagayo.com",
 };
 
 function log(
@@ -162,29 +166,6 @@ describe("Infrastructure - HTTPS Reachability", () => {
 });
 
 describe("Infrastructure - Cloudflare Headers", () => {
-  it("beheer.pagayo.com has CF headers", async () => {
-    const response = await fetch(`https://${DOMAINS.beheer}/api/health`);
-    const hasCF = response.headers.has("cf-ray");
-
-    if (hasCF) {
-      log(
-        "cf-headers-beheer",
-        "PASS",
-        `cf-ray: ${response.headers.get("cf-ray")}`,
-      );
-    } else {
-      log(
-        "cf-headers-beheer",
-        "FAIL",
-        "Missing cf-ray header",
-        "Check Cloudflare proxy status (orange cloud)",
-        "HIGH",
-      );
-    }
-
-    expect(hasCF).toBe(true);
-  });
-
   it("www.pagayo.com has CF headers", async () => {
     const response = await fetch(`https://${DOMAINS.www}`);
     const hasCF = response.headers.has("cf-ray");
@@ -207,45 +188,55 @@ describe("Infrastructure - Cloudflare Headers", () => {
 
     expect(hasCF).toBe(true);
   });
+
+  it("api.pagayo.com has CF headers", async () => {
+    const response = await fetch(`https://${DOMAINS.api}/health`);
+    const hasCF = response.headers.has("cf-ray");
+
+    if (hasCF) {
+      log(
+        "cf-headers-api",
+        "PASS",
+        `cf-ray: ${response.headers.get("cf-ray")}`,
+      );
+    } else {
+      log(
+        "cf-headers-api",
+        "FAIL",
+        "Missing cf-ray header",
+        "Check Cloudflare proxy status",
+        "HIGH",
+      );
+    }
+
+    expect(hasCF).toBe(true);
+  });
 });
 
 describe("Infrastructure - Critical Routing", () => {
-  it("app.pagayo.com routes to Pages", async () => {
-    const response = await fetch(`https://${DOMAINS.app}`);
+  it("Legacy domains redirect to www.pagayo.com (301)", async () => {
+    for (const [name, domain] of Object.entries(LEGACY_DOMAINS)) {
+      const response = await fetch(`https://${domain}`, {
+        redirect: "manual",
+      });
 
-    if (response.status === 200) {
-      log("routing-app", "PASS", "app.pagayo.com → Cloudflare Pages");
-    } else {
-      log(
-        "routing-app",
-        "FAIL",
-        `HTTP ${response.status}`,
-        "Check app.pagayo.com Pages deployment",
-        "CRITICAL",
-      );
+      const location = response.headers.get("location");
+
+      if (response.status === 301 && location === "https://www.pagayo.com") {
+        log("routing-legacy-" + name, "PASS", `${domain} → 301 → www.pagayo.com`);
+      } else {
+        log(
+          "routing-legacy-" + name,
+          "FAIL",
+          `${domain} → ${response.status} (expected 301)`,
+          "Check pagayo-cloudflare-proxy LEGACY_REDIRECT_HOSTS",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(301);
+      expect(location).toBe("https://www.pagayo.com");
     }
-
-    expect(response.status).toBe(200);
-  });
-
-  it("beheer.pagayo.com routes to Worker", async () => {
-    const response = await fetch(`https://${DOMAINS.beheer}/api/health`, {
-      redirect: "follow",
-    });
-
-    if (response.status === 200) {
-      log("routing-beheer", "PASS", "beheer.pagayo.com → Worker");
-    } else {
-      log(
-        "routing-beheer",
-        "FAIL",
-        `HTTP ${response.status}`,
-        "Check Beheer Worker deployment",
-        "CRITICAL",
-      );
-    }
-
-    expect(response.status).toBe(200);
   });
 
   it("*.pagayo.app routes to Storefront Worker", async () => {

@@ -11,7 +11,10 @@
 export const STOREFRONT_URL =
   process.env.STOREFRONT_TEST_URL ?? "https://demo.pagayo.app";
 
-/** Beheer (admin) URL */
+/**
+ * @deprecated V2: beheer is geabsorbeerd in storefront. Deze URL redirect naar www.pagayo.com.
+ * Wordt nog gebruikt door legacy test suites die gemigreerd moeten worden.
+ */
 export const BEHEER_URL =
   process.env.BEHEER_TEST_URL ?? "https://beheer.pagayo.com";
 
@@ -25,7 +28,6 @@ export const MARKETING_URL =
 /** Service domains for infrastructure tests */
 export const SERVICE_DOMAINS = {
   storefront: new URL(STOREFRONT_URL).hostname,
-  beheer: new URL(BEHEER_URL).hostname,
   api: new URL(API_URL).hostname,
   marketing: new URL(MARKETING_URL).hostname,
 } as const;

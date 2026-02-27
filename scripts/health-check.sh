@@ -119,7 +119,6 @@ check_ssl() {
 check_health_endpoints() {
     print_header "Health Endpoints"
     
-    check_endpoint "beheer.pagayo.com/api/health" "https://beheer.pagayo.com/api/health" 200 true
     check_endpoint "api.pagayo.com/api/health" "https://api.pagayo.com/api/health" 200 true
     check_endpoint "test-3.pagayo.app/api/health" "https://test-3.pagayo.app/api/health" 200 false
     check_endpoint "www.pagayo.com (marketing)" "https://www.pagayo.com" 200 true
@@ -130,56 +129,30 @@ check_health_endpoints() {
 # =============================================================================
 
 check_cloudflare_access() {
-    print_header "Cloudflare Access Bypass Validation"
-    echo "  ${YELLOW}(Moeten 2xx/4xx geven, NIET 403 Access Denied)${NC}"
+    print_header "Legacy Domain Redirects (V2)"
+    echo "  ${YELLOW}(Legacy domeinen moeten 301 → www.pagayo.com geven)${NC}"
     echo ""
     
-    # Public routes die NIET 403 mogen geven
-    # Note: 401 is acceptabel - betekent Cloudflare Access laat het door, Worker vraagt auth
-    local workflow_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://beheer.pagayo.com/api/workflows/provisioning/status/nonexistent" 2>/dev/null || echo "000")
-    if [[ "$workflow_status" == "403" ]]; then
-        echo "${RED}  ✗${NC} /api/workflows blocked by Cloudflare Access! (403)"
-        echo "     → Fix: Create Access bypass application for /api/workflows/*"
-        ((FAILED++))
-    elif [[ "$workflow_status" == "404" || "$workflow_status" == "200" || "$workflow_status" == "401" ]]; then
-        echo "${GREEN}  ✓${NC} /api/workflows accessible ($workflow_status)"
+    # beheer.pagayo.com moet 301 redirecten
+    local beheer_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -L -o /dev/null -w "%{redirect_url}" "https://beheer.pagayo.com" 2>/dev/null || echo "000")
+    local beheer_redirect=$(curl -s -o /dev/null -w "%{redirect_url}" --max-time 10 "https://beheer.pagayo.com" 2>/dev/null || echo "")
+    local beheer_http=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://beheer.pagayo.com" 2>/dev/null || echo "000")
+    if [[ "$beheer_http" == "301" ]]; then
+        echo "${GREEN}  ✓${NC} beheer.pagayo.com → 301 redirect (correct)"
         ((PASSED++))
     else
-        echo "${YELLOW}  ⚠${NC} /api/workflows unexpected status ($workflow_status)"
+        echo "${YELLOW}  ⚠${NC} beheer.pagayo.com → $beheer_http (verwacht 301)"
         ((WARNINGS++))
     fi
     
-    local features_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://beheer.pagayo.com/api/capabilities/features" 2>/dev/null || echo "000")
-    if [[ "$features_status" == "403" ]]; then
-        echo "${RED}  ✗${NC} /api/capabilities/features blocked by Cloudflare Access! (403)"
-        echo "     → Fix: Create Access bypass application"
-        ((FAILED++))
-    elif [[ "$features_status" == "200" ]]; then
-        echo "${GREEN}  ✓${NC} /api/capabilities/features accessible ($features_status)"
+    # app.pagayo.com moet 301 redirecten
+    local app_http=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://app.pagayo.com" 2>/dev/null || echo "000")
+    if [[ "$app_http" == "301" ]]; then
+        echo "${GREEN}  ✓${NC} app.pagayo.com → 301 redirect (correct)"
         ((PASSED++))
     else
-        echo "${YELLOW}  ⚠${NC} /api/capabilities/features unexpected status ($features_status)"
+        echo "${YELLOW}  ⚠${NC} app.pagayo.com → $app_http (verwacht 301)"
         ((WARNINGS++))
-    fi
-    
-    # Register endpoint: moet bereikbaar zijn (niet 403 geblokt door Cloudflare Access)
-    # Stuur minimale body om validation error te krijgen (ipv 500 crash)
-    local register_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST --max-time 10 \
-        -H "Content-Type: application/json" \
-        -d '{}' \
-        "https://beheer.pagayo.com/api/auth/register" 2>/dev/null || echo "000")
-    if [[ "$register_status" == "403" ]]; then
-        echo "${RED}  ✗${NC} /api/auth/register blocked by Cloudflare Access! (403)"
-        ((FAILED++))
-    elif [[ "$register_status" == "400" || "$register_status" == "200" ]]; then
-        echo "${GREEN}  ✓${NC} /api/auth/register accessible ($register_status)"
-        ((PASSED++))
-    elif [[ "$register_status" == "500" ]]; then
-        echo "${YELLOW}  ⚠${NC} /api/auth/register server error ($register_status) - investigate!"
-        ((WARNINGS++))
-    else
-        echo "${GREEN}  ✓${NC} /api/auth/register accessible ($register_status)"
-        ((PASSED++))
     fi
 }
 
@@ -190,11 +163,10 @@ check_cloudflare_access() {
 check_dns_all() {
     print_header "DNS Resolution"
     
-    check_dns "beheer.pagayo.com"
-    check_dns "app.pagayo.com"
     check_dns "api.pagayo.com"
     check_dns "www.pagayo.com"
     check_dns "test-3.pagayo.app"
+    check_dns "beheer.pagayo.com"  # Legacy — moet nog resolven voor redirect
 }
 
 # =============================================================================
@@ -204,7 +176,6 @@ check_dns_all() {
 check_ssl_all() {
     print_header "SSL Certificates"
     
-    check_ssl "beheer.pagayo.com"
     check_ssl "api.pagayo.com"
     check_ssl "www.pagayo.com"
     check_ssl "test-3.pagayo.app"
@@ -217,11 +188,14 @@ check_ssl_all() {
 check_worker_routes() {
     print_header "Worker Routes"
     
-    # app.pagayo.com moet naar Cloudflare Pages routeren
+    # Legacy domains moeten 301 redirecten via proxy
     local app_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://app.pagayo.com" 2>/dev/null || echo "000")
-    if [[ "$app_status" == "200" || "$app_status" == "302" ]]; then
-        echo "${GREEN}  ✓${NC} app.pagayo.com routing OK ($app_status)"
+    if [[ "$app_status" == "301" ]]; then
+        echo "${GREEN}  ✓${NC} app.pagayo.com → 301 redirect (correct V2 behavior)"
         ((PASSED++))
+    elif [[ "$app_status" == "200" || "$app_status" == "302" ]]; then
+        echo "${YELLOW}  ⚠${NC} app.pagayo.com → $app_status (verwacht 301 — beheer Worker nog actief?)"
+        ((WARNINGS++))
     else
         echo "${RED}  ✗${NC} app.pagayo.com routing failed ($app_status)"
         echo "     → Check pagayo-cloudflare-proxy/src/index.js"
@@ -244,7 +218,7 @@ print_summary() {
     
     if [[ $FAILED -gt 0 ]]; then
         echo "${RED}  ⚠️  CRITICAL: $FAILED checks failed!${NC}"
-        echo "     Run smoke tests for details: cd pagayo-beheer && npm run test:smoke"
+        echo "     Run smoke tests for details: cd pagayo-maintenance && npm test"
         return 2
     elif [[ $WARNINGS -gt 0 ]]; then
         echo "${YELLOW}  ⚠️  $WARNINGS warnings - review recommended${NC}"
