@@ -707,7 +707,8 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/visits/today`,
       );
-      if (skipIfNoTenant(response, "admin-subscription-visits-today-no-auth")) return;
+      if (skipIfNoTenant(response, "admin-subscription-visits-today-no-auth"))
+        return;
       log(
         "admin-subscription-visits-today-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -720,7 +721,8 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/visits/feed`,
       );
-      if (skipIfNoTenant(response, "admin-subscription-visits-feed-no-auth")) return;
+      if (skipIfNoTenant(response, "admin-subscription-visits-feed-no-auth"))
+        return;
       log(
         "admin-subscription-visits-feed-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -733,7 +735,8 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/holders`,
       );
-      if (skipIfNoTenant(response, "admin-subscription-holders-no-auth")) return;
+      if (skipIfNoTenant(response, "admin-subscription-holders-no-auth"))
+        return;
       log(
         "admin-subscription-holders-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -746,7 +749,8 @@ describe("Storefront Service - Smoke Tests", () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/holders/sub_1`,
       );
-      if (skipIfNoTenant(response, "admin-subscription-holder-detail-no-auth")) return;
+      if (skipIfNoTenant(response, "admin-subscription-holder-detail-no-auth"))
+        return;
       log(
         "admin-subscription-holder-detail-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
@@ -825,6 +829,98 @@ describe("Storefront Service - Smoke Tests", () => {
       );
       // 403 = CSRF middleware rejects before auth, 401 = auth rejects
       expect([401, 403]).toContain(response.status);
+    });
+  });
+
+  describe("Auth Routes (Phone Support)", () => {
+    it("POST /auth/register with email returns 200 or 400", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: "Test",
+          lastName: "User",
+          identifier: "test@example.com",
+          password: "TestPassword123!",
+        }),
+      });
+      if (skipIfNoTenant(response, "auth-register-email")) return;
+      log(
+        "auth-register-email",
+        response.ok || response.status === 400 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([200, 400]).toContain(response.status);
+    });
+
+    it("POST /auth/register with phone returns 200 or 400", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: "Test",
+          lastName: "User",
+          identifier: "+31612345678",
+          password: "TestPassword123!",
+        }),
+      });
+      if (skipIfNoTenant(response, "auth-register-phone")) return;
+      log(
+        "auth-register-phone",
+        response.ok || response.status === 400 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([200, 400]).toContain(response.status);
+    });
+
+    it("POST /auth/login with email returns 200 or 401", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: "test@example.com",
+          password: "WrongPassword123!",
+        }),
+      });
+      if (skipIfNoTenant(response, "auth-login-email")) return;
+      log(
+        "auth-login-email",
+        response.ok || response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([200, 401]).toContain(response.status);
+    });
+
+    it("POST /auth/login with phone returns 200 or 401", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: "+31612345678",
+          password: "WrongPassword123!",
+        }),
+      });
+      if (skipIfNoTenant(response, "auth-login-phone")) return;
+      log(
+        "auth-login-phone",
+        response.ok || response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([200, 401]).toContain(response.status);
+    });
+
+    it("POST /auth/logout returns 200", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (skipIfNoTenant(response, "auth-logout")) return;
+      log(
+        "auth-logout",
+        response.ok ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.ok).toBe(true);
     });
   });
 });

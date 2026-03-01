@@ -4,7 +4,7 @@
  * DOEL: Verificatie dat www.pagayo.com operationeel is
  * PRIORITEIT: HIGH - Publiek gezicht van Pagayo
  * SERVICE: www.pagayo.com (Cloudflare Pages)
- * 
+ *
  * ACTIE BIJ FAILURE:
  * - 404 op pages → Check Cloudflare Pages deployment
  * - Redirect issues → Check CF DNS / Page Rules
@@ -12,14 +12,20 @@
  * ============================================================================
  */
 
-import { logTestResult, type TestResult } from '../utils/test-reporter';
+import { logTestResult, type TestResult } from "../utils/test-reporter";
 
-const MARKETING_URL = 'https://www.pagayo.com';
+const MARKETING_URL = "https://www.pagayo.com";
 
-function log(test: string, status: TestResult['status'], details: string, action?: string, priority?: TestResult['priority']) {
+function log(
+  test: string,
+  status: TestResult["status"],
+  details: string,
+  action?: string,
+  priority?: TestResult["priority"],
+) {
   logTestResult({
-    category: 'SMOKE',
-    service: 'marketing',
+    category: "SMOKE",
+    service: "marketing",
     test,
     status,
     details,
@@ -28,131 +34,142 @@ function log(test: string, status: TestResult['status'], details: string, action
   });
 }
 
-describe('Marketing Website - Smoke Tests', () => {
-  describe('Core Pages', () => {
-    it('Homepage returns 200', async () => {
+describe("Marketing Website - Smoke Tests", () => {
+  describe("Core Pages", () => {
+    it("Homepage returns 200", async () => {
       const response = await fetch(MARKETING_URL);
-      
+
       if (response.status === 200) {
-        log('homepage', 'PASS', 'Homepage accessible');
+        log("homepage", "PASS", "Homepage accessible");
       } else {
-        log('homepage', 'FAIL', `HTTP ${response.status}`,
-          'Check Cloudflare Pages deployment', 'CRITICAL');
+        log(
+          "homepage",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check Cloudflare Pages deployment",
+          "CRITICAL",
+        );
       }
-      
+
       expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toContain('text/html');
+      expect(response.headers.get("content-type")).toContain("text/html");
     });
 
-    it('Dutch homepage /nl returns 200', async () => {
-      const response = await fetch(`${MARKETING_URL}/nl`);
-      
-      if (response.status === 200) {
-        log('nl-homepage', 'PASS', 'Dutch homepage accessible');
-      } else {
-        log('nl-homepage', 'FAIL', `HTTP ${response.status}`,
-          'Check /nl route in Astro', 'HIGH');
-      }
-      
-      expect(response.status).toBe(200);
-    });
-
-    it('Pricing page /nl/prijzen returns 200', async () => {
-      const response = await fetch(`${MARKETING_URL}/nl/prijzen`);
-      
-      if (response.status === 200) {
-        log('pricing', 'PASS', 'Pricing page accessible');
-      } else {
-        log('pricing', 'FAIL', `HTTP ${response.status}`,
-          'Check pricing page in Astro', 'HIGH');
-      }
-      
-      expect(response.status).toBe(200);
-    });
-
-    it('About page /nl/over-ons returns 200', async () => {
-      const response = await fetch(`${MARKETING_URL}/nl/over-ons`);
-      
-      if (response.status === 200) {
-        log('about', 'PASS', 'About page accessible');
-      } else {
-        log('about', 'FAIL', `HTTP ${response.status}`,
-          'Check about page in Astro', 'MEDIUM');
-      }
-      
-      expect(response.status).toBe(200);
-    });
+    // NOTE: /nl, /nl/prijzen, /nl/over-ons verwijderd uit tests — marketing site
+    // is omgebouwd naar single-page portal. Oude i18n routes bestaan niet meer.
   });
 
-  describe('SEO & Performance', () => {
-    it('robots.txt exists', async () => {
+  describe("SEO & Performance", () => {
+    it("robots.txt exists", async () => {
       const response = await fetch(`${MARKETING_URL}/robots.txt`);
-      
+
       if (response.status === 200) {
-        log('robots', 'PASS', 'robots.txt exists');
+        log("robots", "PASS", "robots.txt exists");
       } else {
-        log('robots', 'FAIL', `HTTP ${response.status}`,
-          'Add robots.txt to Astro public/', 'MEDIUM');
+        log(
+          "robots",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Add robots.txt to Astro public/",
+          "MEDIUM",
+        );
       }
-      
+
       expect(response.status).toBe(200);
     });
 
-    it('sitemap.xml exists', async () => {
-      const response = await fetch(`${MARKETING_URL}/sitemap.xml`);
-      
-      if (response.status === 200) {
-        log('sitemap', 'PASS', 'sitemap.xml exists');
+    it("sitemap exists", async () => {
+      // Astro genereert sitemap-index.xml (zie robots.txt)
+      const indexResp = await fetch(`${MARKETING_URL}/sitemap-index.xml`);
+      const xmlResp = await fetch(`${MARKETING_URL}/sitemap.xml`);
+
+      const found =
+        [200, 301, 302].includes(indexResp.status) ||
+        [200, 301, 302].includes(xmlResp.status);
+
+      if (found) {
+        log(
+          "sitemap",
+          "PASS",
+          `Sitemap gevonden (index: ${indexResp.status}, xml: ${xmlResp.status})`,
+        );
       } else {
-        log('sitemap', 'WARN', `HTTP ${response.status}`,
-          'Check sitemap generation in Astro config');
+        log(
+          "sitemap",
+          "WARN",
+          `Geen sitemap gevonden (index: ${indexResp.status}, xml: ${xmlResp.status})`,
+          "Check sitemap generation in Astro config",
+        );
       }
-      
-      // Sitemap kan ook elders staan
-      expect([200, 301, 302]).toContain(response.status);
+
+      expect(found).toBe(true);
     });
 
-    it('Cache headers present', async () => {
+    it("Cache headers present", async () => {
       const response = await fetch(MARKETING_URL);
-      const hasCache = response.headers.has('cache-control');
-      
+      const cacheControl = response.headers.get("cache-control");
+      const cfCacheStatus = response.headers.get("cf-cache-status");
+      const hasCache = !!(cacheControl || cfCacheStatus);
+
       if (hasCache) {
-        log('cache', 'PASS', `Cache-Control: ${response.headers.get('cache-control')}`);
+        log(
+          "cache",
+          "PASS",
+          `Cache-Control: ${cacheControl ?? "none"}, CF-Cache: ${cfCacheStatus ?? "none"}`,
+        );
       } else {
-        log('cache', 'WARN', 'No cache-control header',
-          'Configure cache in Cloudflare Pages');
+        log(
+          "cache",
+          "WARN",
+          "No cache headers detected",
+          "Configure cache in Cloudflare Pages",
+        );
       }
-      
+
+      // Cloudflare Pages SSR kan zonder cache-control header draaien,
+      // maar CF-Cache-Status of cache-control zou aanwezig moeten zijn
       expect(hasCache).toBe(true);
     });
   });
 
-  describe('Redirects', () => {
-    it('pagayo.com redirects or serves correctly', async () => {
-      const response = await fetch('https://pagayo.com', { redirect: 'manual' });
-      
+  describe("Redirects", () => {
+    it("pagayo.com redirects or serves correctly", async () => {
+      const response = await fetch("https://pagayo.com", {
+        redirect: "manual",
+      });
+
       if ([200, 301, 302, 308].includes(response.status)) {
-        log('apex-redirect', 'PASS', `HTTP ${response.status}`);
+        log("apex-redirect", "PASS", `HTTP ${response.status}`);
       } else {
-        log('apex-redirect', 'FAIL', `HTTP ${response.status}`,
-          'Check CF DNS for apex domain', 'MEDIUM');
+        log(
+          "apex-redirect",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check CF DNS for apex domain",
+          "MEDIUM",
+        );
       }
-      
+
       expect([200, 301, 302, 308]).toContain(response.status);
     });
   });
 
-  describe('Registration Links', () => {
-    it('app.pagayo.com/register works', async () => {
-      const response = await fetch('https://app.pagayo.com/register');
-      
+  describe("Registration Links", () => {
+    it("app.pagayo.com/register works", async () => {
+      const response = await fetch("https://app.pagayo.com/register");
+
       if (response.status === 200) {
-        log('register-link', 'PASS', 'Registration page accessible');
+        log("register-link", "PASS", "Registration page accessible");
       } else {
-        log('register-link', 'FAIL', `HTTP ${response.status}`,
-          'Check app.pagayo.com Pages deployment', 'CRITICAL');
+        log(
+          "register-link",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check app.pagayo.com Pages deployment",
+          "CRITICAL",
+        );
       }
-      
+
       expect(response.status).toBe(200);
     });
   });
