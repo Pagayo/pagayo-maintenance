@@ -153,6 +153,91 @@ describe("Staging Environment - Smoke Tests", () => {
   });
 
   // ========================================================================
+  // STAGING D1 SCHEMA VALIDATIE
+  // ========================================================================
+
+  describe("Staging D1 Schema", () => {
+    const CF_API_TOKEN = process.env.CF_API_TOKEN ?? process.env.CLOUDFLARE_API_TOKEN;
+    const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID ?? "5d4d9b7bcdf6a836c16b19e09d198047";
+    const STAGING_PLATFORM_DB = "627ac04a-72d9-4a96-b793-10c250218f33";
+
+    async function queryD1(dbId: string, sql: string) {
+      if (!CF_API_TOKEN) return null;
+      const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${CF_API_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sql }),
+        },
+      );
+      if (!response.ok) return null;
+      return response.json() as Promise<{ success: boolean; result: Array<{ results: Array<Record<string, unknown>> }> }>;
+    }
+
+    it("Staging Platform DB has organization table with phone column", async () => {
+      if (!CF_API_TOKEN) {
+        log("staging-d1-platform", "SKIP", "CF_API_TOKEN niet gezet", undefined, "HIGH");
+        return;
+      }
+
+      const result = await queryD1(STAGING_PLATFORM_DB, "PRAGMA table_info(organization)");
+      const columns = result?.result?.[0]?.results?.map((r) => r.name as string) ?? [];
+
+      log(
+        "staging-d1-platform-org",
+        columns.includes("phone") ? "PASS" : "FAIL",
+        columns.includes("phone")
+          ? `organization: ${columns.length} columns incl. phone`
+          : `organization: phone column MISSING (columns: ${columns.join(", ")})`,
+        columns.includes("phone") ? undefined : "Run staging D1 migration for platform",
+        "CRITICAL",
+      );
+      expect(columns).toContain("phone");
+    });
+
+    it("Staging Platform DB has tenant table with ownerPhone column", async () => {
+      if (!CF_API_TOKEN) return;
+
+      const result = await queryD1(STAGING_PLATFORM_DB, "PRAGMA table_info(tenant)");
+      const columns = result?.result?.[0]?.results?.map((r) => r.name as string) ?? [];
+
+      log(
+        "staging-d1-platform-tenant",
+        columns.includes("ownerPhone") ? "PASS" : "FAIL",
+        columns.includes("ownerPhone")
+          ? `tenant: ${columns.length} columns incl. ownerPhone`
+          : `tenant: ownerPhone column MISSING`,
+        columns.includes("ownerPhone") ? undefined : "Run migrate-d1.sh staging platform --remote",
+        "CRITICAL",
+      );
+      expect(columns).toContain("ownerPhone");
+    });
+
+    it("Staging Platform DB has _migration_log table", async () => {
+      if (!CF_API_TOKEN) return;
+
+      const result = await queryD1(
+        STAGING_PLATFORM_DB,
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='_migration_log'",
+      );
+      const tables = result?.result?.[0]?.results?.map((r) => r.name as string) ?? [];
+
+      log(
+        "staging-d1-migration-log",
+        tables.includes("_migration_log") ? "PASS" : "WARN",
+        tables.includes("_migration_log")
+          ? "_migration_log exists on staging"
+          : "_migration_log not yet created (will be created on next deploy)",
+      );
+      // Warn only — first deploy hasn't happened yet
+    });
+  });
+
+  // ========================================================================
   // CROSS-SERVICE ISOLATIE
   // ========================================================================
 
