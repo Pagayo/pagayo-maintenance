@@ -22,8 +22,12 @@
 
 import { logTestResult, type TestResult } from "../utils/test-reporter";
 
-const CF_API_TOKEN = process.env.CF_API_TOKEN ?? process.env.CLOUDFLARE_API_TOKEN;
-const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID ?? "5d4d9b7bcdf6a836c16b19e09d198047";
+const CF_API_TOKEN =
+  process.env.CF_API_TOKEN ?? process.env.CLOUDFLARE_API_TOKEN;
+const CF_ACCOUNT_ID =
+  process.env.CF_ACCOUNT_ID ??
+  process.env.CLOUDFLARE_ACCOUNT_ID ??
+  "5d4d9b7bcdf6a836c16b19e09d198047";
 
 // Production D1 database IDs
 const DATABASES = {
@@ -62,7 +66,10 @@ interface D1QueryResult {
 /**
  * Voer een SQL query uit op een D1 database via Cloudflare REST API.
  */
-async function queryD1(databaseId: string, sql: string): Promise<D1QueryResult> {
+async function queryD1(
+  databaseId: string,
+  sql: string,
+): Promise<D1QueryResult> {
   const response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${databaseId}/query`,
     {
@@ -85,7 +92,10 @@ async function queryD1(databaseId: string, sql: string): Promise<D1QueryResult> 
 /**
  * Haal kolomnamen op voor een tabel via PRAGMA table_info.
  */
-async function getTableColumns(databaseId: string, tableName: string): Promise<string[]> {
+async function getTableColumns(
+  databaseId: string,
+  tableName: string,
+): Promise<string[]> {
   const result = await queryD1(databaseId, `PRAGMA table_info(${tableName})`);
   if (!result.success || !result.result?.[0]?.results) {
     return [];
@@ -115,25 +125,57 @@ async function getTableNames(databaseId: string): Promise<string[]> {
 const EXPECTED_SCHEMA = {
   PLATFORM: {
     organization: [
-      "id", "name", "slug", "email", "phone", "status",
-      "tier", "createdAt", "updatedAt",
+      "id",
+      "name",
+      "slug",
+      "email",
+      "phone",
+      "status",
+      "tier",
+      "createdAt",
+      "updatedAt",
     ],
     tenant: [
-      "id", "organizationId", "name", "slug", "ownerEmail",
-      "ownerPhone", "status", "d1DatabaseId", "createdAt",
+      "id",
+      "organizationId",
+      "name",
+      "slug",
+      "ownerEmail",
+      "ownerPhone",
+      "status",
+      "d1DatabaseId",
+      "createdAt",
     ],
     user_directory: [
-      "id", "email", "phone", "tenantId", "tenantSlug",
-      "tenantName", "role", "status",
+      "id",
+      "email",
+      "phone",
+      "tenantId",
+      "tenantSlug",
+      "tenantName",
+      "role",
+      "status",
     ],
-    platform_invoice: ["id", "invoiceNumber", "organizationId", "totalCents", "status"],
-    platform_fee_config: ["id", "name", "tiers", "isDefault"],
+    platform_invoice: [
+      "id",
+      "invoiceNumber",
+      "organizationId",
+      "totalCents",
+      "status",
+    ],
     _migration_log: ["filename", "applied_at", "checksum"],
   },
   TENANT: {
     user: [
-      "id", "firstName", "lastName", "email", "passwordHash",
-      "phone", "phoneVerified", "role", "status",
+      "id",
+      "firstName",
+      "lastName",
+      "email",
+      "passwordHash",
+      "phone",
+      "phoneVerified",
+      "role",
+      "status",
     ],
     order: ["id", "orderNumber", "status", "source", "originator"],
     product: ["id", "name", "slug", "price", "status"],
@@ -159,7 +201,7 @@ describe("D1 Database Schema - Smoke Tests", () => {
     if (!canRunTests) {
       console.warn(
         "⚠️  CF_API_TOKEN niet gezet — D1 schema tests worden overgeslagen.\n" +
-        "   Set CF_API_TOKEN of CLOUDFLARE_API_TOKEN om deze tests te activeren.",
+          "   Set CF_API_TOKEN of CLOUDFLARE_API_TOKEN om deze tests te activeren.",
       );
     }
   });
@@ -199,7 +241,9 @@ describe("D1 Database Schema - Smoke Tests", () => {
       if (!canRunTests) return;
 
       const actualColumns = await getTableColumns(DATABASES.PLATFORM, table);
-      const missingColumns = columns.filter((c: string) => !actualColumns.includes(c));
+      const missingColumns = columns.filter(
+        (c: string) => !actualColumns.includes(c),
+      );
 
       log(
         `platform-${table}-columns`,
@@ -251,7 +295,9 @@ describe("D1 Database Schema - Smoke Tests", () => {
       if (!canRunTests) return;
 
       const actualColumns = await getTableColumns(DATABASES.TENANT, table);
-      const missingColumns = columns.filter((c: string) => !actualColumns.includes(c));
+      const missingColumns = columns.filter(
+        (c: string) => !actualColumns.includes(c),
+      );
 
       log(
         `tenant-${table}-columns`,
@@ -303,7 +349,9 @@ describe("D1 Database Schema - Smoke Tests", () => {
       if (!canRunTests) return;
 
       const actualColumns = await getTableColumns(DATABASES.API, table);
-      const missingColumns = columns.filter((c: string) => !actualColumns.includes(c));
+      const missingColumns = columns.filter(
+        (c: string) => !actualColumns.includes(c),
+      );
 
       log(
         `api-${table}-columns`,
