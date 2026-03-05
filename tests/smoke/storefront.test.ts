@@ -923,4 +923,65 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.ok).toBe(true);
     });
   });
+
+  describe("CSRF Token Endpoint", () => {
+    it("GET /api/admin/csrf returns CSRF token and sets cookie", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/csrf`);
+
+      // Admin endpoints may require Cloudflare Access — 403 is expected in prod
+      if (response.status === 403) {
+        log(
+          "admin-csrf",
+          "WARN",
+          "HTTP 403 — Cloudflare Access blocked (expected voor productie)",
+        );
+        return;
+      }
+
+      if (skipIfNoTenant(response, "admin-csrf")) return;
+
+      const setCookie = response.headers.get("set-cookie") || "";
+      const hasCsrfCookie = setCookie.includes("csrf_token=");
+
+      if (response.ok && hasCsrfCookie) {
+        const body = (await response.json()) as {
+          success: boolean;
+          data?: { csrfToken: string };
+        };
+
+        // Token in cookie should not be duplicated (no double middleware mount)
+        const csrfMatches = setCookie.match(/csrf_token=/g);
+        const cookieCount = csrfMatches ? csrfMatches.length : 0;
+
+        if (cookieCount > 1) {
+          log(
+            "admin-csrf",
+            "FAIL",
+            `Duplicate csrf_token cookies detected (${cookieCount}×) — double CSRF middleware mount`,
+            "Check worker.ts CSRF middleware mounting — alleen /admin/* mount mag actief zijn",
+            "CRITICAL",
+          );
+          expect(cookieCount).toBeLessThanOrEqual(1);
+          return;
+        }
+
+        log(
+          "admin-csrf",
+          "PASS",
+          `CSRF token returned, cookie set (1× Set-Cookie)`,
+        );
+        expect(body.success).toBe(true);
+        expect(body.data?.csrfToken).toBeTruthy();
+      } else {
+        log(
+          "admin-csrf",
+          "FAIL",
+          `HTTP ${response.status}, cookie: ${hasCsrfCookie}`,
+          "Check /api/admin/csrf endpoint en CSRF middleware",
+          "HIGH",
+        );
+        expect(response.ok).toBe(true);
+      }
+    });
+  });
 });
