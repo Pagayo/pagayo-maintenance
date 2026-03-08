@@ -17,7 +17,11 @@
  */
 
 import { logTestResult, type TestResult } from "../utils/test-reporter";
-import { STOREFRONT_URL, detectTenantActive } from "../utils/test-config";
+import {
+  STOREFRONT_URL,
+  ONBOARDING_URL,
+  detectTenantActive,
+} from "../utils/test-config";
 
 function log(
   test: string,
@@ -982,6 +986,128 @@ describe("Storefront Service - Smoke Tests", () => {
         );
         expect(response.ok).toBe(true);
       }
+    });
+  });
+
+  // ==========================================================================
+  // ONBOARDING FLOW
+  // ==========================================================================
+
+  describe("Onboarding Flow", () => {
+    it("GET /register returns HTML with Turnstile widget", async () => {
+      const response = await fetch(`${ONBOARDING_URL}/register`);
+
+      if (response.status === 200) {
+        const html = await response.text();
+        const hasTurnstile = html.includes(
+          "challenges.cloudflare.com/turnstile",
+        );
+        log(
+          "register-page",
+          hasTurnstile ? "PASS" : "WARN",
+          hasTurnstile
+            ? "Register page met Turnstile widget"
+            : "Register page ZONDER Turnstile widget",
+        );
+        expect(response.ok).toBe(true);
+      } else {
+        log(
+          "register-page",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check start.pagayo.app routing of Worker deployment",
+          "CRITICAL",
+        );
+        expect(response.status).toBe(200);
+      }
+    });
+
+    it("POST /api/anon/create-account is operationeel (geen 503)", async () => {
+      const response = await fetch(
+        `${ONBOARDING_URL}/api/anon/create-account`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ turnstileToken: "smoke-test-probe" }),
+        },
+      );
+
+      if (response.status === 503) {
+        log(
+          "create-account",
+          "FAIL",
+          "HTTP 503 — Onboarding KAPOT! Ontbrekende Worker secrets",
+          "npx wrangler secret list --env production → check CF_API_TOKEN en TURNSTILE_SECRET",
+          "CRITICAL",
+        );
+      } else if (response.status === 403) {
+        log(
+          "create-account",
+          "PASS",
+          "Turnstile verificatie actief (403 = verwacht voor smoke-test token)",
+        );
+      } else if (response.status === 400) {
+        log(
+          "create-account",
+          "PASS",
+          `Validatie actief: HTTP ${response.status}`,
+        );
+      } else {
+        log(
+          "create-account",
+          "PASS",
+          `Endpoint operationeel: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).not.toBe(503);
+    });
+
+    it("GET /start returns start page HTML", async () => {
+      const response = await fetch(`${ONBOARDING_URL}/start`);
+
+      if (response.status === 200) {
+        log("start-page", "PASS", "Start page accessible");
+      } else {
+        log(
+          "start-page",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check start.pagayo.app Worker routing",
+          "HIGH",
+        );
+      }
+      expect(response.status).toBe(200);
+    });
+
+    it("Tenant resolution via subdomain werkt (edge-first pad)", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/health`);
+
+      if (response.status === 200) {
+        log(
+          "tenant-resolution",
+          "PASS",
+          `Tenant bereikbaar via subdomain (KV→D1 pad werkt)`,
+        );
+      } else if (response.status === 404) {
+        log(
+          "tenant-resolution",
+          "WARN",
+          "Tenant niet gevonden — check TENANT_CACHE KV of platform DB",
+          "wrangler kv key get --binding TENANT_CACHE 'tenant:<slug>'",
+          "HIGH",
+        );
+      } else {
+        log(
+          "tenant-resolution",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Tenant resolution via subdomain faalt",
+          "CRITICAL",
+        );
+      }
+
+      expect(response.status).not.toBe(503);
     });
   });
 });

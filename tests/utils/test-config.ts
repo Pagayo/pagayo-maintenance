@@ -25,6 +25,10 @@ export const API_URL = process.env.API_TEST_URL ?? "https://api.pagayo.com";
 export const MARKETING_URL =
   process.env.MARKETING_TEST_URL ?? "https://www.pagayo.com";
 
+/** Onboarding URL (start.pagayo.app — account creation flow) */
+export const ONBOARDING_URL =
+  process.env.ONBOARDING_TEST_URL ?? "https://start.pagayo.app";
+
 /** Service domains for infrastructure tests */
 export const SERVICE_DOMAINS = {
   storefront: new URL(STOREFRONT_URL).hostname,
