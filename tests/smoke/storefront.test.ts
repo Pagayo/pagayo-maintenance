@@ -20,6 +20,7 @@ import { logTestResult, type TestResult } from "../utils/test-reporter";
 import {
   STOREFRONT_URL,
   ONBOARDING_URL,
+  PLATFORM_ADMIN_URL,
   detectTenantActive,
 } from "../utils/test-config";
 
@@ -1108,6 +1109,50 @@ describe("Storefront Service - Smoke Tests", () => {
       }
 
       expect(response.status).not.toBe(503);
+    });
+  });
+
+  // ==========================================================================
+  // PLATFORM PROVISIONING (Case Layer)
+  // ==========================================================================
+
+  describe("Platform Provisioning - Policy Sync", () => {
+    it("sync-policy endpoint is bereikbaar (achter CF Access)", async () => {
+      // Platform provisioning endpoints staan op admin.pagayo.app
+      // Zonder CF Access token verwachten we 403 (Forbidden) — niet 500/502
+      const response = await fetch(
+        `${PLATFORM_ADMIN_URL}/api/platform/provisioning/sync-policy`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kvKey: "test", value: "test" }),
+        },
+      );
+
+      if (response.status === 403 || response.status === 401) {
+        log(
+          "sync-policy",
+          "PASS",
+          `CF Access blokkeert correct: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "sync-policy",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check Worker logs voor sync-policy route",
+          "HIGH",
+        );
+      } else {
+        log(
+          "sync-policy",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      // Endpoint mag niet crashen (5xx) — 401/403 is correct gedrag
+      expect(response.status).toBeLessThan(500);
     });
   });
 });
