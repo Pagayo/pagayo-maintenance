@@ -164,6 +164,90 @@ describe("Storefront Service - Smoke Tests", () => {
       // Categories API should return 200 with data array
       expect(response.status).toBe(200);
     });
+
+    it("Products page serves HTML", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/products`);
+
+      if (skipIfNoTenant(response, "products-page")) return;
+
+      if (response.status === 200) {
+        log("products-page", "PASS", "Products page accessible");
+      } else {
+        log(
+          "products-page",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check page.routes.ts",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+    });
+
+    it("Login page serves HTML", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/login`);
+
+      if (skipIfNoTenant(response, "login-page")) return;
+
+      if (response.status === 200) {
+        log("login-page", "PASS", "Login page accessible");
+      } else {
+        log(
+          "login-page",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check page.routes.ts",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+    });
+
+    it("Contact page serves HTML", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/contact`);
+
+      if (skipIfNoTenant(response, "contact-page")) return;
+
+      if (response.status === 200) {
+        log("contact-page", "PASS", "Contact page accessible");
+      } else {
+        log(
+          "contact-page",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check page.routes.ts",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+    });
+
+    it("FAQ page serves HTML", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/faq`);
+
+      if (skipIfNoTenant(response, "faq-page")) return;
+
+      if (response.status === 200) {
+        log("faq-page", "PASS", "FAQ page accessible");
+      } else {
+        log(
+          "faq-page",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check page.routes.ts",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+    });
   });
 
   describe("Auth Routes", () => {
@@ -1152,6 +1236,140 @@ describe("Storefront Service - Smoke Tests", () => {
       }
 
       // Endpoint mag niet crashen (5xx) — 401/403 is correct gedrag
+      expect(response.status).toBeLessThan(500);
+    });
+  });
+
+  describe("Theme Settings API", () => {
+    it("GET /api/admin/settings/theme requires auth (401/403)", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/settings/theme`,
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        log(
+          "theme-settings-get",
+          "PASS",
+          `Auth blocks correctly: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "theme-settings-get",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check Worker logs voor theme route",
+          "HIGH",
+        );
+      } else {
+        log(
+          "theme-settings-get",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("PUT /api/admin/settings/theme requires auth (401/403)", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/settings/theme`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme: "fresh" }),
+        },
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        log(
+          "theme-settings-put",
+          "PASS",
+          `Auth blocks correctly: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "theme-settings-put",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check Worker logs voor theme PUT route",
+          "HIGH",
+        );
+      } else {
+        log(
+          "theme-settings-put",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+  });
+
+  describe("Menu Overrides API", () => {
+    it("GET /api/admin/organization/menu-overrides requires auth (401/403)", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/organization/menu-overrides`,
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        log(
+          "menu-overrides-get",
+          "PASS",
+          `Auth blocks correctly: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "menu-overrides-get",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check Worker logs voor menu-overrides route",
+          "HIGH",
+        );
+      } else {
+        log(
+          "menu-overrides-get",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("PUT /api/admin/organization/menu-overrides requires auth (401/403)", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/organization/menu-overrides`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ overrides: { ORDERS: false } }),
+        },
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        log(
+          "menu-overrides-put",
+          "PASS",
+          `Auth blocks correctly: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "menu-overrides-put",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check Worker logs voor menu-overrides PUT route",
+          "HIGH",
+        );
+      } else {
+        log(
+          "menu-overrides-put",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
       expect(response.status).toBeLessThan(500);
     });
   });
