@@ -1,14 +1,15 @@
 /**
- * Cross-Worker Integration Tests
+ * Cross-Worker Integration Tests (V2 — post-beheer migratie)
  *
  * Validates that Worker-to-Worker communication is correctly configured:
  * - Service bindings in wrangler.toml match expected entrypoints
  * - Caller code references correct binding names
  * - Caller handles both success and error RPC branches
- * - Provisioning flow (beheer → workflows → storefront) is consistent
+ * - Provisioning flow (storefront → workflows → storefront) is consistent
  * - Data flow (storefront → edge, storefront → api-stack) is consistent
  *
  * NOTE: These tests read SOURCE FILES — no live services needed.
+ * NOTE: pagayo-beheer is geabsorbeerd in pagayo-storefront (V2 migratie feb 2026)
  *
  * @module tests/integration/cross-worker-rpc
  */
@@ -22,52 +23,6 @@ import { resolve, join } from "node:path";
 // ===========================================
 
 const WORKSPACE = resolve(__dirname, "../../../");
-
-/** Service binding map: which repo calls which binding */
-const SERVICE_BINDINGS = {
-  "pagayo-beheer": {
-    STOREFRONT: {
-      service: "pagayo-storefront",
-      entrypoint: "ProvisioningRPC",
-      methods: ["createTenant", "getTenant", "deleteTenant", "healthCheck"],
-    },
-    WORKFLOWS: {
-      service: "pagayo-workflows",
-      entrypoint: "WorkflowsRPC",
-      methods: [
-        "triggerTenantProvisioning",
-        "getWorkflowStatus",
-        "cancelWorkflow",
-        "healthCheck",
-      ],
-    },
-    EDGE: {
-      service: "pagayo-edge",
-      entrypoint: null, // No specific RPC entrypoint, uses fetch
-    },
-  },
-  "pagayo-storefront": {
-    EDGE: {
-      service: "pagayo-edge",
-      entrypoint: "EdgeRPC",
-      methods: [
-        "kvPut",
-        "kvGet",
-        "kvDelete",
-        "kvBulk",
-        "invalidateCache",
-        "bumpVersion",
-        "getCatalogVersion",
-        "healthCheck",
-      ],
-    },
-    API_STACK: {
-      service: "pagayo-api-stack",
-      entrypoint: "ApiStackRPC",
-      methods: ["sendContactNotification", "sendEmail", "healthCheck"],
-    },
-  },
-} as const;
 
 /**
  * Read a file from a repo
@@ -154,34 +109,6 @@ function findBindingUsages(
 // ===========================================
 
 describe("Service Binding Configuration", () => {
-  describe("Beheer wrangler.toml service bindings", () => {
-    const wrangler = readRepoFile("pagayo-beheer", "wrangler.toml");
-
-    it("has STOREFRONT binding pointing to ProvisioningRPC", () => {
-      expect(wrangler).toContain('binding = "STOREFRONT"');
-      expect(wrangler).toContain('entrypoint = "ProvisioningRPC"');
-    });
-
-    it("has WORKFLOWS binding pointing to WorkflowsRPC", () => {
-      expect(wrangler).toContain('binding = "WORKFLOWS"');
-      expect(wrangler).toContain('entrypoint = "WorkflowsRPC"');
-    });
-
-    it("has EDGE binding", () => {
-      expect(wrangler).toContain('binding = "EDGE"');
-    });
-
-    it("bindings exist in both staging and production", () => {
-      // Count occurrences of each binding
-      const storefrontBindings = wrangler.match(/binding\s*=\s*"STOREFRONT"/g);
-      const workflowsBindings = wrangler.match(/binding\s*=\s*"WORKFLOWS"/g);
-
-      // Should appear at least in staging + production
-      expect(storefrontBindings?.length ?? 0).toBeGreaterThanOrEqual(2);
-      expect(workflowsBindings?.length ?? 0).toBeGreaterThanOrEqual(2);
-    });
-  });
-
   describe("Storefront wrangler.toml service bindings", () => {
     const wrangler = readRepoFile("pagayo-storefront", "wrangler.toml");
 
@@ -237,61 +164,6 @@ describe("RPC Entrypoint Exports", () => {
 // ===========================================
 // CROSS-WORKER COMMUNICATION PATTERNS
 // ===========================================
-
-describe("Beheer → Storefront (Provisioning)", () => {
-  it("beheer uses STOREFRONT binding in source code", () => {
-    const usages = findBindingUsages("pagayo-beheer", "STOREFRONT");
-    expect(
-      usages.length,
-      "STOREFRONT binding should be referenced in beheer source code",
-    ).toBeGreaterThan(0);
-  });
-
-  it("beheer calls provisioning methods via STOREFRONT binding", () => {
-    const usages = findBindingUsages("pagayo-beheer", "STOREFRONT");
-    const allLines = usages.flatMap((u) => u.lines);
-    const lineText = allLines.join("\n");
-
-    // Should call at least one provisioning method
-    const callsProvisioningMethod =
-      lineText.includes("createTenant") ||
-      lineText.includes("getTenant") ||
-      lineText.includes("deleteTenant") ||
-      lineText.includes("healthCheck") ||
-      lineText.includes("STOREFRONT.");
-
-    expect(
-      callsProvisioningMethod,
-      "Beheer should call provisioning methods on STOREFRONT binding",
-    ).toBe(true);
-  });
-});
-
-describe("Beheer → Workflows (Workflow Trigger)", () => {
-  it("beheer uses WORKFLOWS binding in source code", () => {
-    const usages = findBindingUsages("pagayo-beheer", "WORKFLOWS");
-    expect(
-      usages.length,
-      "WORKFLOWS binding should be referenced in beheer source code",
-    ).toBeGreaterThan(0);
-  });
-
-  it("beheer calls workflow trigger methods via WORKFLOWS binding", () => {
-    const usages = findBindingUsages("pagayo-beheer", "WORKFLOWS");
-    const allLines = usages.flatMap((u) => u.lines);
-    const lineText = allLines.join("\n");
-
-    const callsWorkflowMethod =
-      lineText.includes("triggerTenantProvisioning") ||
-      lineText.includes("getWorkflowStatus") ||
-      lineText.includes("WORKFLOWS.");
-
-    expect(
-      callsWorkflowMethod,
-      "Beheer should call workflow methods on WORKFLOWS binding",
-    ).toBe(true);
-  });
-});
 
 describe("Storefront → Edge (KV/Cache)", () => {
   it("storefront uses EDGE binding in source code", () => {
@@ -352,7 +224,7 @@ describe("Storefront → API-Stack (Email)", () => {
 // PROVISIONING FLOW CONSISTENCY
 // ===========================================
 
-describe("Provisioning Flow: Beheer → Workflows → Storefront", () => {
+describe("Provisioning Flow: Workflows → Storefront", () => {
   it("workflow triggers storefront provisioning via service binding", () => {
     // The provisioning workflow should call storefront's createTenant
     const workflowDir = join(WORKSPACE, "pagayo-workflows/src/workflows");
@@ -423,33 +295,6 @@ describe("Provisioning Flow: Beheer → Workflows → Storefront", () => {
 // ===========================================
 
 describe("RPC Error Handling at Call Sites", () => {
-  it("beheer handles RPC errors from STOREFRONT calls", () => {
-    const usages = findBindingUsages("pagayo-beheer", "STOREFRONT");
-
-    if (usages.length > 0) {
-      // Find the source files that use STOREFRONT
-      for (const usage of usages) {
-        const content = readRepoFile("pagayo-beheer", usage.file);
-
-        // Should check for success/error
-        const handlesResult =
-          content.includes(".success") ||
-          content.includes("isRpcSuccess") ||
-          content.includes("isRpcError") ||
-          content.includes("RpcResult");
-
-        // At least one file should handle the result
-        if (handlesResult) {
-          expect(handlesResult).toBe(true);
-          return;
-        }
-      }
-
-      // If we get here, at least check that STOREFRONT is referenced
-      expect(usages.length).toBeGreaterThan(0);
-    }
-  });
-
   it("storefront handles RPC errors from EDGE calls", () => {
     const usages = findBindingUsages("pagayo-storefront", "EDGE");
 
@@ -481,35 +326,6 @@ describe("RPC Error Handling at Call Sites", () => {
 // ===========================================
 
 describe("Worker Binding Type Definitions", () => {
-  it("beheer has STOREFRONT and WORKFLOWS in its type definitions", () => {
-    // Check worker-configuration.d.ts, types files, or wrangler.toml
-    const typesFiles = [
-      "worker-configuration.d.ts",
-      "src/types.ts",
-      "src/workers/types.ts",
-      "wrangler.toml",
-    ];
-
-    let foundStorefront = false;
-    let foundWorkflows = false;
-    for (const file of typesFiles) {
-      try {
-        const content = readRepoFile("pagayo-beheer", file);
-        if (content.includes("STOREFRONT")) foundStorefront = true;
-        if (content.includes("WORKFLOWS")) foundWorkflows = true;
-      } catch {
-        // File doesn't exist, try next
-      }
-    }
-
-    expect(foundStorefront, "Beheer should reference STOREFRONT binding").toBe(
-      true,
-    );
-    expect(foundWorkflows, "Beheer should reference WORKFLOWS binding").toBe(
-      true,
-    );
-  });
-
   it("storefront has EDGE and API_STACK in its type definitions", () => {
     const typesFiles = [
       "worker-configuration.d.ts",

@@ -32,11 +32,6 @@ const REPOS_WITH_TESTS: Array<{
   minTests: number;
 }> = [
   {
-    name: "pagayo-beheer",
-    command: "npx vitest run",
-    minTests: 600,
-  },
-  {
     name: "pagayo-storefront",
     command: "npx vitest run",
     minTests: 220,

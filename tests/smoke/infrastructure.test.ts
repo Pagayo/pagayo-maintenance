@@ -15,12 +15,12 @@
 
 import { execSync } from "child_process";
 import { logTestResult, type TestResult } from "../utils/test-reporter";
-import { SERVICE_DOMAINS } from "../utils/test-config";
+import { STOREFRONT_URL } from "../utils/test-config";
 
 const DOMAINS = {
   api: "api.pagayo.com",
   www: "www.pagayo.com",
-  storefront: SERVICE_DOMAINS.storefront,
+  storefront: new URL(STOREFRONT_URL).hostname,
 };
 
 /** Legacy domains — verwacht 301 redirect naar www.pagayo.com */

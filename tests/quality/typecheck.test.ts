@@ -15,7 +15,6 @@ const WORKSPACE_ROOT = "/Users/sjoerdoverdiep/my-vscode-workspace";
 
 // Repos met TypeScript configuratie
 const REPOS_WITH_TYPESCRIPT = [
-  "pagayo-beheer",
   "pagayo-storefront",
   "pagayo-api-stack",
   "pagayo-edge",

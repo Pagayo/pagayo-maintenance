@@ -15,7 +15,6 @@ const WORKSPACE_ROOT = "/Users/sjoerdoverdiep/my-vscode-workspace";
 
 // Repos met ESLint configuratie
 const REPOS_WITH_LINT = [
-  "pagayo-beheer",
   "pagayo-storefront",
   "pagayo-api-stack",
   "pagayo-edge",

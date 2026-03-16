@@ -32,7 +32,6 @@
     "health:access": "./scripts/health-check.sh --access"
   },
   "devDependencies": {
-    "@neondatabase/serverless": "^1.0.2",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"
   },

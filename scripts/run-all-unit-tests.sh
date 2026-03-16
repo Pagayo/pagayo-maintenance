@@ -21,7 +21,6 @@ BOLD='\033[1m'
 
 # Repo configuratie: naam|commando
 declare -a REPOS=(
-  "pagayo-beheer|npx vitest run"
   "pagayo-storefront|npx vitest run"
   "pagayo-api-stack|npx vitest run"
   "pagayo-edge|npx vitest run"

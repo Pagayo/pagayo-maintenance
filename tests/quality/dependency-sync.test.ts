@@ -29,7 +29,6 @@ const SYNCED_DEPENDENCIES: Array<{
   {
     package: "wrangler",
     repos: [
-      "pagayo-beheer",
       "pagayo-storefront",
       "pagayo-api-stack",
       "pagayo-edge",
@@ -41,7 +40,6 @@ const SYNCED_DEPENDENCIES: Array<{
   {
     package: "typescript",
     repos: [
-      "pagayo-beheer",
       "pagayo-storefront",
       "pagayo-api-stack",
       "pagayo-edge",
@@ -55,7 +53,6 @@ const SYNCED_DEPENDENCIES: Array<{
     // @cloudflare/vitest-pool-workers compatibility (doesn't support 4.x)
     package: "vitest",
     repos: [
-      "pagayo-beheer",
       "pagayo-storefront",
       "pagayo-api-stack",
       // "pagayo-edge",       // Uses ~3.2.4 for Cloudflare Workers pool
@@ -66,12 +63,7 @@ const SYNCED_DEPENDENCIES: Array<{
   },
   {
     package: "drizzle-orm",
-    repos: [
-      "pagayo-beheer",
-      "pagayo-storefront",
-      "pagayo-api-stack",
-      "pagayo-schema",
-    ],
+    repos: ["pagayo-storefront", "pagayo-api-stack", "pagayo-schema"],
     field: "dependencies",
   },
 ];

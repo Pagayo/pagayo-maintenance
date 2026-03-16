@@ -7,16 +7,17 @@
  * @module tests/utils/test-config
  */
 
-/** Storefront test URL (geen actieve tenant — Worker deployment verificatie) */
+/** Storefront test URL (demo tenant) */
 export const STOREFRONT_URL =
   process.env.STOREFRONT_TEST_URL ?? "https://demo.pagayo.app";
 
-/**
- * @deprecated V2: beheer is geabsorbeerd in storefront. Deze URL redirect naar www.pagayo.com.
- * Wordt nog gebruikt door legacy test suites die gemigreerd moeten worden.
- */
-export const BEHEER_URL =
-  process.env.BEHEER_TEST_URL ?? "https://beheer.pagayo.com";
+/** Platform Admin URL (achter CF Access — verwacht 401/302 op beschermde routes) */
+export const PLATFORM_ADMIN_URL =
+  process.env.PLATFORM_ADMIN_URL ?? "https://admin.pagayo.app";
+
+/** Onboarding URL (start.pagayo.app — account creation flow) */
+export const ONBOARDING_URL =
+  process.env.ONBOARDING_TEST_URL ?? "https://start.pagayo.app";
 
 /** API Stack URL */
 export const API_URL = process.env.API_TEST_URL ?? "https://api.pagayo.com";
@@ -25,25 +26,10 @@ export const API_URL = process.env.API_TEST_URL ?? "https://api.pagayo.com";
 export const MARKETING_URL =
   process.env.MARKETING_TEST_URL ?? "https://www.pagayo.com";
 
-/** Onboarding URL (start.pagayo.app — account creation flow) */
-export const ONBOARDING_URL =
-  process.env.ONBOARDING_TEST_URL ?? "https://start.pagayo.app";
-
-/** Service domains for infrastructure tests */
-export const SERVICE_DOMAINS = {
-  storefront: new URL(STOREFRONT_URL).hostname,
-  api: new URL(API_URL).hostname,
-  marketing: new URL(MARKETING_URL).hostname,
-} as const;
-
 /**
- * Auto-detect of de STOREFRONT_URL een actieve, geprovisioneerde tenant heeft.
- * Probeert de homepage — 200 = tenant actief, 404 "Tenant not found" = geen tenant.
- *
- * Gebruik in `beforeAll()` van test suites voor conditionele expectations.
- * Hiermee werken tests correct in BEIDE scenario's:
- *   - Geen tenant → Worker deployment verificatie (404 is verwacht)
- *   - Tenant actief → Volledige functionele verificatie
+ * Detecteer of de STOREFRONT_URL een actieve, geprovisioneerde tenant heeft.
+ * Gebruikt door storefront smoke tests om tenant-afhankelijke tests te skippen.
+ * Checkt de homepage (niet /api/health) — health werkt altijd, ook zonder tenant.
  */
 export async function detectTenantActive(): Promise<boolean> {
   try {

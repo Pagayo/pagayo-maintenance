@@ -28,7 +28,7 @@ const RPC_IMPLEMENTATIONS = {
   ProvisioningRPC: {
     repo: "pagayo-storefront",
     file: "src/workers/rpc/provisioning.rpc.ts",
-    calledBy: "pagayo-beheer",
+    calledBy: "pagayo-workflows",
     bindingName: "STOREFRONT",
     expectedMethods: [
       "createTenant",
@@ -63,7 +63,7 @@ const RPC_IMPLEMENTATIONS = {
   WorkflowsRPC: {
     repo: "pagayo-workflows",
     file: "src/rpc/workflows.rpc.ts",
-    calledBy: "pagayo-beheer",
+    calledBy: "pagayo-storefront",
     bindingName: "WORKFLOWS",
     expectedMethods: [
       "triggerTenantProvisioning",

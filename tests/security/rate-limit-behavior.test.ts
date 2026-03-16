@@ -17,7 +17,7 @@
  * @module tests/security/rate-limit-behavior
  */
 
-import { BEHEER_URL, STOREFRONT_URL } from "../utils/test-config";
+import { STOREFRONT_URL } from "../utils/test-config";
 
 describe("Security - Rate Limiting Behavior", () => {
   // ==============================
@@ -25,13 +25,13 @@ describe("Security - Rate Limiting Behavior", () => {
   // ==============================
 
   describe("Rate Limit Headers", () => {
-    it("beheer should include rate limit headers in responses", async () => {
-      const response = await fetch(`${BEHEER_URL}/api/auth/register`, {
+    it("storefront should include rate limit headers in responses", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ email: "test@test.com", password: "test123!" }),
       });
 
       // Rate limit headers should be present (even on error responses)
@@ -62,13 +62,12 @@ describe("Security - Rate Limiting Behavior", () => {
     it("should not crash under rapid auth requests", async () => {
       // Send 5 rapid requests to auth endpoint
       const requests = Array.from({ length: 5 }, () =>
-        fetch(`${BEHEER_URL}/api/auth/register`, {
+        fetch(`${STOREFRONT_URL}/api/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: `test-${Date.now()}@test.com`,
             password: "test123!",
-            organizationName: "Test Org",
           }),
         }),
       );
@@ -122,10 +121,13 @@ describe("Security - Rate Limiting Behavior", () => {
     it("429 responses should include proper error structure", async () => {
       // Try to trigger rate limiting with many rapid requests
       const requests = Array.from({ length: 10 }, () =>
-        fetch(`${BEHEER_URL}/api/auth/register`, {
+        fetch(`${STOREFRONT_URL}/api/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
+          body: JSON.stringify({
+            email: "test@test.com",
+            password: "test123!",
+          }),
         }),
       );
 
@@ -190,13 +192,16 @@ describe("Security - Rate Limiting Behavior", () => {
     it("should not allow X-Forwarded-For to bypass rate limiting", async () => {
       // Try to bypass rate limiting by spoofing IP headers
       const requests = Array.from({ length: 5 }, (_, i) =>
-        fetch(`${BEHEER_URL}/api/auth/register`, {
+        fetch(`${STOREFRONT_URL}/api/auth/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "X-Forwarded-For": `192.168.1.${i + 1}`, // Different "IP" each time
           },
-          body: JSON.stringify({}),
+          body: JSON.stringify({
+            email: "test@test.com",
+            password: "test123!",
+          }),
         }),
       );
 
