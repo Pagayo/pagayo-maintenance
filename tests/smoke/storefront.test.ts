@@ -1373,4 +1373,154 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBeLessThan(500);
     });
   });
+
+  describe("Announcements & Opening Hours (Aqua Theme)", () => {
+    it("GET /api/announcements returns 200", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/announcements`);
+
+      if (skipIfNoTenant(response, "announcements-list")) return;
+
+      if (response.status === 200) {
+        log("announcements-list", "PASS", `Status: ${response.status}`);
+      } else {
+        log(
+          "announcements-list",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check announcements.routes.ts en D1 database",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+    });
+
+    it("GET /api/announcements/pinned returns 200", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/announcements/pinned`,
+      );
+
+      if (skipIfNoTenant(response, "announcements-pinned")) return;
+
+      if (response.status === 200) {
+        log("announcements-pinned", "PASS", `Status: ${response.status}`);
+      } else {
+        log(
+          "announcements-pinned",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check announcements.routes.ts pinned endpoint",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+    });
+
+    it("GET /api/navigation returns 200", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/navigation?menu=HEADER`,
+      );
+
+      if (skipIfNoTenant(response, "navigation-header")) return;
+
+      if (response.status === 200) {
+        log("navigation-header", "PASS", `Status: ${response.status}`);
+      } else {
+        log(
+          "navigation-header",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check navigation.routes.ts and tenant_menu_item data",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+    });
+
+    it("GET /api/admin/settings/opening-hours requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/settings/opening-hours`,
+      );
+
+      if (skipIfNoTenant(response, "opening-hours-auth")) return;
+
+      if (response.status === 401 || response.status === 403) {
+        log(
+          "opening-hours-auth",
+          "PASS",
+          `Auth blocks correctly: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "opening-hours-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check admin-settings.routes.ts opening-hours GET",
+          "HIGH",
+        );
+      } else {
+        log(
+          "opening-hours-auth",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("GET /api/admin/announcements requires auth", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/announcements`);
+
+      if (skipIfNoTenant(response, "admin-announcements-auth")) return;
+
+      if (response.status === 401 || response.status === 403) {
+        log(
+          "admin-announcements-auth",
+          "PASS",
+          `Auth blocks correctly: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "admin-announcements-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check admin-announcements.routes.ts auth middleware",
+          "HIGH",
+        );
+      } else {
+        log(
+          "admin-announcements-auth",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("GET /api/settings/opening-hours returns 200", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/settings/opening-hours`,
+      );
+
+      if (skipIfNoTenant(response, "public-opening-hours")) return;
+
+      if (response.status === 200) {
+        log("public-opening-hours", "PASS", `Status: ${response.status}`);
+      } else {
+        log(
+          "public-opening-hours",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check settings.routes.ts opening-hours endpoint (must be before /:key route)",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+    });
+  });
 });
