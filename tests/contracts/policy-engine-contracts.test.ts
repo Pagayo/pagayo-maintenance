@@ -327,6 +327,25 @@ describe("Policy Engine — policy-engine.ts contract", () => {
       expect(source).toMatch(/export\s+function\s+checkPolicy/);
     });
 
+    it("checkPolicy ondersteunt optionele tier parameter voor stale blob fallback", () => {
+      const checkPolicySection = source.slice(
+        source.indexOf("export function checkPolicy"),
+        source.indexOf("export function checkPolicy") + 500,
+      );
+      expect(checkPolicySection).toContain("tier?: Tier");
+    });
+
+    it("checkPolicy valt terug op evaluatePolicy wanneer tier bekend is", () => {
+      const checkPolicySection = source.slice(
+        source.indexOf("export function checkPolicy"),
+        source.indexOf("export function checkPolicy") + 800,
+      );
+      expect(checkPolicySection).toContain("if (tier)");
+      expect(checkPolicySection).toContain(
+        "return evaluatePolicy({ tier, feature, action })",
+      );
+    });
+
     it("exporteert isAllowed type guard", () => {
       expect(source).toMatch(/export\s+function\s+isAllowed/);
     });
