@@ -93,9 +93,10 @@ for RUN_ID in $ALL_RUN_IDS; do
     echo ""
     echo "🔄 Wachten op: $RUN_NAME (run $RUN_ID)..."
 
-    # gh run watch wacht tot de run klaar is
-    if gh run watch "$RUN_ID" --exit-status > /dev/null 2>&1; then
-        echo "✅ $RUN_NAME: GESLAAGD"
+    # gh run watch wacht tot de run klaar is (timeout 15 min)
+    if timeout 900 gh run watch "$RUN_ID" --exit-status > /dev/null 2>&1; then
+        DURATION=$(($(date +%s) - $(date -jf "%Y-%m-%dT%H:%M:%SZ" "$(gh run view "$RUN_ID" --json createdAt --jq '.createdAt' 2>/dev/null)" +%s 2>/dev/null || echo 0)))
+        echo "✅ $RUN_NAME: GESLAAGD (${DURATION}s)"
     else
         echo "❌ $RUN_NAME: GEFAALD"
         ALL_PASSED=false
