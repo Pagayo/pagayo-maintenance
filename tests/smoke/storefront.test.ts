@@ -87,6 +87,45 @@ describe("Storefront Service - Smoke Tests", () => {
         expect(response.status).toBe(200);
       }
     });
+
+    it("Platform tenant migrations route is protected and reachable", async () => {
+      const response = await fetch(
+        `${PLATFORM_ADMIN_URL}/api/platform/tenants/migrations`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            migrations: [
+              {
+                filename: "smoke-check.sql",
+                sql: "SELECT 1;",
+                classification: "fan-out-only",
+              },
+            ],
+          }),
+        },
+      );
+
+      if ([401, 403, 302].includes(response.status)) {
+        log(
+          "platform-tenant-migrations-route",
+          "PASS",
+          `Beschermde route bereikbaar (HTTP ${response.status})`,
+        );
+      } else {
+        log(
+          "platform-tenant-migrations-route",
+          "FAIL",
+          `Onverwachte status ${response.status}`,
+          "Check platform route mount of CF Access bescherming",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403, 302]).toContain(response.status);
+    });
   });
 
   describe("Public Routes", () => {
