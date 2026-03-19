@@ -204,6 +204,79 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(200);
     });
 
+    it("Categories API exposes cache debug headers", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/categories`);
+
+      if (skipIfNoTenant(response, "categories-cache-headers")) return;
+
+      const cacheHeader = response.headers.get("X-Cache");
+      const cacheLayer = response.headers.get("X-Storefront-Cache-Layer");
+      const cacheControl = response.headers.get("Cache-Control");
+
+      if (
+        response.status === 200 &&
+        ["KV", "MISS"].includes(cacheHeader || "") &&
+        cacheLayer === "categories-kv" &&
+        cacheControl === "no-store"
+      ) {
+        log(
+          "categories-cache-headers",
+          "PASS",
+          `Headers ok: X-Cache=${cacheHeader}, layer=${cacheLayer}`,
+        );
+      } else {
+        log(
+          "categories-cache-headers",
+          "FAIL",
+          `Onverwachte headers: status=${response.status}, X-Cache=${cacheHeader}, layer=${cacheLayer}, Cache-Control=${cacheControl}`,
+          "Check categories route cache observability",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(["KV", "MISS"]).toContain(cacheHeader);
+      expect(cacheLayer).toBe("categories-kv");
+      expect(cacheControl).toBe("no-store");
+    });
+
+    it("Public cache version endpoint exposes freshness metadata", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/settings/cache-version`);
+
+      if (skipIfNoTenant(response, "public-cache-version")) return;
+
+      const body = response.status === 200 ? await response.json() : null;
+      const headerVersion = response.headers.get("X-Storefront-Cache-Version");
+      const cacheControl = response.headers.get("Cache-Control");
+      const bodyVersion = body?.data?.version;
+
+      if (
+        response.status === 200 &&
+        typeof bodyVersion === "string" &&
+        bodyVersion === headerVersion &&
+        cacheControl === "no-store"
+      ) {
+        log(
+          "public-cache-version",
+          "PASS",
+          `Versie ${bodyVersion} zichtbaar in body en header`,
+        );
+      } else {
+        log(
+          "public-cache-version",
+          "FAIL",
+          `Onverwachte response: status=${response.status}, bodyVersion=${bodyVersion}, headerVersion=${headerVersion}, Cache-Control=${cacheControl}`,
+          "Check settings cache-version route",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(typeof bodyVersion).toBe("string");
+      expect(headerVersion).toBe(bodyVersion);
+      expect(cacheControl).toBe("no-store");
+    });
+
     it("Products page serves HTML", async () => {
       const response = await fetch(`${STOREFRONT_URL}/products`);
 
