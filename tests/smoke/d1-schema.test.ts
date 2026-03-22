@@ -9,6 +9,11 @@
  * op de production D1 databases. Valideert dat de verwachte kolommen
  * bestaan na migraties.
  *
+ * SINGLE SOURCE OF TRUTH:
+ * Expected schema's worden geladen uit @pagayo/schema expected-schema.json
+ * bestanden. Deze worden automatisch gegenereerd vanuit Drizzle schema's.
+ * GEEN hardcoded schema definities meer in dit bestand!
+ *
  * VEREISTEN:
  * - CF_API_TOKEN environment variable (Cloudflare API token)
  * - CF_ACCOUNT_ID environment variable
@@ -21,6 +26,43 @@
  */
 
 import { logTestResult, type TestResult } from "../utils/test-reporter";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+// Load expected schemas from @pagayo/schema (Single Source of Truth)
+const SCHEMA_BASE_PATH = join(
+  __dirname,
+  "../../../../pagayo-schema/migrations",
+);
+
+interface ExpectedSchemaFile {
+  _comment: string;
+  _generated: string;
+  _source: string;
+  [tableName: string]: { columns: string[]; nullable?: string[] } | string;
+}
+
+function loadExpectedSchema(
+  dbType: "platform-v2" | "tenant-v2" | "api-v2",
+): Record<string, string[]> {
+  const filePath = join(SCHEMA_BASE_PATH, dbType, "expected-schema.json");
+  const raw = JSON.parse(readFileSync(filePath, "utf-8")) as ExpectedSchemaFile;
+
+  const result: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    // Skip metadata fields
+    if (key.startsWith("_")) continue;
+    if (typeof value === "object" && "columns" in value) {
+      result[key] = value.columns;
+    }
+  }
+  return result;
+}
+
+// Load schemas from SSoT files
+const EXPECTED_PLATFORM = loadExpectedSchema("platform-v2");
+const EXPECTED_TENANT = loadExpectedSchema("tenant-v2");
+const EXPECTED_API = loadExpectedSchema("api-v2");
 
 const CF_API_TOKEN =
   process.env.CF_API_TOKEN ?? process.env.CLOUDFLARE_API_TOKEN;
@@ -118,227 +160,6 @@ async function getTableNames(databaseId: string): Promise<string[]> {
 }
 
 // ============================================================================
-// VERWACHT SCHEMA — Single Source of Truth voor smoke tests
-// ============================================================================
-
-/** Kritieke kolommen per tabel per database — afgestemd op @pagayo/schema definities */
-const EXPECTED_SCHEMA = {
-  PLATFORM: {
-    organization: [
-      "id",
-      "name",
-      "slug",
-      "organizationType",
-      "email",
-      "phone",
-      "country",
-      "status",
-      "tier",
-      "tierSource",
-      "billingCurrency",
-      "stripeCustomerId",
-      "createdAt",
-      "updatedAt",
-      "deleted_at",
-    ],
-    tenant: [
-      "id",
-      "organizationId",
-      "name",
-      "slug",
-      "ownerEmail",
-      "ownerPhone",
-      "status",
-      "d1DatabaseId",
-      "isActive",
-      "maxProducts",
-      "createdAt",
-      "updatedAt",
-    ],
-    user_directory: [
-      "id",
-      "email",
-      "phone",
-      "tenantId",
-      "tenantSlug",
-      "tenantName",
-      "role",
-      "status",
-      "createdAt",
-      "updatedAt",
-    ],
-    platform_invoice: [
-      "id",
-      "invoiceNumber",
-      "organizationId",
-      "subtotalCents",
-      "taxCents",
-      "totalCents",
-      "currency",
-      "status",
-      "periodStart",
-      "periodEnd",
-      "dueDate",
-      "createdAt",
-    ],
-    _migration_log: ["filename", "applied_at", "checksum"],
-  },
-  TENANT: {
-    user: [
-      "id",
-      "firstName",
-      "lastName",
-      "email",
-      "passwordHash",
-      "phone",
-      "phoneVerified",
-      "role",
-      "status",
-      "emailVerified",
-      "createdAt",
-      "updatedAt",
-    ],
-    order: [
-      "id",
-      "orderId",
-      "subtotalCents",
-      "totalCents",
-      "currency",
-      "source",
-      "originator",
-      "status",
-      "paymentStatus",
-      "createdAt",
-      "updatedAt",
-    ],
-    product: [
-      "id",
-      "title",
-      "slug",
-      "priceCents",
-      "stock",
-      "isActive",
-      "productType",
-      "salesContexts",
-      "createdAt",
-      "updatedAt",
-    ],
-    category: ["id", "name", "slug", "isActive", "sortOrder", "createdAt"],
-    order_item: [
-      "id",
-      "orderId",
-      "itemType",
-      "productTitle",
-      "quantity",
-      "unitPriceCents",
-      "totalPriceCents",
-      "vatRate",
-      "vatAmountCents",
-    ],
-    order_payment: [
-      "id",
-      "orderId",
-      "method",
-      "status",
-      "amountCents",
-      "createdAt",
-    ],
-    session: ["id", "userId", "expiresAt", "sessionType", "createdAt"],
-    setting: ["id", "key", "value", "createdAt"],
-    shipping_method: ["id", "name", "label", "costCents", "isActive"],
-    invoice: [
-      "id",
-      "invoiceNumber",
-      "orderId",
-      "totalCents",
-      "status",
-      "createdAt",
-    ],
-    subscription: [
-      "id",
-      "productId",
-      "userId",
-      "status",
-      "passCode",
-      "priceAtPurchaseCents",
-      "createdAt",
-    ],
-    role: ["id", "name", "label", "isSystem", "createdAt"],
-  },
-  API: {
-    shop: [
-      "id",
-      "projectId",
-      "name",
-      "tenantSlug",
-      "isActive",
-      "createdAt",
-      "updatedAt",
-    ],
-    shop_credential: ["id", "shopId", "service", "isActive", "createdAt"],
-    api_log: [
-      "id",
-      "shopId",
-      "service",
-      "endpoint",
-      "method",
-      "responseCode",
-      "responseTime",
-      "createdAt",
-      "expiresAt",
-    ],
-    email_log: [
-      "id",
-      "shopId",
-      "to_address",
-      "subject",
-      "status",
-      "responseTime",
-      "createdAt",
-      "expiresAt",
-    ],
-    webhook_delivery: [
-      "id",
-      "shopId",
-      "service",
-      "eventType",
-      "status",
-      "attempts",
-      "createdAt",
-    ],
-    payment: [
-      "id",
-      "organizationId",
-      "tenantId",
-      "orderId",
-      "provider",
-      "providerReference",
-      "amountCents",
-      "currency",
-      "status",
-      "createdAt",
-    ],
-    psp_configuration: [
-      "id",
-      "organizationId",
-      "provider",
-      "country",
-      "isActive",
-      "isTestMode",
-      "createdAt",
-    ],
-    shipping_label: [
-      "id",
-      "shopId",
-      "provider",
-      "trackingNumber",
-      "status",
-      "createdAt",
-    ],
-  },
-} as const;
-
-// ============================================================================
 // TESTS
 // ============================================================================
 
@@ -363,7 +184,7 @@ describe("D1 Database Schema - Smoke Tests", () => {
       if (!canRunTests) return;
 
       const tables = await getTableNames(DATABASES.PLATFORM);
-      const expected = Object.keys(EXPECTED_SCHEMA.PLATFORM);
+      const expected = Object.keys(EXPECTED_PLATFORM);
       const missing = expected.filter((t) => !tables.includes(t));
 
       log(
@@ -381,7 +202,7 @@ describe("D1 Database Schema - Smoke Tests", () => {
     });
 
     it.each(
-      Object.entries(EXPECTED_SCHEMA.PLATFORM).map(([table, columns]) => ({
+      Object.entries(EXPECTED_PLATFORM).map(([table, columns]) => ({
         table,
         columns,
       })),
@@ -417,7 +238,7 @@ describe("D1 Database Schema - Smoke Tests", () => {
       if (!canRunTests) return;
 
       const tables = await getTableNames(DATABASES.TENANT);
-      const expected = Object.keys(EXPECTED_SCHEMA.TENANT);
+      const expected = Object.keys(EXPECTED_TENANT);
       const missing = expected.filter((t) => !tables.includes(t));
 
       log(
@@ -435,7 +256,7 @@ describe("D1 Database Schema - Smoke Tests", () => {
     });
 
     it.each(
-      Object.entries(EXPECTED_SCHEMA.TENANT).map(([table, columns]) => ({
+      Object.entries(EXPECTED_TENANT).map(([table, columns]) => ({
         table,
         columns,
       })),
@@ -471,7 +292,7 @@ describe("D1 Database Schema - Smoke Tests", () => {
       if (!canRunTests) return;
 
       const tables = await getTableNames(DATABASES.API);
-      const expected = Object.keys(EXPECTED_SCHEMA.API);
+      const expected = Object.keys(EXPECTED_API);
       const missing = expected.filter((t) => !tables.includes(t));
 
       log(
@@ -489,7 +310,7 @@ describe("D1 Database Schema - Smoke Tests", () => {
     });
 
     it.each(
-      Object.entries(EXPECTED_SCHEMA.API).map(([table, columns]) => ({
+      Object.entries(EXPECTED_API).map(([table, columns]) => ({
         table,
         columns,
       })),
