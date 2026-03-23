@@ -7,9 +7,9 @@
  * @module tests/utils/test-config
  */
 
-/** Storefront test URL (demo tenant) */
+/** Storefront test URL (actieve productie-tenant: Zwembad het Elderink) */
 export const STOREFRONT_URL =
-  process.env.STOREFRONT_TEST_URL ?? "https://demo.pagayo.app";
+  process.env.STOREFRONT_TEST_URL ?? "https://y0d7wl.pagayo.app";
 
 /** Platform Admin URL (achter CF Access — verwacht 401/302 op beschermde routes) */
 export const PLATFORM_ADMIN_URL =
