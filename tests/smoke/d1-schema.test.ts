@@ -26,14 +26,44 @@
  */
 
 import { logTestResult, type TestResult } from "../utils/test-reporter";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+
+/**
+ * Resolve de pagayo-schema repo zonder afhankelijk te zijn van een lokale absolute path.
+ */
+function resolveSchemaRepoRoot(): string {
+  const envOverride = process.env.PAGAYO_SCHEMA_ROOT;
+  if (envOverride) {
+    const resolvedOverride = resolve(envOverride);
+    if (existsSync(join(resolvedOverride, "migrations"))) {
+      return resolvedOverride;
+    }
+  }
+
+  let currentDir = resolve(__dirname);
+
+  while (true) {
+    const candidate = join(currentDir, "pagayo-schema");
+    if (existsSync(join(candidate, "migrations"))) {
+      return candidate;
+    }
+
+    const parentDir = dirname(currentDir);
+    if (parentDir === currentDir) {
+      break;
+    }
+
+    currentDir = parentDir;
+  }
+
+  throw new Error(
+    "Kon pagayo-schema/migrations niet vinden. Zet PAGAYO_SCHEMA_ROOT of run vanuit de monorepo workspace.",
+  );
+}
 
 // Load expected schemas from @pagayo/schema (Single Source of Truth)
-const SCHEMA_BASE_PATH = join(
-  __dirname,
-  "../../../../pagayo-schema/migrations",
-);
+const SCHEMA_BASE_PATH = join(resolveSchemaRepoRoot(), "migrations");
 
 interface ExpectedSchemaFile {
   _comment: string;

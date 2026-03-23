@@ -68,6 +68,42 @@ describe("Storefront Service - Smoke Tests", () => {
     return false;
   }
 
+  async function expectProtectedAdminGetRoute(options: {
+    testName: string;
+    path: string;
+    action: string;
+  }): Promise<void> {
+    const response = await fetch(`${STOREFRONT_URL}${options.path}`);
+
+    if (skipIfNoTenant(response, options.testName)) return;
+
+    if ([401, 403].includes(response.status)) {
+      log(
+        options.testName,
+        "PASS",
+        `Fail-closed contract intact: HTTP ${response.status}`,
+      );
+    } else if (response.status >= 500) {
+      log(
+        options.testName,
+        "FAIL",
+        `Server error: HTTP ${response.status}`,
+        options.action,
+        "HIGH",
+      );
+    } else {
+      log(
+        options.testName,
+        "FAIL",
+        `Onverwachte status: HTTP ${response.status}`,
+        options.action,
+        "HIGH",
+      );
+    }
+
+    expect([401, 403]).toContain(response.status);
+  }
+
   describe("Health Endpoints", () => {
     it("API health endpoint returns 200", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/health`);
@@ -120,6 +156,33 @@ describe("Storefront Service - Smoke Tests", () => {
           "FAIL",
           `Onverwachte status ${response.status}`,
           "Check platform route mount of CF Access bescherming",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403, 302]).toContain(response.status);
+    });
+
+    it("Platform health route is protected and reachable", async () => {
+      const response = await fetch(
+        `${PLATFORM_ADMIN_URL}/api/platform/health`,
+        {
+          redirect: "manual",
+        },
+      );
+
+      if ([401, 403, 302].includes(response.status)) {
+        log(
+          "platform-health-route",
+          "PASS",
+          `Beschermde route bereikbaar (HTTP ${response.status})`,
+        );
+      } else {
+        log(
+          "platform-health-route",
+          "FAIL",
+          `Onverwachte status ${response.status}`,
+          "Check platform health route of CF Access bescherming",
           "HIGH",
         );
       }
@@ -241,7 +304,9 @@ describe("Storefront Service - Smoke Tests", () => {
     });
 
     it("Public cache version endpoint exposes freshness metadata", async () => {
-      const response = await fetch(`${STOREFRONT_URL}/api/settings/cache-version`);
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/settings/cache-version`,
+      );
 
       if (skipIfNoTenant(response, "public-cache-version")) return;
 
@@ -360,6 +425,397 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/html");
     });
+
+    it("Public pages API returns 200 for unknown tag filter", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/pages?tag=unknown-smoke&limit=1`,
+      );
+
+      if (skipIfNoTenant(response, "public-pages-list")) return;
+
+      if (response.status === 200) {
+        log("public-pages-list", "PASS", `Status: ${response.status}`);
+      } else {
+        log(
+          "public-pages-list",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check public-pages.routes.ts listing endpoint",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe("Public Validation Routes", () => {
+    it("Analytics vitals beacon accepts malformed payload with 204", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/analytics/vitals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (skipIfNoTenant(response, "analytics-vitals")) return;
+
+      if (response.status === 204) {
+        log("analytics-vitals", "PASS", "Beacon endpoint returns 204");
+      } else {
+        log(
+          "analytics-vitals",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check analytics vitals route fail-safe behavior",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(204);
+    });
+
+    it("Contact API rejects mutation without CSRF token", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Smoke Test",
+          email: "smoke@example.com",
+          subject: "Smoke",
+          message: "CSRF guard check",
+        }),
+      });
+
+      if (skipIfNoTenant(response, "contact-csrf")) return;
+
+      if (response.status === 403) {
+        log("contact-csrf", "PASS", "CSRF blocks mutation: HTTP 403");
+      } else if (response.status >= 500) {
+        log(
+          "contact-csrf",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check contact route CSRF middleware",
+          "HIGH",
+        );
+      } else {
+        log(
+          "contact-csrf",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBe(403);
+    });
+
+    it("Public upload verify rejects missing token", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/public/photo-upload/verify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      if (response.status === 400) {
+        log("public-upload-verify", "PASS", "Token validation: HTTP 400");
+      } else if (response.status >= 500) {
+        log(
+          "public-upload-verify",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check public upload verify route",
+          "HIGH",
+        );
+      } else {
+        log(
+          "public-upload-verify",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe("Commerce API Contracts", () => {
+    it("Account API requires auth", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/account`);
+
+      if (skipIfNoTenant(response, "account-auth")) return;
+
+      if (response.status === 401) {
+        log("account-auth", "PASS", "Account endpoint vereist auth");
+      } else {
+        log(
+          "account-auth",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check account routes auth guard",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(401);
+    });
+
+    it("Account addresses API requires auth", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/account/addresses`);
+
+      if (skipIfNoTenant(response, "account-addresses-auth")) return;
+
+      if (response.status === 401) {
+        log(
+          "account-addresses-auth",
+          "PASS",
+          "Address book endpoint vereist auth",
+        );
+      } else {
+        log(
+          "account-addresses-auth",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check address routes auth guard",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(401);
+    });
+
+    it("Orders API requires auth", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/orders`);
+
+      if (skipIfNoTenant(response, "orders-auth")) return;
+
+      if (response.status === 401) {
+        log("orders-auth", "PASS", "Orders endpoint vereist auth");
+      } else {
+        log(
+          "orders-auth",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check order routes auth guard",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(401);
+    });
+
+    it("Order tracking validates missing email", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/orders/track/smoke-order`,
+      );
+
+      if (skipIfNoTenant(response, "orders-track-validation")) return;
+
+      if (response.status === 400) {
+        log(
+          "orders-track-validation",
+          "PASS",
+          "Tracking endpoint valideert ontbrekend e-mailadres",
+        );
+      } else {
+        log(
+          "orders-track-validation",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check public order tracking validation",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(400);
+    });
+
+    it("Returns API requires auth", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/returns`);
+
+      if (skipIfNoTenant(response, "returns-auth")) return;
+
+      if (response.status === 401) {
+        log("returns-auth", "PASS", "Returns endpoint vereist auth");
+      } else {
+        log(
+          "returns-auth",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check customer return routes auth guard",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(401);
+    });
+
+    it("Tenant design CSS endpoint serves no-store CSS", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/tenant/design-css`);
+
+      if (skipIfNoTenant(response, "tenant-design-css")) return;
+
+      const cacheControl = response.headers.get("Cache-Control");
+
+      if (
+        response.status === 200 &&
+        response.headers.get("content-type")?.includes("text/css") &&
+        cacheControl === "no-store"
+      ) {
+        log("tenant-design-css", "PASS", "Tenant CSS contract werkt");
+      } else {
+        log(
+          "tenant-design-css",
+          "FAIL",
+          `status=${response.status}, content-type=${response.headers.get("content-type")}, cache=${cacheControl}`,
+          "Check tenant design-css route",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/css");
+      expect(cacheControl).toBe("no-store");
+    });
+
+    it("Tenant manifest endpoint serves JSON metadata", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/tenant/manifest.json`,
+      );
+
+      if (skipIfNoTenant(response, "tenant-manifest")) return;
+
+      const manifest = response.status === 200 ? await response.json() : null;
+      const cacheControl = response.headers.get("Cache-Control");
+
+      if (
+        response.status === 200 &&
+        typeof manifest?.name === "string" &&
+        manifest?.start_url === "/" &&
+        cacheControl === "no-store"
+      ) {
+        log("tenant-manifest", "PASS", `Manifest voor ${manifest.name}`);
+      } else {
+        log(
+          "tenant-manifest",
+          "FAIL",
+          `status=${response.status}, name=${manifest?.name}, start_url=${manifest?.start_url}, cache=${cacheControl}`,
+          "Check tenant manifest route",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      expect(typeof manifest?.name).toBe("string");
+      expect(manifest?.start_url).toBe("/");
+      expect(cacheControl).toBe("no-store");
+    });
+
+    it("Tenant info endpoint exposes only public contract", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/tenant/info`);
+
+      if (skipIfNoTenant(response, "tenant-info")) return;
+
+      const info = response.status === 200 ? await response.json() : null;
+      const cacheControl = response.headers.get("Cache-Control");
+
+      if (
+        response.status === 200 &&
+        typeof info?.slug === "string" &&
+        typeof info?.name === "string" &&
+        !("schema" in info) &&
+        !("organizationId" in info) &&
+        cacheControl === "no-store"
+      ) {
+        log("tenant-info", "PASS", `Publiek tenant contract voor ${info.slug}`);
+      } else {
+        log(
+          "tenant-info",
+          "FAIL",
+          `status=${response.status}, slug=${info?.slug}, cache=${cacheControl}`,
+          "Check tenant info route",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(typeof info?.slug).toBe("string");
+      expect(typeof info?.name).toBe("string");
+      expect(info).not.toHaveProperty("schema");
+      expect(info).not.toHaveProperty("organizationId");
+      expect(cacheControl).toBe("no-store");
+    });
+
+    it("Stripe checkout session validates missing orderId", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/payments/stripe/checkout-session`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: [{ name: "Smoke", price: 10, quantity: 1 }],
+          }),
+        },
+      );
+
+      if (skipIfNoTenant(response, "stripe-checkout-validation")) return;
+
+      if (response.status === 400) {
+        log(
+          "stripe-checkout-validation",
+          "PASS",
+          "Stripe checkout valideert ontbrekende orderId",
+        );
+      } else {
+        log(
+          "stripe-checkout-validation",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check Stripe checkout-session validation",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(400);
+    });
+
+    it("Mollie payment validates missing orderId", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/payments/mollie/payment`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: 29.99,
+            description: "Smoke payment",
+          }),
+        },
+      );
+
+      if (skipIfNoTenant(response, "mollie-payment-validation")) return;
+
+      if (response.status === 400) {
+        log(
+          "mollie-payment-validation",
+          "PASS",
+          "Mollie payment valideert ontbrekende orderId",
+        );
+      } else {
+        log(
+          "mollie-payment-validation",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check Mollie payment validation",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(400);
+    });
   });
 
   describe("Auth Routes", () => {
@@ -473,6 +929,72 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect([401, 403]).toContain(response.status);
     });
+  });
+
+  describe("Admin Surface Contracts", () => {
+    const protectedAdminRoutes = [
+      {
+        testName: "admin-domain-route",
+        path: "/api/admin/domain",
+        action: "Check admin domain route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-invoices-route",
+        path: "/api/admin/invoices?limit=1",
+        action: "Check admin invoices route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-coupons-route",
+        path: "/api/admin/coupons",
+        action: "Check admin coupons route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-returns-route",
+        path: "/api/admin/returns?limit=1",
+        action: "Check admin returns route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-reviews-route",
+        path: "/api/admin/reviews",
+        action: "Check admin reviews route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-pages-route",
+        path: "/api/admin/pages?limit=1",
+        action: "Check admin pages route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-blog-route",
+        path: "/api/admin/blog?limit=1",
+        action: "Check admin blog route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-navigation-route",
+        path: "/api/admin/navigation?menu=HEADER",
+        action: "Check admin navigation route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-messages-route",
+        path: "/api/admin/messages/stats",
+        action: "Check admin messages route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-team-route",
+        path: "/api/admin/team",
+        action: "Check admin team route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-kv-sync-route",
+        path: "/api/admin/kv-sync/status",
+        action: "Check admin kv-sync route mount en requireAdmin guard",
+      },
+    ] as const;
+
+    for (const route of protectedAdminRoutes) {
+      it(`${route.path} faalt gesloten zonder admin-auth`, async () => {
+        await expectProtectedAdminGetRoute(route);
+      });
+    }
   });
 
   describe("Cart & Checkout", () => {
@@ -1549,6 +2071,44 @@ describe("Storefront Service - Smoke Tests", () => {
       }
 
       expect(response.status).toBe(200);
+    });
+
+    it("GET /api/navigation?menu=FOOTER exposes cache headers", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/navigation?menu=FOOTER`,
+      );
+
+      if (skipIfNoTenant(response, "navigation-footer")) return;
+
+      const cacheHeader = response.headers.get("X-Cache");
+      const cacheLayer = response.headers.get("X-Storefront-Cache-Layer");
+      const cacheControl = response.headers.get("Cache-Control");
+
+      if (
+        response.status === 200 &&
+        ["HIT", "MISS"].includes(cacheHeader || "") &&
+        cacheLayer === "navigation-kv" &&
+        cacheControl === "no-store"
+      ) {
+        log(
+          "navigation-footer",
+          "PASS",
+          `Headers ok: X-Cache=${cacheHeader}, layer=${cacheLayer}`,
+        );
+      } else {
+        log(
+          "navigation-footer",
+          "FAIL",
+          `Onverwachte headers: status=${response.status}, X-Cache=${cacheHeader}, layer=${cacheLayer}, Cache-Control=${cacheControl}`,
+          "Check navigation route cache observability",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(["HIT", "MISS"]).toContain(cacheHeader);
+      expect(cacheLayer).toBe("navigation-kv");
+      expect(cacheControl).toBe("no-store");
     });
 
     it("GET /api/admin/settings/opening-hours requires auth", async () => {
