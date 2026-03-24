@@ -1607,6 +1607,37 @@ describe("Storefront Service - Smoke Tests", () => {
       // 403 = CSRF middleware rejects before auth, 401 = auth rejects
       expect([401, 403]).toContain(response.status);
     });
+
+    it("GET /api/stripe/connect/callback without params returns 400", async () => {
+      // Callback route op connect.pagayo.app is publiek (Stripe redirect)
+      // maar vereist code en state parameters
+      const response = await fetch(
+        "https://connect.pagayo.app/api/stripe/connect/callback",
+      );
+      log(
+        "stripe-callback-missing-params",
+        response.status === 400 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error?.code).toBe("MISSING_PARAMS");
+    });
+
+    it("GET /api/stripe/connect/callback with invalid state returns 400", async () => {
+      // Ongeldige state parameter moet afgewezen worden
+      const response = await fetch(
+        "https://connect.pagayo.app/api/stripe/connect/callback?code=test&state=invalid.signature",
+      );
+      log(
+        "stripe-callback-invalid-state",
+        response.status === 400 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error?.code).toBe("INVALID_STATE");
+    });
   });
 
   describe("Auth Routes (Phone Support)", () => {
