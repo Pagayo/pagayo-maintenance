@@ -2313,4 +2313,42 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(200);
     });
   });
+
+  describe("Checkout Endpoint", () => {
+    it("POST /api/checkout returns 400 without body (endpoint reachable)", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (skipIfNoTenant(response, "checkout-endpoint-reachable")) return;
+
+      // 400 = endpoint is reachable but rejects invalid input (correct behavior)
+      // 401/403 = auth required (also acceptable)
+      if ([400, 401, 403, 422].includes(response.status)) {
+        log(
+          "checkout-endpoint-reachable",
+          "PASS",
+          `Checkout endpoint bereikbaar: HTTP ${response.status} (verwacht: input validatie)`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "checkout-endpoint-reachable",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check checkout.routes.ts en Stripe configuratie",
+          "CRITICAL",
+        );
+      } else {
+        log(
+          "checkout-endpoint-reachable",
+          "WARN",
+          `Onverwachte status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+  });
 });
