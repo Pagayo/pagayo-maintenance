@@ -1640,6 +1640,75 @@ describe("Storefront Service - Smoke Tests", () => {
     });
   });
 
+  describe("Stripe PaymentIntent API", () => {
+    it("POST /api/payments/stripe/payment-intent without orderId returns 400 or 403", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/payments/stripe/payment-intent`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: 1000,
+            paymentMethodType: "ideal",
+          }),
+        },
+      );
+
+      if (skipIfNoTenant(response, "stripe-pi-missing-orderid")) return;
+
+      if (response.status === 400) {
+        log(
+          "stripe-pi-missing-orderid",
+          "PASS",
+          "PaymentIntent valideert ontbrekende orderId",
+        );
+      } else if (response.status === 403) {
+        log(
+          "stripe-pi-missing-orderid",
+          "PASS",
+          "CSRF protection blocks external POST (expected)",
+        );
+      } else {
+        log(
+          "stripe-pi-missing-orderid",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check PaymentIntent validation",
+          "HIGH",
+        );
+      }
+
+      // 400 = validation error (expected), 403 = CSRF protection (expected for external POST)
+      expect([400, 403]).toContain(response.status);
+    });
+
+    it("GET /api/payments/stripe/payment-intent/pi_invalid returns 400 or 404", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/payments/stripe/payment-intent/pi_invalid`,
+      );
+
+      if (skipIfNoTenant(response, "stripe-pi-status-invalid")) return;
+
+      if ([400, 404].includes(response.status)) {
+        log(
+          "stripe-pi-status-invalid",
+          "PASS",
+          `PaymentIntent status rejects invalid ID: HTTP ${response.status}`,
+        );
+      } else {
+        log(
+          "stripe-pi-status-invalid",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check PaymentIntent status endpoint",
+          "HIGH",
+        );
+      }
+
+      expect([400, 404]).toContain(response.status);
+    });
+  });
+
   describe("Auth Routes (Phone Support)", () => {
     it("POST /auth/register with email returns 200 or 400", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/auth/register`, {
