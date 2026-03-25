@@ -2350,5 +2350,45 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect(response.status).toBeLessThan(500);
     });
+
+    it("POST /api/checkout with partial cart validates payment method (checkout session reachable)", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ productId: "smoke-test", qty: 1 }],
+          customer: { email: "smoke@example.com" },
+          paymentMethod: "ideal",
+        }),
+      });
+
+      if (skipIfNoTenant(response, "checkout-session-reachable")) return;
+
+      // 400/422 = validation error (expected — incomplete cart data)
+      // 403 = CSRF protection (expected for external POST)
+      if ([400, 403, 422].includes(response.status)) {
+        log(
+          "checkout-session-reachable",
+          "PASS",
+          `Checkout session endpoint bereikbaar: HTTP ${response.status} (verwacht: validatie)`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "checkout-session-reachable",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check checkout-payment service en Stripe configuratie",
+          "CRITICAL",
+        );
+      } else {
+        log(
+          "checkout-session-reachable",
+          "WARN",
+          `Onverwachte status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
   });
 });
