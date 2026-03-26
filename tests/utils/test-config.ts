@@ -26,6 +26,10 @@ export const API_URL = process.env.API_TEST_URL ?? "https://api.pagayo.com";
 export const MARKETING_URL =
   process.env.MARKETING_TEST_URL ?? "https://www.pagayo.com";
 
+/** Strict host-first tenant resolution check inschakelen voor post-deploy validatie */
+export const EXPECT_HOST_FIRST_TENANT_RESOLUTION =
+  process.env.EXPECT_HOST_FIRST_TENANT_RESOLUTION === "true";
+
 /**
  * Detecteer of de STOREFRONT_URL een actieve, geprovisioneerde tenant heeft.
  * Gebruikt door storefront smoke tests om tenant-afhankelijke tests te skippen.

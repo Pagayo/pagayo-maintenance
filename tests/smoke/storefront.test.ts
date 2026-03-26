@@ -2460,4 +2460,53 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBeLessThan(500);
     });
   });
+
+  // ==========================================================================
+  // SCHEMA INTEGRITY
+  // ==========================================================================
+
+  describe("Schema Integrity", () => {
+    it("POST /api/checkout with empty body returns 400 not 500 (schema intact)", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (skipIfNoTenant(response, "checkout-schema-integrity")) return;
+
+      if (response.status === 400) {
+        log(
+          "checkout-schema-integrity",
+          "PASS",
+          `Zod validatie actief: HTTP 400 (schema intact)`,
+        );
+      } else if (response.status === 403) {
+        log(
+          "checkout-schema-integrity",
+          "PASS",
+          `CSRF blokkeert externe POST: HTTP 403 (endpoint bereikbaar)`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "checkout-schema-integrity",
+          "FAIL",
+          `Server error: HTTP ${response.status} — mogelijke schema drift`,
+          "Check Worker logs: wrangler tail pagayo-storefront. Controleer D1 schema integriteit.",
+          "CRITICAL",
+        );
+      } else {
+        log(
+          "checkout-schema-integrity",
+          "WARN",
+          `Onverwachte status: HTTP ${response.status}`,
+        );
+      }
+
+      // 400 = Zod validatie werkt correct (schema intact)
+      // 403 = CSRF blokkeert (endpoint bereikbaar, validatie niet bereikt)
+      // 500 = mogelijke schema drift of server error
+      expect([400, 403]).toContain(response.status);
+    });
+  });
 });

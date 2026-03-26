@@ -13,9 +13,22 @@
  * @module tests/security/tenant-isolation
  */
 
-import { STOREFRONT_URL } from "../utils/test-config";
+import {
+  STOREFRONT_URL,
+  detectTenantActive,
+  EXPECT_HOST_FIRST_TENANT_RESOLUTION,
+} from "../utils/test-config";
+
+const strictHostFirstCheck =
+  STOREFRONT_URL.includes("localhost") || EXPECT_HOST_FIRST_TENANT_RESOLUTION;
 
 describe("Security - Tenant Isolation", () => {
+  let tenantActive = false;
+
+  beforeAll(async () => {
+    tenantActive = await detectTenantActive();
+  });
+
   // ==============================
   // X-Tenant-ID Header Spoofing
   // ==============================
@@ -53,6 +66,24 @@ describe("Security - Tenant Isolation", () => {
       // Empty header should be ignored, normal tenant resolution should apply
       expect([401, 403, 404]).toContain(response.status);
     });
+
+    it.skipIf(!strictHostFirstCheck)(
+      "should ignore spoofed X-Tenant-ID on a tenant-bound host",
+      async () => {
+        const response = await fetch(`${STOREFRONT_URL}/api/products`, {
+          headers: {
+            "X-Tenant-ID": "other-tenant-that-does-not-exist",
+          },
+        });
+
+        if (!tenantActive && response.status === 404) {
+          return;
+        }
+
+        expect(response.status).not.toBe(404);
+        expect(response.status).not.toBe(502);
+      },
+    );
   });
 
   // ==============================
