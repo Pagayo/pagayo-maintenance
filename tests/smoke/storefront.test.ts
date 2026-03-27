@@ -343,6 +343,62 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(cacheControl).toBe("no-store");
     });
 
+    it("Partners API returns 200", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/partners`);
+
+      if (skipIfNoTenant(response, "partners-api")) return;
+
+      if (response.status === 200) {
+        log("partners-api", "PASS", "Partners endpoint working");
+      } else {
+        log(
+          "partners-api",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check partners.routes.ts, settings registry en tenant partner data",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+    });
+
+    it("Partners API exposes response-cache headers", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/partners`);
+
+      if (skipIfNoTenant(response, "partners-cache-headers")) return;
+
+      const responseCache = response.headers.get("X-Response-Cache");
+      const cacheLayer = response.headers.get("X-Storefront-Cache-Layer");
+      const cacheControl = response.headers.get("Cache-Control");
+
+      if (
+        response.status === 200 &&
+        ["HIT", "MISS", "KV"].includes(responseCache || "") &&
+        cacheLayer === "partners-response-cache" &&
+        cacheControl === "no-cache"
+      ) {
+        log(
+          "partners-cache-headers",
+          "PASS",
+          `Headers ok: X-Response-Cache=${responseCache}, layer=${cacheLayer}`,
+        );
+      } else {
+        log(
+          "partners-cache-headers",
+          "FAIL",
+          `Onverwachte headers: status=${response.status}, X-Response-Cache=${responseCache}, layer=${cacheLayer}, Cache-Control=${cacheControl}`,
+          "Check partners response-cache observability",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(["HIT", "MISS", "KV"]).toContain(responseCache);
+      expect(cacheLayer).toBe("partners-response-cache");
+      expect(cacheControl).toBe("no-cache");
+    });
+
     it("Public cache version endpoint exposes freshness metadata", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/settings/cache-version`,
@@ -458,6 +514,34 @@ describe("Storefront Service - Smoke Tests", () => {
           "FAIL",
           `HTTP ${response.status}`,
           "Check page.routes.ts",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+    });
+
+    it("Partners page serves HTML", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/partners`);
+
+      if (skipIfNoTenant(response, "partners-page")) return;
+
+      if (response.status === 200) {
+        log("partners-page", "PASS", "Partners page accessible");
+      } else if (response.status === 404) {
+        log(
+          "partners-page",
+          "WARN",
+          "Partners feature niet beschikbaar (404) — feature mogelijk niet gedeployed of niet ingeschakeld voor deze tenant",
+        );
+        return;
+      } else {
+        log(
+          "partners-page",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check page.routes.ts en workers/templates/index.ts",
           "HIGH",
         );
       }
@@ -982,6 +1066,37 @@ describe("Storefront Service - Smoke Tests", () => {
       }
 
       expect([401, 403]).toContain(response.status);
+    });
+
+    it("GET /api/admin/search?q=test returns non-500", async () => {
+      // Zonder admin sessie verwachten we 401, niet 500
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/search?q=test`);
+
+      if (skipIfNoTenant(response, "admin-search")) return;
+
+      if ([401, 403].includes(response.status)) {
+        log(
+          "admin-search",
+          "PASS",
+          `Auth guard intact: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "admin-search",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check admin search route handler",
+          "HIGH",
+        );
+      } else {
+        log(
+          "admin-search",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).not.toBe(500);
     });
   });
 
