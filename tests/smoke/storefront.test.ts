@@ -307,40 +307,46 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(200);
     });
 
-    it("Categories API exposes cache debug headers", async () => {
-      const response = await fetch(`${STOREFRONT_URL}/api/categories`);
+    it("Categories API warms edge cache on repeat requests", async () => {
+      const firstResponse = await fetch(`${STOREFRONT_URL}/api/categories`);
 
-      if (skipIfNoTenant(response, "categories-cache-headers")) return;
+      if (skipIfNoTenant(firstResponse, "categories-cache-headers")) return;
 
-      const cacheHeader = response.headers.get("X-Cache");
-      const cacheLayer = response.headers.get("X-Storefront-Cache-Layer");
-      const cacheControl = response.headers.get("Cache-Control");
+      const firstCacheHeader = firstResponse.headers.get("X-Cache");
+      const firstCacheLayer = firstResponse.headers.get("X-Storefront-Cache-Layer");
 
-      if (
-        response.status === 200 &&
-        ["KV", "MISS"].includes(cacheHeader || "") &&
-        cacheLayer === "categories-kv" &&
-        cacheControl === "no-store"
-      ) {
+      const secondResponse = await fetch(`${STOREFRONT_URL}/api/categories`);
+      const secondCacheHeader = secondResponse.headers.get("X-Cache");
+      const secondCacheLayer = secondResponse.headers.get("X-Storefront-Cache-Layer");
+
+      const firstRequestOk =
+        firstResponse.status === 200 &&
+        ["HIT", "KV", "MISS"].includes(firstCacheHeader || "") &&
+        firstCacheLayer === "categories-kv";
+
+      const secondRequestOk =
+        secondResponse.status === 200 &&
+        ["HIT", "KV"].includes(secondCacheHeader || "") &&
+        secondCacheLayer === "categories-kv";
+
+      if (firstRequestOk && secondRequestOk) {
         log(
           "categories-cache-headers",
           "PASS",
-          `Headers ok: X-Cache=${cacheHeader}, layer=${cacheLayer}`,
+          `Warm-up ok: first=${firstCacheHeader}, second=${secondCacheHeader}, layer=${secondCacheLayer}`,
         );
       } else {
         log(
           "categories-cache-headers",
           "FAIL",
-          `Onverwachte headers: status=${response.status}, X-Cache=${cacheHeader}, layer=${cacheLayer}, Cache-Control=${cacheControl}`,
+          `First: status=${firstResponse.status}, X-Cache=${firstCacheHeader}, layer=${firstCacheLayer}; Second: status=${secondResponse.status}, X-Cache=${secondCacheHeader}, layer=${secondCacheLayer}`,
           "Check categories route cache observability",
           "HIGH",
         );
       }
 
-      expect(response.status).toBe(200);
-      expect(["KV", "MISS"]).toContain(cacheHeader);
-      expect(cacheLayer).toBe("categories-kv");
-      expect(cacheControl).toBe("no-store");
+      expect(firstRequestOk).toBe(true);
+      expect(secondRequestOk).toBe(true);
     });
 
     it("Partners API returns 200", async () => {
@@ -775,7 +781,7 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(401);
     });
 
-    it("Tenant design CSS endpoint serves no-store CSS", async () => {
+    it("Tenant design CSS endpoint serves revalidatable CSS", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/tenant/design-css`);
 
       if (skipIfNoTenant(response, "tenant-design-css")) return;
@@ -785,7 +791,7 @@ describe("Storefront Service - Smoke Tests", () => {
       if (
         response.status === 200 &&
         response.headers.get("content-type")?.includes("text/css") &&
-        cacheControl === "no-store"
+        cacheControl === "no-cache"
       ) {
         log("tenant-design-css", "PASS", "Tenant CSS contract werkt");
       } else {
@@ -800,10 +806,10 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/css");
-      expect(cacheControl).toBe("no-store");
+      expect(cacheControl).toBe("no-cache");
     });
 
-    it("Tenant manifest endpoint serves JSON metadata", async () => {
+    it("Tenant manifest endpoint serves revalidatable JSON metadata", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/tenant/manifest.json`,
       );
@@ -817,7 +823,7 @@ describe("Storefront Service - Smoke Tests", () => {
         response.status === 200 &&
         typeof manifest?.name === "string" &&
         manifest?.start_url === "/" &&
-        cacheControl === "no-store"
+        cacheControl === "no-cache"
       ) {
         log("tenant-manifest", "PASS", `Manifest voor ${manifest.name}`);
       } else {
@@ -836,7 +842,7 @@ describe("Storefront Service - Smoke Tests", () => {
       );
       expect(typeof manifest?.name).toBe("string");
       expect(manifest?.start_url).toBe("/");
-      expect(cacheControl).toBe("no-store");
+      expect(cacheControl).toBe("no-cache");
     });
 
     it("Tenant info endpoint exposes only public contract", async () => {
