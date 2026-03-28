@@ -313,11 +313,15 @@ describe("Storefront Service - Smoke Tests", () => {
       if (skipIfNoTenant(firstResponse, "categories-cache-headers")) return;
 
       const firstCacheHeader = firstResponse.headers.get("X-Cache");
-      const firstCacheLayer = firstResponse.headers.get("X-Storefront-Cache-Layer");
+      const firstCacheLayer = firstResponse.headers.get(
+        "X-Storefront-Cache-Layer",
+      );
 
       const secondResponse = await fetch(`${STOREFRONT_URL}/api/categories`);
       const secondCacheHeader = secondResponse.headers.get("X-Cache");
-      const secondCacheLayer = secondResponse.headers.get("X-Storefront-Cache-Layer");
+      const secondCacheLayer = secondResponse.headers.get(
+        "X-Storefront-Cache-Layer",
+      );
 
       const firstRequestOk =
         firstResponse.status === 200 &&
@@ -2628,6 +2632,165 @@ describe("Storefront Service - Smoke Tests", () => {
       // 403 = CSRF blokkeert (endpoint bereikbaar, validatie niet bereikt)
       // 500 = mogelijke schema drift of server error
       expect([400, 403]).toContain(response.status);
+    });
+  });
+
+  describe("Passwordless Auth Endpoints", () => {
+    describe("Passkey WebAuthn", () => {
+      it("POST /api/auth/passkey/auth-options returns expected status", async () => {
+        const response = await fetch(
+          `${STOREFRONT_URL}/api/auth/passkey/auth-options`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          },
+        );
+
+        if (skipIfNoTenant(response, "passkey-auth-options")) return;
+
+        // 400 = Zod validatie of service error (endpoint bereikbaar)
+        // 200 = Succesvol challenge gegenereerd
+        log(
+          "passkey-auth-options",
+          [200, 400].includes(response.status) ? "PASS" : "FAIL",
+          `HTTP ${response.status}`,
+        );
+        expect([200, 400]).toContain(response.status);
+      });
+
+      it("POST /api/auth/passkey/authenticate returns expected status", async () => {
+        const response = await fetch(
+          `${STOREFRONT_URL}/api/auth/passkey/authenticate`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          },
+        );
+
+        if (skipIfNoTenant(response, "passkey-authenticate")) return;
+
+        // 400 = Zod validatie of ontbrekende challenge data (endpoint bereikbaar)
+        // 200 = Succesvol geauthenticeerd
+        log(
+          "passkey-authenticate",
+          [200, 400].includes(response.status) ? "PASS" : "FAIL",
+          `HTTP ${response.status}`,
+        );
+        expect([200, 400]).toContain(response.status);
+      });
+
+      it("POST /api/auth/passkey/register-options requires auth", async () => {
+        const response = await fetch(
+          `${STOREFRONT_URL}/api/auth/passkey/register-options`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          },
+        );
+
+        if (skipIfNoTenant(response, "passkey-register-options-auth")) return;
+
+        log(
+          "passkey-register-options-auth",
+          response.status === 401 ? "PASS" : "FAIL",
+          `Auth guard actief: HTTP ${response.status}`,
+        );
+        expect(response.status).toBe(401);
+      });
+
+      it("POST /api/auth/passkey/register requires auth", async () => {
+        const response = await fetch(
+          `${STOREFRONT_URL}/api/auth/passkey/register`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          },
+        );
+
+        if (skipIfNoTenant(response, "passkey-register-auth")) return;
+
+        log(
+          "passkey-register-auth",
+          response.status === 401 ? "PASS" : "FAIL",
+          `Auth guard actief: HTTP ${response.status}`,
+        );
+        expect(response.status).toBe(401);
+      });
+
+      it("GET /api/auth/passkey/list requires auth", async () => {
+        const response = await fetch(`${STOREFRONT_URL}/api/auth/passkey/list`);
+
+        if (skipIfNoTenant(response, "passkey-list-auth")) return;
+
+        log(
+          "passkey-list-auth",
+          response.status === 401 ? "PASS" : "FAIL",
+          `Auth guard actief: HTTP ${response.status}`,
+        );
+        expect(response.status).toBe(401);
+      });
+
+      it("DELETE /api/auth/passkey/test-id requires auth", async () => {
+        const response = await fetch(
+          `${STOREFRONT_URL}/api/auth/passkey/test-id`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        if (skipIfNoTenant(response, "passkey-delete-auth")) return;
+
+        log(
+          "passkey-delete-auth",
+          response.status === 401 ? "PASS" : "FAIL",
+          `Auth guard actief: HTTP ${response.status}`,
+        );
+        expect(response.status).toBe(401);
+      });
+    });
+
+    describe("Magic Link", () => {
+      it("POST /api/auth/magic-link returns expected status", async () => {
+        const response = await fetch(`${STOREFRONT_URL}/api/auth/magic-link`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: "smoke-test@example.com" }),
+        });
+
+        if (skipIfNoTenant(response, "magic-link-send")) return;
+
+        // 200 = Anti-enumeration response (altijd succes)
+        log(
+          "magic-link-send",
+          response.status === 200 ? "PASS" : "FAIL",
+          `HTTP ${response.status}`,
+        );
+        expect(response.status).toBe(200);
+      });
+
+      it("GET /api/auth/magic-login with invalid token redirects or rejects", async () => {
+        const response = await fetch(
+          `${STOREFRONT_URL}/api/auth/magic-login?token=invalid-test-token`,
+          {
+            redirect: "manual",
+          },
+        );
+
+        if (skipIfNoTenant(response, "magic-login-invalid")) return;
+
+        // 302 = redirect naar login (token ongeldig)
+        // 400 = token validatie error
+        log(
+          "magic-login-invalid",
+          [302, 400].includes(response.status) ? "PASS" : "FAIL",
+          `HTTP ${response.status}`,
+        );
+        expect([302, 400]).toContain(response.status);
+      });
     });
   });
 });
