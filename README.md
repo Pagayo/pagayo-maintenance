@@ -4,21 +4,21 @@ Centrale plek voor alle onderhoud, monitoring en testing van het Pagayo platform
 
 ---
 
-## 🧪 Huidige Status (445 tests)
+## 🧪 Huidige Status (maintenance suite)
 
 | Test Type | Count | Status |
 |-----------|-------|--------|
-| Smoke | 140 | ✅ All Pass |
+| Smoke | 140+ | ✅ Contract + infra checks |
 | Security | 132 | ✅ All Pass |
 | Integration | 23 | ✅ All Pass |
 | Contracts | 120 | ✅ All Pass |
 | Performance | 9 | ✅ All Pass |
 | Quality | 21 | ⚠️ 1 fail (wrangler drift) |
 
-**Known Issues:**
-- `storefront /api/products` returns 500 (tracked as warning)
-- `storefront /api/categories` returns 500 (tracked as warning)
-- Wrangler versie-drift: storefront `^4.72.0` vs rest `^4.69.0`
+**Focuspunten:**
+- Edge trusted-auth contracten worden nu expliciet gevalideerd in smoke.
+- Provisioning/workflow auth-contracten zijn opgenomen in smoke.
+- Versie-drift en dependency checks blijven onder `tests/quality/`.
 
 ---
 
@@ -34,11 +34,12 @@ pagayo-maintenance/
 │   ├── sync-secrets.sh           # Secrets naar Workers
 │   └── api-health-scan.ts        # Admin endpoint scanner
 ├── tests/
-│   ├── smoke/                    # Productie endpoint tests (140)
+│   ├── smoke/                    # Productie endpoint tests (140+)
 │   │   ├── header-compliance.test.ts  # ⚠️ POST-DEPLOY: CORS, CORP, Cache, middleware leaks
 │   │   ├── beheer.test.ts        # Legacy redirect verificatie (→ www.pagayo.com)
 │   │   ├── storefront.test.ts    # demo.pagayo.app
 │   │   ├── api-stack.test.ts     # api.pagayo.com
+│   │   ├── edge-provisioning-contracts.test.ts # Edge/provisioning/workflow auth-contracten
 │   │   ├── marketing.test.ts     # www.pagayo.com
 │   │   ├── infrastructure.test.ts # DNS, SSL, routing
 │   │   ├── d1-schema.test.ts     # D1 database schema validatie
@@ -113,7 +114,7 @@ Alle tests genereren gestructureerde output voor AI agents:
 
 | Test Type | Wat het test | Detecteert |
 |-----------|--------------|------------|
-| **Smoke** | Productie endpoints | Worker crashes, 500 errors |
+| **Smoke** | Productie endpoints + auth contracten | Worker crashes, auth regressies, contract drift |
 | **Header Compliance** | HTTP headers op productie | CORS dubbel, CORP blocking, cache mis, auth leaks, asset failures |
 | **Security** | Auth, CSRF, tenant isolation | Auth bypass, CSRF, fuzz, rate limiting |
 | **Integration** | Cross-service + RPC flows | Service bindings, RPC contracts |
@@ -127,9 +128,11 @@ Alle tests genereren gestructureerde output voor AI agents:
 
 | Service | URL | Tests |
 |---------|-----|-------|
-| Storefront | demo.pagayo.app | smoke, security, contracts |
+| Storefront | `STOREFRONT_TEST_URL` (default: y0d7wl.pagayo.app) | smoke, security, contracts |
 | Platform Admin | admin.pagayo.app | smoke (CF Access) |
 | API Stack | api.pagayo.com | smoke, contracts |
+| Edge | edge.pagayo.com | smoke (trusted-auth contracten) |
+| Workflows | workflows.pagayo.app | smoke (trusted-auth contracten) |
 | Marketing | www.pagayo.com | smoke, performance |
 | Staging | staging.pagayo.app / staging-api.pagayo.com | smoke |
 | Infrastructure | alle domeinen | DNS, SSL, routing |
