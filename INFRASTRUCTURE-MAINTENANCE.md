@@ -1,6 +1,6 @@
 # 🏗️ Pagayo Infrastructure Maintenance
 
-**Laatst bijgewerkt:** 8 februari 2026
+**Laatst bijgewerkt:** 29 maart 2026
 
 ---
 
@@ -10,11 +10,11 @@
 
 | Worker | Domein | Functie | Status Check |
 |--------|--------|---------|--------------|
-| pagayo-beheer | beheer.pagayo.com | Platform admin | `/api/health` |
+| pagayo-storefront (platform routes) | admin.pagayo.app | Platform admin | `/api/platform/health` (achter CF Access) |
 | pagayo-storefront | *.pagayo.app | Tenant shops | `/api/health` |
-| pagayo-api-stack | api.pagayo.com | REST API | `/health` |
-| pagayo-edge | edge.pagayo.com | Edge functions | `/health` |
-| pagayo-workflows | N/A (RPC only) | Background jobs | Via RPC |
+| pagayo-api-stack | api.pagayo.com | REST API | `/api/health` |
+| pagayo-edge | edge.pagayo.app | Edge functions | `/api/rate-limit/health` |
+| pagayo-workflows | workflows.pagayo.app | Workflow API | `/health` (plus trusted `/api/workflows/*`) |
 | pagayo-cloudflare-proxy | beheer/app/edge → Workers | Route proxy | Status 200 |
 
 ### Cloudflare Services
@@ -36,17 +36,17 @@
 
 ---
 
-## ✅ Cloudflare Access Bypass Policies
+## ✅ Cloudflare Access & Trusted-Caller Policies
 
-**KRITIEK:** Deze routes moeten PUBLIC zijn. Cloudflare Access blokt anders requests voordat ze de Worker bereiken!
+**KRITIEK:** Auth contracts moeten expliciet blijven per routegroep (CF Access, API key, X-Edge-Secret).
 
 | Path | Application ID | Reden | Aangemaakt |
 |------|---------------|-------|------------|
-| `/api/auth/register` | `0d1e...` | Registratie flow | Legacy |
-| `/api/auth/session` | `0d1e...` | Session check | Legacy |
-| `/api/auth/logout` | `0d1e...` | Uitloggen | Legacy |
-| `/api/workflows/*` | `9a88691f-c16b-422b-8673-713a232979a6` | Registration polling | 8 feb 2026 |
-| `/api/capabilities/features` | `567818a4-607a-4b89-8866-d869269a627f` | Plan features (public) | 8 feb 2026 |
+| `/api/platform/*` | n.v.t. (CF Access app) | Platform admin achter Access | Actief |
+| `/api/provisioning/*` | n.v.t. (API key) | Provisioning alleen API key/service binding | Actief |
+| `/api/rate-limit/*` (edge) | n.v.t. (trusted caller) | Alleen `X-Edge-Secret` of admin bearer | Actief |
+| `/api/workflows/*` | n.v.t. (trusted caller) | Alleen `X-Edge-Secret` | Actief |
+| `/api/capabilities/features` | `567818a4-...` | Legacy (archived beheer) | Historisch |
 
 ### Source of Truth
 
@@ -54,6 +54,7 @@ De definitieve configuratie staat in:
 ```
 pagayo-beheer/cloudflare/access-policies.json
 ```
+Voor huidige runtime-contracten zijn `pagayo-storefront`, `pagayo-edge` en `pagayo-workflows` leidend.
 
 ### Nieuwe bypass toevoegen
 
@@ -67,20 +68,16 @@ pagayo-beheer/cloudflare/access-policies.json
 
 ### Waar staan de tests?
 
-```
-pagayo-beheer/src/__tests__/smoke/
-├── public-routes.smoke.test.ts    # Public vs protected routes
-└── infrastructure.smoke.test.ts   # Full infrastructure check
-```
+`pagayo-maintenance/tests/smoke/`
 
 ### Hoe runnen?
 
 ```bash
-# In pagayo-beheer directory:
+# In pagayo-maintenance directory:
 npm run test:smoke
 
 # Of specifieke test:
-SMOKE_TEST=true npx vitest run src/__tests__/smoke/public-routes.smoke.test.ts
+npx vitest run tests/smoke/edge-provisioning-contracts.test.ts
 ```
 
 ### Wat checken de tests?
@@ -88,7 +85,7 @@ SMOKE_TEST=true npx vitest run src/__tests__/smoke/public-routes.smoke.test.ts
 | Test Suite | Checks |
 |------------|--------|
 | Health Endpoints | Alle /health en /api/health endpoints |
-| Cloudflare Access | Public routes geen 403, protected routes wel |
+| Cloudflare Access & Trusted caller | Protected routes fail-closed zonder juiste auth |
 | Worker Routes | Correcte routing via proxy |
 | DNS | Alle domeinen resolven |
 | SSL | Certificaten geldig |
@@ -112,15 +109,15 @@ service = "pagayo-workflows"
 entrypoint = "ProvisioningHandler"
 ```
 
-### Issue: 401 op public endpoint
+### Issue: 401 op endpoint dat intern/trusted moet zijn
 
-**Symptoom:** 401 "Unauthorized" op routes die public moeten zijn (bijv. /api/workflows)
+**Symptoom:** 401 "Unauthorized" op edge/workflow calls vanuit interne services.
 
 **Oorzaak:** Cloudflare Access (Zero Trust) blokkeert de request VOORDAT de Worker bereikt wordt.
 
 **Fix:**
-1. Check of route in `access-policies.json` staat
-2. Controleer of bypass Application aangemaakt is in Cloudflare Dashboard
+1. Controleer of caller de juiste auth meestuurt (`X-Edge-Secret` of admin bearer)
+2. Controleer secrets/config in worker environment
 3. Run smoke tests: `npm run test:smoke`
 
 ### Issue: app.pagayo.com geeft 404
@@ -156,7 +153,7 @@ entrypoint = "ProvisioningHandler"
 
 ## 📝 Incident Log
 
-### 8 februari 2026 - Registratie flow broken
+### 8 februari 2026 - Registratie flow broken (historisch)
 
 **Symptoom:** "Provisioning is mislukt" error bij registreren op beheer.pagayo.com
 
@@ -178,18 +175,18 @@ entrypoint = "ProvisioningHandler"
 
 ```bash
 # Health checks
-curl -s -o /dev/null -w "%{http_code}" https://beheer.pagayo.com/api/health
-curl -s -o /dev/null -w "%{http_code}" https://api.pagayo.com/health
+curl -s -o /dev/null -w "%{http_code}" https://admin.pagayo.app/api/platform/health
+curl -s -o /dev/null -w "%{http_code}" https://api.pagayo.com/api/health
 curl -s -o /dev/null -w "%{http_code}" https://test-3.pagayo.app/api/health
 curl -s -o /dev/null -w "%{http_code}" https://www.pagayo.com
 
-# Public routes (moeten 200 geven, NIET 403)
-curl -s -o /dev/null -w "%{http_code}" https://beheer.pagayo.com/api/workflows/provisioning/status/test
-curl -s -o /dev/null -w "%{http_code}" https://beheer.pagayo.com/api/capabilities/features
+# Fail-closed checks (moeten 401 geven zonder trusted auth)
+curl -s -o /dev/null -w "%{http_code}" -X POST https://edge.pagayo.app/api/rate-limit/check -H "content-type: application/json" -d '{"identifier":"smoke","type":"ip"}'
+curl -s -o /dev/null -w "%{http_code}" https://workflows.pagayo.app/api/workflows/order/create
 ```
 
 ---
 
-**Laatst bijgewerkt:** 8 februari 2026
+**Laatst bijgewerkt:** 29 maart 2026
 
 *Dit bestand wordt bijgehouden door Copilot. Vraag "Infrastructure health check" om status te krijgen.*

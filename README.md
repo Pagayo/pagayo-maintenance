@@ -4,21 +4,61 @@ Centrale plek voor alle onderhoud, monitoring en testing van het Pagayo platform
 
 ---
 
-## 🧪 Huidige Status (445 tests)
+## 🧪 Huidige Status (maintenance suite)
 
 | Test Type | Count | Status |
 |-----------|-------|--------|
-| Smoke | 140 | ✅ All Pass |
+| Smoke | 140+ | ✅ Contract + infra checks |
 | Security | 132 | ✅ All Pass |
 | Integration | 23 | ✅ All Pass |
 | Contracts | 120 | ✅ All Pass |
 | Performance | 9 | ✅ All Pass |
 | Quality | 21 | ⚠️ 1 fail (wrangler drift) |
 
-**Known Issues:**
-- `storefront /api/products` returns 500 (tracked as warning)
-- `storefront /api/categories` returns 500 (tracked as warning)
-- Wrangler versie-drift: storefront `^4.72.0` vs rest `^4.69.0`
+**Focuspunten:**
+- Edge trusted-auth contracten worden nu expliciet gevalideerd in smoke.
+- Provisioning/workflow auth-contracten zijn opgenomen in smoke.
+- Versie-drift en dependency checks blijven onder `tests/quality/`.
+
+## 📒 Regressieboek (Fase 1 Baseline Lock)
+
+Doel: bestaande checkout-regressies expliciet bevriezen en alleen verslechtering blokkeren.
+
+### Historische baseline-failures (checkout-stripe, inmiddels opgelost)
+
+Scope: `pagayo-storefront/e2e/checkout-stripe.spec.ts`
+
+- Baseline: 8/11 passed, 3/11 failed.
+- Historische failures (referentie):
+   1. online betaalmethode retourneert paymentUrl en triggert redirect (line 215)
+   2. checkout-complete toont succes na Stripe session verificatie (line 311)
+   3. cash checkout gaat naar inline confirmation zonder redirect (lines 395/439)
+
+### Actuele verificatie na patch (2026-03-30)
+
+- `npx playwright test e2e/checkout-stripe.spec.ts --project=chromium --workers=1 --retries=0 --reporter=line` → 7/7 passed (8.1s)
+- `npx playwright test e2e/checkout-flow.spec.ts e2e/checkout-stripe.spec.ts --project=chromium --workers=1 --retries=0 --reporter=line` → 11/11 passed (15.0s)
+- Patch-context: wijziging in `e2e/checkout-stripe.spec.ts`; de 3 historische baseline-failures zijn opgelost op `feature/batch-staging-20260330`.
+
+### Opgelost archief (geen actieve uitzonderingen)
+
+| ID | Uitzondering | Vervaldatum | Exit-criteria |
+|---|---|---|---|
+| CHK-STRIPE-001 | Redirect-assertion baseline failure (line 215) | Opgelost 2026-03-30 | Gesloten na lokale verificatie groen |
+| CHK-STRIPE-002 | Checkout-complete session verificatie failure (line 311) | Opgelost 2026-03-30 | Gesloten na lokale verificatie groen |
+| CHK-STRIPE-003 | Cash inline confirmation failure (lines 395/439) | Opgelost 2026-03-30 | Gesloten na lokale verificatie groen |
+
+### Hard Rule: no-new-failures
+
+1. Voor checkout-stripe geldt momenteel: **0 actieve baseline-uitzonderingen**.
+2. Elke nieuwe checkout-stripe failure is direct blokkerend voor vervolgwerk.
+3. Niet-uitvoerbare suite (boot/start failure) telt als nieuwe failure buiten baseline en is dus blokkerend zodra die situatie opnieuw optreedt.
+
+### Actuele status (2026-03-30)
+
+- Checkout-stripe regressieboek staat op groen voor de geverifieerde patchstatus.
+- Er zijn geen actieve baseline-uitzonderingen voor checkout-stripe.
+- De eerdere relation-collision melding wordt niet als actuele checkout-stripe blocker voor deze branch gevoerd.
 
 ---
 
@@ -34,11 +74,12 @@ pagayo-maintenance/
 │   ├── sync-secrets.sh           # Secrets naar Workers
 │   └── api-health-scan.ts        # Admin endpoint scanner
 ├── tests/
-│   ├── smoke/                    # Productie endpoint tests (140)
+│   ├── smoke/                    # Productie endpoint tests (140+)
 │   │   ├── header-compliance.test.ts  # ⚠️ POST-DEPLOY: CORS, CORP, Cache, middleware leaks
 │   │   ├── beheer.test.ts        # Legacy redirect verificatie (→ www.pagayo.com)
 │   │   ├── storefront.test.ts    # demo.pagayo.app
 │   │   ├── api-stack.test.ts     # api.pagayo.com
+│   │   ├── edge-provisioning-contracts.test.ts # Edge/provisioning/workflow auth-contracten
 │   │   ├── marketing.test.ts     # www.pagayo.com
 │   │   ├── infrastructure.test.ts # DNS, SSL, routing
 │   │   ├── d1-schema.test.ts     # D1 database schema validatie
@@ -113,7 +154,7 @@ Alle tests genereren gestructureerde output voor AI agents:
 
 | Test Type | Wat het test | Detecteert |
 |-----------|--------------|------------|
-| **Smoke** | Productie endpoints | Worker crashes, 500 errors |
+| **Smoke** | Productie endpoints + auth contracten | Worker crashes, auth regressies, contract drift |
 | **Header Compliance** | HTTP headers op productie | CORS dubbel, CORP blocking, cache mis, auth leaks, asset failures |
 | **Security** | Auth, CSRF, tenant isolation | Auth bypass, CSRF, fuzz, rate limiting |
 | **Integration** | Cross-service + RPC flows | Service bindings, RPC contracts |
@@ -127,9 +168,11 @@ Alle tests genereren gestructureerde output voor AI agents:
 
 | Service | URL | Tests |
 |---------|-----|-------|
-| Storefront | demo.pagayo.app | smoke, security, contracts |
+| Storefront | `STOREFRONT_TEST_URL` (default: y0d7wl.pagayo.app) | smoke, security, contracts |
 | Platform Admin | admin.pagayo.app | smoke (CF Access) |
 | API Stack | api.pagayo.com | smoke, contracts |
+| Edge | edge.pagayo.com | smoke (trusted-auth contracten) |
+| Workflows | workflows.pagayo.app | smoke (trusted-auth contracten) |
 | Marketing | www.pagayo.com | smoke, performance |
 | Staging | staging.pagayo.app / staging-api.pagayo.com | smoke |
 | Infrastructure | alle domeinen | DNS, SSL, routing |
@@ -201,4 +244,4 @@ Als tests falen:
 ---
 
 *Aangemaakt: 31 januari 2026*  
-*Laatst bijgewerkt: 15 maart 2026*
+*Laatst bijgewerkt: 30 maart 2026*
