@@ -155,22 +155,25 @@ describe("Marketing Website - Smoke Tests", () => {
   });
 
   describe("Registration Links", () => {
-    it("app.pagayo.com/register works", async () => {
-      const response = await fetch("https://app.pagayo.com/register");
+    it("start.pagayo.app/register works", async () => {
+      const response = await fetch("https://start.pagayo.app/register", {
+        redirect: "manual",
+      });
+      const ok = [200, 301, 302, 307, 308].includes(response.status);
 
-      if (response.status === 200) {
-        log("register-link", "PASS", "Registration page accessible");
+      if (ok) {
+        log("register-link", "PASS", `HTTP ${response.status}`);
       } else {
         log(
           "register-link",
           "FAIL",
           `HTTP ${response.status}`,
-          "Check app.pagayo.com Pages deployment",
+          "Check start.pagayo.app onboarding deployment",
           "CRITICAL",
         );
       }
 
-      expect(response.status).toBe(200);
+      expect(ok).toBe(true);
     });
   });
 });

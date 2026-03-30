@@ -20,6 +20,46 @@ Centrale plek voor alle onderhoud, monitoring en testing van het Pagayo platform
 - Provisioning/workflow auth-contracten zijn opgenomen in smoke.
 - Versie-drift en dependency checks blijven onder `tests/quality/`.
 
+## 📒 Regressieboek (Fase 1 Baseline Lock)
+
+Doel: bestaande checkout-regressies expliciet bevriezen en alleen verslechtering blokkeren.
+
+### Historische baseline-failures (checkout-stripe, inmiddels opgelost)
+
+Scope: `pagayo-storefront/e2e/checkout-stripe.spec.ts`
+
+- Baseline: 8/11 passed, 3/11 failed.
+- Historische failures (referentie):
+   1. online betaalmethode retourneert paymentUrl en triggert redirect (line 215)
+   2. checkout-complete toont succes na Stripe session verificatie (line 311)
+   3. cash checkout gaat naar inline confirmation zonder redirect (lines 395/439)
+
+### Actuele verificatie na patch (2026-03-30)
+
+- `npx playwright test e2e/checkout-stripe.spec.ts --project=chromium --workers=1 --retries=0 --reporter=line` → 7/7 passed (8.1s)
+- `npx playwright test e2e/checkout-flow.spec.ts e2e/checkout-stripe.spec.ts --project=chromium --workers=1 --retries=0 --reporter=line` → 11/11 passed (15.0s)
+- Patch-context: wijziging in `e2e/checkout-stripe.spec.ts`; de 3 historische baseline-failures zijn opgelost op `feature/batch-staging-20260330`.
+
+### Opgelost archief (geen actieve uitzonderingen)
+
+| ID | Uitzondering | Vervaldatum | Exit-criteria |
+|---|---|---|---|
+| CHK-STRIPE-001 | Redirect-assertion baseline failure (line 215) | Opgelost 2026-03-30 | Gesloten na lokale verificatie groen |
+| CHK-STRIPE-002 | Checkout-complete session verificatie failure (line 311) | Opgelost 2026-03-30 | Gesloten na lokale verificatie groen |
+| CHK-STRIPE-003 | Cash inline confirmation failure (lines 395/439) | Opgelost 2026-03-30 | Gesloten na lokale verificatie groen |
+
+### Hard Rule: no-new-failures
+
+1. Voor checkout-stripe geldt momenteel: **0 actieve baseline-uitzonderingen**.
+2. Elke nieuwe checkout-stripe failure is direct blokkerend voor vervolgwerk.
+3. Niet-uitvoerbare suite (boot/start failure) telt als nieuwe failure buiten baseline en is dus blokkerend zodra die situatie opnieuw optreedt.
+
+### Actuele status (2026-03-30)
+
+- Checkout-stripe regressieboek staat op groen voor de geverifieerde patchstatus.
+- Er zijn geen actieve baseline-uitzonderingen voor checkout-stripe.
+- De eerdere relation-collision melding wordt niet als actuele checkout-stripe blocker voor deze branch gevoerd.
+
 ---
 
 ## 📁 Structuur

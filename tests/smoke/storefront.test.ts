@@ -1578,6 +1578,43 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(401);
     });
 
+    it("GET /account/subscriptions serves page or redirects without 5xx", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/account/subscriptions`, {
+        redirect: "manual",
+      });
+
+      if (skipIfNoTenant(response, "account-subscriptions-page")) return;
+
+      const allowedStatuses = [200, 302, 401, 403];
+      const location = response.headers.get("location");
+
+      if (allowedStatuses.includes(response.status)) {
+        log(
+          "account-subscriptions-page",
+          "PASS",
+          response.status === 302
+            ? `Status: 302 redirect -> ${location ?? "n/a"}`
+            : `Status: ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "account-subscriptions-page",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check account routes mount and subscription page handler",
+          "HIGH",
+        );
+      } else {
+        log(
+          "account-subscriptions-page",
+          "WARN",
+          `Unexpected status: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+
     it("GET /api/admin/subscriptions/lookup without code returns 400", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions/lookup`,
