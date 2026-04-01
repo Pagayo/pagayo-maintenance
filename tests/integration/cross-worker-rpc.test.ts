@@ -130,6 +130,20 @@ describe("Service Binding Configuration", () => {
       expect(apiStackBindings?.length ?? 0).toBeGreaterThanOrEqual(2);
     });
   });
+
+  describe("API-Stack wrangler.toml service bindings", () => {
+    const wrangler = readRepoFile("pagayo-api-stack", "wrangler.toml");
+
+    it("has STOREFRONT service binding", () => {
+      expect(wrangler).toContain('binding = "STOREFRONT"');
+      expect(wrangler).toContain('service = "pagayo-storefront"');
+    });
+
+    it("has STOREFRONT binding in staging and production", () => {
+      const storefrontBindings = wrangler.match(/binding\s*=\s*"STOREFRONT"/g);
+      expect(storefrontBindings?.length ?? 0).toBeGreaterThanOrEqual(2);
+    });
+  });
 });
 
 // ===========================================
@@ -216,6 +230,30 @@ describe("Storefront → API-Stack (Email)", () => {
     expect(
       callsApiStackMethod,
       "Storefront should call API Stack email methods on API_STACK binding",
+    ).toBe(true);
+  });
+});
+
+describe("API-Stack → Storefront (Payment Status Forwarding)", () => {
+  it("api-stack uses STOREFRONT binding in source code", () => {
+    const usages = findBindingUsages("pagayo-api-stack", "STOREFRONT");
+    expect(
+      usages.length,
+      "STOREFRONT binding should be referenced in api-stack source code",
+    ).toBeGreaterThan(0);
+  });
+
+  it("api-stack forwards payment status via STOREFRONT binding", () => {
+    const usages = findBindingUsages("pagayo-api-stack", "STOREFRONT");
+    const allLines = usages.flatMap((u) => u.lines);
+    const lineText = allLines.join("\n");
+
+    const callsStorefront =
+      lineText.includes("STOREFRONT.fetch") || lineText.includes("forward");
+
+    expect(
+      callsStorefront,
+      "API Stack should forward payment status via STOREFRONT service binding",
     ).toBe(true);
   });
 });
@@ -350,5 +388,10 @@ describe("Worker Binding Type Definitions", () => {
       found,
       "Storefront should have EDGE and API_STACK in type definitions",
     ).toBe(true);
+  });
+
+  it("api-stack has STOREFRONT in its type definitions", () => {
+    const typesFile = readRepoFile("pagayo-api-stack", "src/workers/types.ts");
+    expect(typesFile).toContain("STOREFRONT");
   });
 });
