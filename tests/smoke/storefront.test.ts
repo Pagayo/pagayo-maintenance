@@ -2437,6 +2437,25 @@ describe("Storefront Service - Smoke Tests", () => {
   });
 
   describe("Stripe PaymentIntent API", () => {
+    it("POST /api/payments/stripe/webhook without signature returns 400", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/payments/stripe/webhook`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: "evt_smoke_test", type: "payment_intent.succeeded" }),
+        },
+      );
+
+      log(
+        "stripe-storefront-webhook-missing-signature",
+        response.status === 400 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+
+      expect(response.status).toBe(400);
+    });
+
     it("POST /api/payments/stripe/payment-intent without orderId returns 400 or 403", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/payments/stripe/payment-intent`,
