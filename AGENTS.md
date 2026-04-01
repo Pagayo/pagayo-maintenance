@@ -9,6 +9,14 @@ Wijzigingen in andere repos moeten hier vaak worden gevalideerd.
 2. `../pagayo-vault/PAGAYO-NIVEAU.md`
 3. `./README.md`
 
+## Deploy Policy (Hard)
+- NOOIT direct naar `main` pushen.
+- ALTIJD eerst werken op `feature/batch-staging-YYYYMMDD`.
+- ALTIJD eerst committen en pushen naar die staging-branch.
+- Voor deploys: ALTIJD starten met `workflow_dispatch` en `deploy_mode=staging-only` waar ondersteund.
+- Productie (`main` merge of `deploy_mode=full/production-only`) ALLEEN na expliciete goedkeuring van Sjoerd in dezelfde thread.
+- Bij twijfel: stop en vraag Sjoerd.
+
 ## Harde grenzen
 - Geen `.skip` of uitgestelde tests voor productie-kritische paden.
 - Contracttests moeten breaking changes snel zichtbaar maken.
