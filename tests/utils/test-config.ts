@@ -33,6 +33,22 @@ export const WORKFLOWS_URL =
 export const MARKETING_URL =
   process.env.MARKETING_TEST_URL ?? "https://www.pagayo.com";
 
+/** Optionele customer session cookie voor fixture-gedreven storefront smoke tests */
+export const SMOKE_SUBSCRIPTION_SESSION_COOKIE =
+  process.env.SMOKE_SUBSCRIPTION_SESSION_COOKIE?.trim() || null;
+
+/** Optionele subscription fixture voor max-members limiet test */
+export const SMOKE_SUBSCRIPTION_MAX_MEMBERS_ID = Number.parseInt(
+  process.env.SMOKE_SUBSCRIPTION_MAX_MEMBERS_ID ?? "",
+  10,
+);
+
+/** Optionele subscription fixture voor max-adults limiet test */
+export const SMOKE_SUBSCRIPTION_ADULT_LIMIT_ID = Number.parseInt(
+  process.env.SMOKE_SUBSCRIPTION_ADULT_LIMIT_ID ?? "",
+  10,
+);
+
 /** Strict host-first tenant resolution check inschakelen voor post-deploy validatie */
 export const EXPECT_HOST_FIRST_TENANT_RESOLUTION =
   process.env.EXPECT_HOST_FIRST_TENANT_RESOLUTION === "true";

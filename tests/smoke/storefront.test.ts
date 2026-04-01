@@ -22,7 +22,15 @@ import {
   ONBOARDING_URL,
   PLATFORM_ADMIN_URL,
   detectTenantActive,
+  SMOKE_SUBSCRIPTION_SESSION_COOKIE,
+  SMOKE_SUBSCRIPTION_MAX_MEMBERS_ID,
+  SMOKE_SUBSCRIPTION_ADULT_LIMIT_ID,
 } from "../utils/test-config";
+import {
+  createAuthFetch,
+  isLocalEnvironment,
+  loginAsAdmin,
+} from "../utils/auth-helper";
 
 function log(
   test: string,
@@ -45,6 +53,14 @@ function log(
 describe("Storefront Service - Smoke Tests", () => {
   /** Of de storefront URL een actieve, geprovisioneerde tenant heeft */
   let tenantActive = false;
+
+  /**
+   * Optionele fixture-config voor limiet smoke-tests.
+   * Zonder deze env vars draaien alleen fail-closed contract checks.
+   */
+  const subscriptionLimitSessionCookie = SMOKE_SUBSCRIPTION_SESSION_COOKIE;
+  const subscriptionMaxMembersId = SMOKE_SUBSCRIPTION_MAX_MEMBERS_ID;
+  const subscriptionAdultLimitId = SMOKE_SUBSCRIPTION_ADULT_LIMIT_ID;
 
   /** Teller voor tests die overgeslagen zijn door geen tenant */
   let skippedByNoTenant = 0;
@@ -106,6 +122,53 @@ describe("Storefront Service - Smoke Tests", () => {
       return true;
     }
     return false;
+  }
+
+  function hasValidPositiveInt(value: number): boolean {
+    return Number.isInteger(value) && value > 0;
+  }
+
+  function buildSessionCookieHeader(rawCookie: string): string {
+    if (rawCookie.startsWith("pagayo_session=")) {
+      return rawCookie;
+    }
+    return `pagayo_session=${rawCookie}`;
+  }
+
+  function extractCookieValue(
+    setCookieHeader: string,
+    cookieName: string,
+  ): string | null {
+    const match = setCookieHeader.match(new RegExp(`${cookieName}=([^;\\s]+)`));
+    return match ? match[1] : null;
+  }
+
+  async function readJsonBody(
+    response: Response,
+  ): Promise<Record<string, unknown> | null> {
+    try {
+      const json = await response.json();
+      if (typeof json === "object" && json !== null) {
+        return json as Record<string, unknown>;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function getErrorDetails(
+    body: Record<string, unknown> | null,
+  ): Record<string, unknown> | null {
+    const error = body?.error;
+    if (typeof error !== "object" || error === null) {
+      return null;
+    }
+    const details = (error as { details?: unknown }).details;
+    if (typeof details !== "object" || details === null) {
+      return null;
+    }
+    return details as Record<string, unknown>;
   }
 
   async function expectProtectedAdminGetRoute(options: {
@@ -1277,6 +1340,174 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([401, 403]).toContain(response.status);
     });
 
+    it("POST /api/admin/orders/:orderId/resend-emails ondersteunt admin contract met geldige sessie", async () => {
+      const testName = "admin-orders-resend-emails-contract";
+
+      if (!isLocalEnvironment()) {
+        log(
+          testName,
+          "WARN",
+          "Overgeslagen: geauthenticeerde admin contracttest draait alleen lokaal",
+        );
+        return;
+      }
+
+      const loginResult = await loginAsAdmin();
+      if (!loginResult.success || !loginResult.sessionCookie) {
+        log(
+          testName,
+          "FAIL",
+          loginResult.error ?? "Admin login gaf geen sessiecookie terug",
+          "Check lokale seeded admin user + /api/admin/login endpoint",
+          "CRITICAL",
+        );
+        expect(loginResult.success).toBe(true);
+        return;
+      }
+
+      const adminFetch = createAuthFetch(loginResult.sessionCookie);
+      const csrfResponse = await adminFetch(`${STOREFRONT_URL}/api/admin/csrf`);
+
+      if (csrfResponse.status !== 200) {
+        log(
+          testName,
+          "FAIL",
+          `CSRF bootstrap faalt: HTTP ${csrfResponse.status}`,
+          "Check /api/admin/csrf met admin sessie",
+          "HIGH",
+        );
+        expect(csrfResponse.status).toBe(200);
+        return;
+      }
+
+      const csrfBody = await readJsonBody(csrfResponse);
+      const csrfData =
+        typeof csrfBody?.data === "object" && csrfBody.data !== null
+          ? (csrfBody.data as Record<string, unknown>)
+          : null;
+      const csrfToken =
+        typeof csrfData?.csrfToken === "string" ? csrfData.csrfToken : null;
+      const csrfCookie = extractCookieValue(
+        csrfResponse.headers.get("set-cookie") ?? "",
+        "csrf_token",
+      );
+
+      if (!csrfToken || !csrfCookie) {
+        log(
+          testName,
+          "FAIL",
+          `CSRF bootstrap incompleet: token=${Boolean(csrfToken)}, cookie=${Boolean(csrfCookie)}`,
+          "Check /api/admin/csrf response body + Set-Cookie",
+          "HIGH",
+        );
+        expect(csrfToken).toBeTruthy();
+        expect(csrfCookie).toBeTruthy();
+        return;
+      }
+
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/orders/SMOKE_RESEND_ORDER_20260331/resend-emails`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken,
+            Cookie: `${buildSessionCookieHeader(loginResult.sessionCookie)}; csrf_token=${csrfCookie}`,
+          },
+          body: JSON.stringify({
+            emailTypes: ["order_confirmation"],
+            idempotencyKey: "smoke-resend-contract-2026-03-31",
+          }),
+          redirect: "manual",
+        },
+      );
+
+      if (skipIfNoTenant(response, testName)) return;
+
+      const body = await readJsonBody(response);
+      const requestId = body?.requestId;
+      const hasRequestId =
+        typeof requestId === "string" && requestId.length > 0;
+
+      if (response.status === 404) {
+        const error = body?.error;
+        const hasErrorShape =
+          typeof error === "object" &&
+          error !== null &&
+          typeof (error as { code?: unknown }).code === "string" &&
+          typeof (error as { message?: unknown }).message === "string";
+
+        if (hasErrorShape && hasRequestId) {
+          log(
+            testName,
+            "PASS",
+            "Endpoint bereikbaar met admin context: 404 contract met structured error bevestigd",
+          );
+        } else {
+          log(
+            testName,
+            "FAIL",
+            "404 response mist structured error of requestId",
+            "Check apiError contract van resend endpoint",
+            "HIGH",
+          );
+        }
+
+        expect(hasErrorShape).toBe(true);
+        expect(hasRequestId).toBe(true);
+        return;
+      }
+
+      if (response.status === 200) {
+        const data =
+          typeof body?.data === "object" && body.data !== null
+            ? (body.data as Record<string, unknown>)
+            : null;
+        const summary =
+          typeof data?.summary === "object" && data.summary !== null
+            ? (data.summary as Record<string, unknown>)
+            : null;
+        const results = Array.isArray(data?.results) ? data.results : null;
+
+        const hasSummary =
+          typeof summary?.requested === "number" &&
+          typeof summary.sent === "number" &&
+          typeof summary.skipped === "number" &&
+          typeof summary.failed === "number";
+        const hasResults = Array.isArray(results);
+
+        if (hasSummary && hasResults && hasRequestId) {
+          log(
+            testName,
+            "PASS",
+            "Endpoint retourneert 200 met summary/results contract",
+          );
+        } else {
+          log(
+            testName,
+            "FAIL",
+            "200 response mist summary/results/requestId contract",
+            "Check resend endpoint response shape",
+            "HIGH",
+          );
+        }
+
+        expect(hasSummary).toBe(true);
+        expect(hasResults).toBe(true);
+        expect(hasRequestId).toBe(true);
+        return;
+      }
+
+      log(
+        testName,
+        "FAIL",
+        `Onverwachte status: HTTP ${response.status}`,
+        "Check admin resend endpoint auth + CSRF contract",
+        "HIGH",
+      );
+      expect([200, 404]).toContain(response.status);
+    });
+
     it("PUT /api/admin/orders/batch/status requires auth", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/orders/batch/status`,
@@ -1782,6 +2013,178 @@ describe("Storefront Service - Smoke Tests", () => {
         `Status: ${response.status}`,
       );
       expect(response.status).toBe(401);
+    });
+
+    it("POST /api/subscription/:id/members returns 401/403 without auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/subscription/1/members`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firstName: "Smoke",
+            lastName: "NoAuth",
+            dateOfBirth: "2015-01-01",
+          }),
+        },
+      );
+
+      if (skipIfNoTenant(response, "subscription-add-member-no-auth")) return;
+
+      if ([401, 403].includes(response.status)) {
+        log(
+          "subscription-add-member-no-auth",
+          "PASS",
+          `Fail-closed contract intact: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "subscription-add-member-no-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check requireAuth + subscription add-member route mount",
+          "HIGH",
+        );
+      } else {
+        log(
+          "subscription-add-member-no-auth",
+          "FAIL",
+          `Onverwachte status: HTTP ${response.status}`,
+          "Check auth contract op /api/subscription/:id/members",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("POST /api/subscription/:id/members returns MAX_MEMBERS_REACHED with structured error (fixture)", async () => {
+      if (
+        !subscriptionLimitSessionCookie ||
+        !hasValidPositiveInt(subscriptionMaxMembersId)
+      ) {
+        log(
+          "subscription-add-member-max-members",
+          "SKIP",
+          "Fixture ontbreekt: zet SMOKE_SUBSCRIPTION_SESSION_COOKIE + SMOKE_SUBSCRIPTION_MAX_MEMBERS_ID",
+        );
+        return;
+      }
+
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/subscription/${subscriptionMaxMembersId}/members`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: buildSessionCookieHeader(subscriptionLimitSessionCookie),
+          },
+          body: JSON.stringify({
+            firstName: "Smoke",
+            lastName: "MaxMembers",
+            dateOfBirth: "2015-01-01",
+          }),
+        },
+      );
+
+      if (skipIfNoTenant(response, "subscription-add-member-max-members"))
+        return;
+
+      const body = await readJsonBody(response);
+      const details = getErrorDetails(body);
+      const error = body?.error as { code?: unknown } | undefined;
+
+      const hasStructuredContract =
+        body?.success === false &&
+        typeof body?.requestId === "string" &&
+        typeof error?.code === "string" &&
+        error.code === "MAX_MEMBERS_REACHED" &&
+        typeof details?.effectiveMax === "number" &&
+        typeof details?.currentCount === "number";
+
+      if (response.status === 400 && hasStructuredContract) {
+        log(
+          "subscription-add-member-max-members",
+          "PASS",
+          `MAX_MEMBERS_REACHED contract intact (effectiveMax=${details?.effectiveMax}, current=${details?.currentCount})`,
+        );
+      } else {
+        log(
+          "subscription-add-member-max-members",
+          "FAIL",
+          `Onverwachte response: HTTP ${response.status}, code=${String(error?.code ?? "n/a")}`,
+          "Controleer max-members limit flow en error contract in subscription routes",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(400);
+      expect(hasStructuredContract).toBe(true);
+    });
+
+    it("POST /api/subscription/:id/members returns MAX_ADULTS_REACHED with structured error (fixture)", async () => {
+      if (
+        !subscriptionLimitSessionCookie ||
+        !hasValidPositiveInt(subscriptionAdultLimitId)
+      ) {
+        log(
+          "subscription-add-member-max-adults",
+          "SKIP",
+          "Fixture ontbreekt: zet SMOKE_SUBSCRIPTION_SESSION_COOKIE + SMOKE_SUBSCRIPTION_ADULT_LIMIT_ID",
+        );
+        return;
+      }
+
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/subscription/${subscriptionAdultLimitId}/members`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: buildSessionCookieHeader(subscriptionLimitSessionCookie),
+          },
+          body: JSON.stringify({
+            firstName: "Smoke",
+            lastName: "MaxAdults",
+            dateOfBirth: "1985-01-01",
+          }),
+        },
+      );
+
+      if (skipIfNoTenant(response, "subscription-add-member-max-adults"))
+        return;
+
+      const body = await readJsonBody(response);
+      const details = getErrorDetails(body);
+      const error = body?.error as { code?: unknown } | undefined;
+
+      const hasStructuredContract =
+        body?.success === false &&
+        typeof body?.requestId === "string" &&
+        typeof error?.code === "string" &&
+        error.code === "MAX_ADULTS_REACHED" &&
+        typeof details?.effectiveMax === "number" &&
+        typeof details?.threshold === "number" &&
+        typeof details?.canPurchaseExtraSlots === "boolean";
+
+      if (response.status === 400 && hasStructuredContract) {
+        log(
+          "subscription-add-member-max-adults",
+          "PASS",
+          `MAX_ADULTS_REACHED contract intact (effectiveMax=${details?.effectiveMax}, threshold=${details?.threshold})`,
+        );
+      } else {
+        log(
+          "subscription-add-member-max-adults",
+          "FAIL",
+          `Onverwachte response: HTTP ${response.status}, code=${String(error?.code ?? "n/a")}`,
+          "Controleer adult-limit parity flow en error contract in subscription routes",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(400);
+      expect(hasStructuredContract).toBe(true);
     });
 
     it("GET /account/subscriptions serves page or redirects without 5xx", async () => {
