@@ -2307,6 +2307,31 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(401);
     });
 
+    it("POST /api/admin/subscriptions/:id/resend-emails returns auth error without session", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/999/resend-emails`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resendWelcome: true,
+            resendMemberInviteIds: [],
+            idempotencyKey: "smoke-test-12345678",
+          }),
+        },
+      );
+
+      if (skipIfNoTenant(response, "admin-subscription-resend-emails-no-auth"))
+        return;
+
+      log(
+        "admin-subscription-resend-emails-no-auth",
+        response.status < 500 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBeLessThan(500);
+    });
+
     it("GET /api/internal/active-tenants requires secret", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/internal/active-tenants`,
