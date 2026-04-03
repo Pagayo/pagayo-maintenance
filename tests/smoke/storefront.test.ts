@@ -1508,6 +1508,172 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([200, 404]).toContain(response.status);
     });
 
+    it("POST /api/admin/blog met bestaande page slug retourneert 409 SLUG_CONFLICT", async () => {
+      const testName = "admin-blog-page-slug-conflict-contract";
+
+      if (!isLocalEnvironment()) {
+        log(
+          testName,
+          "WARN",
+          "Overgeslagen: geauthenticeerde admin contracttest draait alleen lokaal",
+        );
+        return;
+      }
+
+      const loginResult = await loginAsAdmin();
+      if (!loginResult.success || !loginResult.sessionCookie) {
+        log(
+          testName,
+          "FAIL",
+          loginResult.error ?? "Admin login gaf geen sessiecookie terug",
+          "Check lokale seeded admin user + /api/admin/login endpoint",
+          "CRITICAL",
+        );
+        expect(loginResult.success).toBe(true);
+        return;
+      }
+
+      const adminFetch = createAuthFetch(loginResult.sessionCookie);
+      const csrfResponse = await adminFetch(`${STOREFRONT_URL}/api/admin/csrf`);
+      if (csrfResponse.status !== 200) {
+        log(
+          testName,
+          "FAIL",
+          `CSRF bootstrap faalt: HTTP ${csrfResponse.status}`,
+          "Check /api/admin/csrf met admin sessie",
+          "HIGH",
+        );
+        expect(csrfResponse.status).toBe(200);
+        return;
+      }
+
+      const csrfBody = await readJsonBody(csrfResponse);
+      const csrfData =
+        typeof csrfBody?.data === "object" && csrfBody.data !== null
+          ? (csrfBody.data as Record<string, unknown>)
+          : null;
+      const csrfToken =
+        typeof csrfData?.csrfToken === "string" ? csrfData.csrfToken : null;
+      const csrfCookie = extractCookieValue(
+        csrfResponse.headers.get("set-cookie") ?? "",
+        "csrf_token",
+      );
+
+      if (!csrfToken || !csrfCookie) {
+        log(
+          testName,
+          "FAIL",
+          `CSRF bootstrap incompleet: token=${Boolean(csrfToken)}, cookie=${Boolean(csrfCookie)}`,
+          "Check /api/admin/csrf response body + Set-Cookie",
+          "HIGH",
+        );
+        expect(csrfToken).toBeTruthy();
+        expect(csrfCookie).toBeTruthy();
+        return;
+      }
+
+      const cookieHeader = `${buildSessionCookieHeader(loginResult.sessionCookie)}; csrf_token=${csrfCookie}`;
+      const csrfHeaders = {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+        Cookie: cookieHeader,
+      };
+
+      const uniqueSlug = `smoke-slug-conflict-${Date.now()}`;
+      let createdPageId: number | null = null;
+
+      try {
+        const createPageResponse = await fetch(`${STOREFRONT_URL}/api/admin/pages`, {
+          method: "POST",
+          headers: csrfHeaders,
+          body: JSON.stringify({
+            title: "Smoke Slug Conflict Page",
+            slug: uniqueSlug,
+            content: "<p>Smoke page</p>",
+            status: "draft",
+          }),
+        });
+
+        if (skipIfNoTenant(createPageResponse, testName)) return;
+
+        const createPageBody = await readJsonBody(createPageResponse);
+        if (createPageResponse.status !== 201) {
+          log(
+            testName,
+            "FAIL",
+            `Page create faalt: HTTP ${createPageResponse.status}`,
+            "Check admin pages create contract",
+            "HIGH",
+          );
+          expect(createPageResponse.status).toBe(201);
+          return;
+        }
+
+        const createdPageData =
+          typeof createPageBody?.data === "object" && createPageBody.data !== null
+            ? (createPageBody.data as Record<string, unknown>)
+            : null;
+        createdPageId =
+          typeof createdPageData?.id === "number" ? createdPageData.id : null;
+
+        const createBlogResponse = await fetch(`${STOREFRONT_URL}/api/admin/blog`, {
+          method: "POST",
+          headers: csrfHeaders,
+          body: JSON.stringify({
+            title: "Smoke Slug Conflict Blog",
+            slug: uniqueSlug,
+            content: "<p>Smoke blog</p>",
+            status: "draft",
+          }),
+        });
+
+        const createBlogBody = await readJsonBody(createBlogResponse);
+        const error =
+          typeof createBlogBody?.error === "object" && createBlogBody.error !== null
+            ? (createBlogBody.error as Record<string, unknown>)
+            : null;
+        const details = getErrorDetails(createBlogBody);
+
+        const hasConflictCode = error?.code === "SLUG_CONFLICT";
+        const hasConflictType = details?.conflictType === "page";
+        const hasConflictId =
+          typeof details?.conflictId === "number" && details.conflictId > 0;
+
+        if (
+          createBlogResponse.status === 409 &&
+          hasConflictCode &&
+          hasConflictType &&
+          hasConflictId
+        ) {
+          log(
+            testName,
+            "PASS",
+            "Cross-type slug conflict contract bevestigd (409 + conflictType/page + conflictId)",
+          );
+        } else {
+          log(
+            testName,
+            "FAIL",
+            `Onverwacht blog conflict resultaat: HTTP ${createBlogResponse.status}`,
+            "Check admin-blog/admin-pages slug governance contract",
+            "HIGH",
+          );
+        }
+
+        expect(createBlogResponse.status).toBe(409);
+        expect(hasConflictCode).toBe(true);
+        expect(hasConflictType).toBe(true);
+        expect(hasConflictId).toBe(true);
+      } finally {
+        if (createdPageId) {
+          await fetch(`${STOREFRONT_URL}/api/admin/pages/${createdPageId}`, {
+            method: "DELETE",
+            headers: csrfHeaders,
+          });
+        }
+      }
+    });
+
     it("PUT /api/admin/orders/batch/status requires auth", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/orders/batch/status`,
