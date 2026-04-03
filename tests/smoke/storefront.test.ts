@@ -1583,16 +1583,19 @@ describe("Storefront Service - Smoke Tests", () => {
       let createdPageId: number | null = null;
 
       try {
-        const createPageResponse = await fetch(`${STOREFRONT_URL}/api/admin/pages`, {
-          method: "POST",
-          headers: csrfHeaders,
-          body: JSON.stringify({
-            title: "Smoke Slug Conflict Page",
-            slug: uniqueSlug,
-            content: "<p>Smoke page</p>",
-            status: "draft",
-          }),
-        });
+        const createPageResponse = await fetch(
+          `${STOREFRONT_URL}/api/admin/pages`,
+          {
+            method: "POST",
+            headers: csrfHeaders,
+            body: JSON.stringify({
+              title: "Smoke Slug Conflict Page",
+              slug: uniqueSlug,
+              content: "<p>Smoke page</p>",
+              status: "draft",
+            }),
+          },
+        );
 
         if (skipIfNoTenant(createPageResponse, testName)) return;
 
@@ -1610,26 +1613,31 @@ describe("Storefront Service - Smoke Tests", () => {
         }
 
         const createdPageData =
-          typeof createPageBody?.data === "object" && createPageBody.data !== null
+          typeof createPageBody?.data === "object" &&
+          createPageBody.data !== null
             ? (createPageBody.data as Record<string, unknown>)
             : null;
         createdPageId =
           typeof createdPageData?.id === "number" ? createdPageData.id : null;
 
-        const createBlogResponse = await fetch(`${STOREFRONT_URL}/api/admin/blog`, {
-          method: "POST",
-          headers: csrfHeaders,
-          body: JSON.stringify({
-            title: "Smoke Slug Conflict Blog",
-            slug: uniqueSlug,
-            content: "<p>Smoke blog</p>",
-            status: "draft",
-          }),
-        });
+        const createBlogResponse = await fetch(
+          `${STOREFRONT_URL}/api/admin/blog`,
+          {
+            method: "POST",
+            headers: csrfHeaders,
+            body: JSON.stringify({
+              title: "Smoke Slug Conflict Blog",
+              slug: uniqueSlug,
+              content: "<p>Smoke blog</p>",
+              status: "draft",
+            }),
+          },
+        );
 
         const createBlogBody = await readJsonBody(createBlogResponse);
         const error =
-          typeof createBlogBody?.error === "object" && createBlogBody.error !== null
+          typeof createBlogBody?.error === "object" &&
+          createBlogBody.error !== null
             ? (createBlogBody.error as Record<string, unknown>)
             : null;
         const details = getErrorDetails(createBlogBody);
@@ -2609,7 +2617,10 @@ describe("Storefront Service - Smoke Tests", () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: "evt_smoke_test", type: "payment_intent.succeeded" }),
+          body: JSON.stringify({
+            id: "evt_smoke_test",
+            type: "payment_intent.succeeded",
+          }),
         },
       );
 
