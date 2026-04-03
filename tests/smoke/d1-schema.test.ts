@@ -73,9 +73,23 @@ interface ExpectedSchemaFile {
 }
 
 function loadExpectedSchema(
-  dbType: "platform-v2" | "tenant-v2" | "api-v2",
+  dbType: "platform" | "tenant" | "api",
 ): Record<string, string[]> {
-  const filePath = join(SCHEMA_BASE_PATH, dbType, "expected-schema.json");
+  const candidateDirs = [dbType, `${dbType}-v2`];
+  const filePath = candidateDirs
+    .map((dirName) => join(SCHEMA_BASE_PATH, dirName, "expected-schema.json"))
+    .find((candidatePath) => existsSync(candidatePath));
+
+  if (!filePath) {
+    throw new Error(
+      `Kon expected schema niet vinden voor ${dbType}. Gezocht in: ${candidateDirs
+        .map((dirName) =>
+          join(SCHEMA_BASE_PATH, dirName, "expected-schema.json"),
+        )
+        .join(", ")}`,
+    );
+  }
+
   const raw = JSON.parse(readFileSync(filePath, "utf-8")) as ExpectedSchemaFile;
 
   const result: Record<string, string[]> = {};
@@ -90,9 +104,9 @@ function loadExpectedSchema(
 }
 
 // Load schemas from SSoT files
-const EXPECTED_PLATFORM = loadExpectedSchema("platform-v2");
-const EXPECTED_TENANT = loadExpectedSchema("tenant-v2");
-const EXPECTED_API = loadExpectedSchema("api-v2");
+const EXPECTED_PLATFORM = loadExpectedSchema("platform");
+const EXPECTED_TENANT = loadExpectedSchema("tenant");
+const EXPECTED_API = loadExpectedSchema("api");
 
 const CF_API_TOKEN =
   process.env.CF_API_TOKEN ?? process.env.CLOUDFLARE_API_TOKEN;
