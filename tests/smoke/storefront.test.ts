@@ -854,6 +854,38 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(400);
     });
 
+    it("Order tracking token path rejects invalid token with generic contract", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/orders/track/smoke-order?token=invalid.token.value`,
+      );
+
+      if (skipIfNoTenant(response, "orders-track-token-validation")) return;
+
+      if (response.status === 404) {
+        log(
+          "orders-track-token-validation",
+          "PASS",
+          "Tracking token validatiepad geeft generieke NOT_FOUND",
+        );
+      } else if (response.status === 400) {
+        log(
+          "orders-track-token-validation",
+          "WARN",
+          "Legacy tracking validatie actief (400). Hardened tokenpad verwacht 404 na rollout.",
+        );
+      } else {
+        log(
+          "orders-track-token-validation",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check tracking token validation flow en enumeratie-hardening",
+          "HIGH",
+        );
+      }
+
+      expect([400, 404]).toContain(response.status);
+    });
+
     it("Returns API requires auth", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/returns`);
 
