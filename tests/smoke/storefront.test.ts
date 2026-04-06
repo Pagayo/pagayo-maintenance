@@ -2010,6 +2010,38 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect([401, 403]).toContain(response.status);
     });
+
+    it("POST /api/admin/coupons/reconcile-usage requires admin auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/coupons/reconcile-usage`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dryRun: true }),
+        },
+      );
+
+      if (skipIfNoTenant(response, "admin-coupons-reconcile-usage-auth"))
+        return;
+
+      if ([401, 403].includes(response.status)) {
+        log(
+          "admin-coupons-reconcile-usage-auth",
+          "PASS",
+          `Admin reconcile-usage endpoint beschermd (HTTP ${response.status})`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "admin-coupons-reconcile-usage-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check admin coupons reconcile-usage route",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
   });
 
   describe("Anonymous Onboarding Routes", () => {
@@ -3398,9 +3430,9 @@ describe("Storefront Service - Smoke Tests", () => {
         /^\/admin(\?|$)/.test(location) &&
         !location.startsWith("/admin/login");
 
-      expect(
-        atlasAdminRouteResponse.status === 403 || isRedirectToAdmin,
-      ).toBe(true);
+      expect(atlasAdminRouteResponse.status === 403 || isRedirectToAdmin).toBe(
+        true,
+      );
 
       const restoreResponse = await fetch(
         `${STOREFRONT_URL}/api/admin/organization/menu-overrides`,
