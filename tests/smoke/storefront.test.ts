@@ -171,6 +171,43 @@ describe("Storefront Service - Smoke Tests", () => {
     return details as Record<string, unknown>;
   }
 
+  function getErrorCode(body: Record<string, unknown> | null): string | null {
+    const error = body?.error;
+    if (typeof error !== "object" || error === null) {
+      return null;
+    }
+
+    const code = (error as { code?: unknown }).code;
+    return typeof code === "string" ? code : null;
+  }
+
+  function extractBooleanOverrides(
+    body: Record<string, unknown> | null,
+  ): Record<string, boolean> {
+    const data =
+      typeof body?.data === "object" && body.data !== null
+        ? (body.data as Record<string, unknown>)
+        : null;
+    const rawOverrides = data?.overrides;
+    const overrides: Record<string, boolean> = {};
+
+    if (
+      typeof rawOverrides === "object" &&
+      rawOverrides !== null &&
+      !Array.isArray(rawOverrides)
+    ) {
+      for (const [key, value] of Object.entries(
+        rawOverrides as Record<string, unknown>,
+      )) {
+        if (typeof value === "boolean") {
+          overrides[key] = value;
+        }
+      }
+    }
+
+    return overrides;
+  }
+
   async function expectProtectedAdminGetRoute(options: {
     testName: string;
     path: string;
@@ -3216,6 +3253,170 @@ describe("Storefront Service - Smoke Tests", () => {
       }
 
       expect(response.status).toBeLessThan(500);
+    });
+  });
+
+  describe("ATLAS Commerce Contracts", () => {
+    it("GET /api/admin/atlas-commerce/orders requires auth (401/403)", async () => {
+      await expectProtectedAdminGetRoute({
+        testName: "atlas-commerce-orders-auth",
+        path: "/api/admin/atlas-commerce/orders?limit=1",
+        action: "Check Atlas Commerce API auth guard",
+      });
+    });
+
+    it("ATLAS entitlement blijft hard enforced op path-based API + admin route", async () => {
+      const testName = "atlas-commerce-entitlement-contract";
+
+      if (!isLocalEnvironment()) {
+        log(
+          testName,
+          "WARN",
+          "Overgeslagen: entitlement contracttest vereist lokale admin sessie",
+        );
+        return;
+      }
+
+      const loginResult = await loginAsAdmin();
+      if (!loginResult.success || !loginResult.sessionCookie) {
+        log(
+          testName,
+          "FAIL",
+          loginResult.error ?? "Admin login gaf geen sessiecookie terug",
+          "Check lokale seeded admin user + /api/admin/login endpoint",
+          "CRITICAL",
+        );
+        expect(loginResult.success).toBe(true);
+        return;
+      }
+
+      const sessionCookie = loginResult.sessionCookie;
+      const adminFetch = createAuthFetch(sessionCookie);
+
+      const currentOverridesResponse = await adminFetch(
+        `${STOREFRONT_URL}/api/admin/organization/menu-overrides`,
+      );
+      if (skipIfNoTenant(currentOverridesResponse, testName)) return;
+
+      if (currentOverridesResponse.status !== 200) {
+        log(
+          testName,
+          "FAIL",
+          `Current overrides ophalen faalt: HTTP ${currentOverridesResponse.status}`,
+          "Check menu-overrides GET route met admin sessie",
+          "HIGH",
+        );
+        expect(currentOverridesResponse.status).toBe(200);
+        return;
+      }
+
+      const currentOverrides = extractBooleanOverrides(
+        await readJsonBody(currentOverridesResponse),
+      );
+
+      const csrfResponse = await adminFetch(`${STOREFRONT_URL}/api/admin/csrf`);
+      expect(csrfResponse.status).toBe(200);
+
+      const csrfBody = await readJsonBody(csrfResponse);
+      const csrfData =
+        typeof csrfBody?.data === "object" && csrfBody.data !== null
+          ? (csrfBody.data as Record<string, unknown>)
+          : null;
+      const csrfToken =
+        typeof csrfData?.csrfToken === "string" ? csrfData.csrfToken : null;
+      const csrfCookie = extractCookieValue(
+        csrfResponse.headers.get("set-cookie") ?? "",
+        "csrf_token",
+      );
+
+      expect(csrfToken).toBeTruthy();
+      expect(csrfCookie).toBeTruthy();
+
+      if (!csrfToken || !csrfCookie) return;
+
+      const mutationHeaders = {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+        Cookie: `${buildSessionCookieHeader(sessionCookie)}; csrf_token=${csrfCookie}`,
+      };
+
+      const forcedBlockedOverrides: Record<string, boolean> = {
+        ...currentOverrides,
+        ATLAS_COMMERCE: false,
+      };
+
+      const setBlockedResponse = await fetch(
+        `${STOREFRONT_URL}/api/admin/organization/menu-overrides`,
+        {
+          method: "PUT",
+          headers: mutationHeaders,
+          body: JSON.stringify({ overrides: forcedBlockedOverrides }),
+        },
+      );
+
+      if (setBlockedResponse.status !== 200) {
+        const setBlockedBody = await readJsonBody(setBlockedResponse);
+        log(
+          testName,
+          "FAIL",
+          `ATLAS_COMMERCE=false zetten faalt: HTTP ${setBlockedResponse.status}, code=${getErrorCode(setBlockedBody) ?? "none"}`,
+          "Check menu-overrides owner/auth/validation contract",
+          "HIGH",
+        );
+      }
+      expect(setBlockedResponse.status).toBe(200);
+
+      const atlasResponse = await adminFetch(
+        `${STOREFRONT_URL}/api/admin/atlas-commerce/orders?limit=1`,
+      );
+      const atlasBody = await readJsonBody(atlasResponse);
+      const atlasCode = getErrorCode(atlasBody);
+      const details = getErrorDetails(atlasBody);
+
+      const hasFeature = details?.feature === "ATLAS_COMMERCE";
+      const hasAction = details?.action === "admin.view";
+      const hasMenuVisibleFalse = details?.menuVisible === false;
+
+      expect(atlasResponse.status).toBe(403);
+      expect(atlasCode).toBe("FEATURE_BLOCKED");
+      expect(hasFeature).toBe(true);
+      expect(hasAction).toBe(true);
+      expect(hasMenuVisibleFalse).toBe(true);
+
+      const atlasAdminRouteResponse = await fetch(
+        `${STOREFRONT_URL}/admin/atlas-commerce`,
+        {
+          headers: {
+            Cookie: buildSessionCookieHeader(sessionCookie),
+          },
+          redirect: "manual",
+        },
+      );
+      const location = atlasAdminRouteResponse.headers.get("location") ?? "";
+      const isRedirectToAdmin =
+        [302, 303, 307, 308].includes(atlasAdminRouteResponse.status) &&
+        /^\/admin(\?|$)/.test(location) &&
+        !location.startsWith("/admin/login");
+
+      expect(
+        atlasAdminRouteResponse.status === 403 || isRedirectToAdmin,
+      ).toBe(true);
+
+      const restoreResponse = await fetch(
+        `${STOREFRONT_URL}/api/admin/organization/menu-overrides`,
+        {
+          method: "PUT",
+          headers: mutationHeaders,
+          body: JSON.stringify({ overrides: currentOverrides }),
+        },
+      );
+
+      expect(restoreResponse.status).toBe(200);
+      log(
+        testName,
+        "PASS",
+        "Path-based Atlas entitlement guard blokkeert API + admin route deterministisch",
+      );
     });
   });
 
