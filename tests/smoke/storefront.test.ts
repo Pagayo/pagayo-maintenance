@@ -2554,28 +2554,28 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(401);
     });
 
-    it("GET /api/admin/subscriptions/holders without auth returns 401", async () => {
+    it("GET /api/admin/subscriptions/members without auth returns 401", async () => {
       const response = await fetch(
-        `${STOREFRONT_URL}/api/admin/subscriptions/holders`,
+        `${STOREFRONT_URL}/api/admin/subscriptions/members`,
       );
-      if (skipIfNoTenant(response, "admin-subscription-holders-no-auth"))
+      if (skipIfNoTenant(response, "admin-subscription-members-no-auth"))
         return;
       log(
-        "admin-subscription-holders-no-auth",
+        "admin-subscription-members-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
         `Status: ${response.status}`,
       );
       expect(response.status).toBe(401);
     });
 
-    it("GET /api/admin/subscriptions/holders/:holderId without auth returns 401", async () => {
+    it("GET /api/admin/subscriptions/members/:memberId without auth returns 401", async () => {
       const response = await fetch(
-        `${STOREFRONT_URL}/api/admin/subscriptions/holders/sub_1`,
+        `${STOREFRONT_URL}/api/admin/subscriptions/members/sub_1`,
       );
-      if (skipIfNoTenant(response, "admin-subscription-holder-detail-no-auth"))
+      if (skipIfNoTenant(response, "admin-subscription-member-detail-no-auth"))
         return;
       log(
-        "admin-subscription-holder-detail-no-auth",
+        "admin-subscription-member-detail-no-auth",
         response.status === 401 ? "PASS" : "FAIL",
         `Status: ${response.status}`,
       );
