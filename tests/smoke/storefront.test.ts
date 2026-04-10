@@ -1349,6 +1349,70 @@ describe("Storefront Service - Smoke Tests", () => {
   });
 
   describe("New Endpoints - Auth Required", () => {
+    it("GET /api/pos/customers vereist admin auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/pos/customers?search=smoke`,
+      );
+
+      if (skipIfNoTenant(response, "pos-customers-auth")) return;
+
+      if ([401, 403].includes(response.status)) {
+        log(
+          "pos-customers-auth",
+          "PASS",
+          `POS customers endpoint beschermd (HTTP ${response.status})`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "pos-customers-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check /api/pos/customers auth middleware",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("POST /api/pos/orders vereist admin auth", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/pos/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [
+            {
+              productId: 1,
+              quantity: 1,
+              priceCents: 100,
+              name: "Smoke Item",
+            },
+          ],
+          paymentMethod: "pin",
+        }),
+      });
+
+      if (skipIfNoTenant(response, "pos-orders-auth")) return;
+
+      if ([401, 403].includes(response.status)) {
+        log(
+          "pos-orders-auth",
+          "PASS",
+          `POS orders endpoint beschermd (HTTP ${response.status})`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "pos-orders-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check /api/pos/orders auth/csrf middleware",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+
     it("POST /api/orders/:orderId/retry-payment requires auth", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/orders/smoke-order/retry-payment`,
