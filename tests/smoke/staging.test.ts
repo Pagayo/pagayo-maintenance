@@ -5,7 +5,8 @@
  * PRIORITEIT: HIGH - Staging isolatie validatie
  *
  * STAGING URLS:
- * - Storefront: staging.pagayo.app (achter CF Access → 302 redirect is verwacht)
+ * - Storefront tenant: demo.staging.pagayo.app (publiek bereikbaar → 200 HTML)
+ * - Storefront root: staging.pagayo.app (geen tenant host → 404 JSON is verwacht)
  * - API Stack: staging-api.pagayo.com (direct bereikbaar)
  * - Edge: staging-edge.pagayo.app (direct bereikbaar)
  * - Workflows: workflows-staging.pagayo.app (direct bereikbaar)
@@ -20,7 +21,9 @@
 import { logTestResult, type TestResult } from "../utils/test-reporter";
 
 const STAGING_STOREFRONT_URL =
-  process.env.STAGING_STOREFRONT_URL ?? "https://staging.pagayo.app";
+  process.env.STAGING_STOREFRONT_URL ?? "https://demo.staging.pagayo.app";
+const STAGING_STOREFRONT_ROOT_URL =
+  process.env.STAGING_STOREFRONT_ROOT_URL ?? "https://staging.pagayo.app";
 const STAGING_API_URL =
   process.env.STAGING_API_URL ?? "https://staging-api.pagayo.com";
 const STAGING_EDGE_URL =
@@ -122,32 +125,55 @@ describe("Staging Environment - Smoke Tests", () => {
   });
 
   // ========================================================================
-  // STOREFRONT STAGING (achter Cloudflare Access)
+  // STOREFRONT STAGING
   // ========================================================================
 
   describe("Storefront Staging", () => {
-    it("GET / returns 302 redirect to CF Access login", async () => {
-      // staging.pagayo.app is beschermd door CF Access → redirect naar login
-      const response = await fetch(STAGING_STOREFRONT_URL, {
-        redirect: "manual",
-      });
+    it("GET tenant storefront root returns 200 HTML", async () => {
+      const response = await fetch(STAGING_STOREFRONT_URL);
+      const contentType = response.headers.get("content-type") ?? "";
+
       log(
-        "storefront-cf-access",
-        response.status === 302 ? "PASS" : "FAIL",
-        `Status: ${response.status} (302 → CF Access login is verwacht)`,
-        response.status === 302
+        "storefront-tenant-root",
+        response.status === 200 ? "PASS" : "FAIL",
+        `Status: ${response.status} (200 HTML is verwacht)`,
+        response.status === 200
           ? undefined
-          : "CF Access niet actief! Check Zero Trust Dashboard → Access → Applications",
+          : "Storefront staging tenant niet bereikbaar. Check STAGING_STOREFRONT_URL en tenant route/deploy in pagayo-storefront",
         "CRITICAL",
       );
-      expect(response.status).toBe(302);
+      expect(response.status).toBe(200);
+      expect(contentType).toContain("text/html");
 
-      const location = response.headers.get("location") ?? "";
-      expect(location).toContain("cloudflareaccess.com");
+      log("storefront-tenant-html", "PASS", `Content-Type: ${contentType}`);
+    });
+
+    it("GET staging root host returns 404 JSON (no tenant bound)", async () => {
+      const response = await fetch(STAGING_STOREFRONT_ROOT_URL);
+      const contentType = response.headers.get("content-type") ?? "";
+
       log(
-        "storefront-cf-access-redirect",
+        "storefront-root-host",
+        response.status === 404 ? "PASS" : "FAIL",
+        `Status: ${response.status} (404 op root staging host is verwacht)`,
+        response.status === 404
+          ? undefined
+          : "Onverwachte root-host response. Check host routing/bindings voor staging.pagayo.app in pagayo-storefront",
+        "HIGH",
+      );
+      expect(response.status).toBe(404);
+      expect(contentType).toContain("application/json");
+
+      const body = await response.json();
+      expect(body).toHaveProperty("error", "Tenant not found");
+      expect(body).toHaveProperty("message");
+      expect(typeof body.message).toBe("string");
+      expect((body.message as string).toLowerCase()).toContain("tenant");
+
+      log(
+        "storefront-root-host-json",
         "PASS",
-        `Redirect: ${location.substring(0, 80)}...`,
+        `Root host geeft verwacht tenant-not-found JSON (${response.status})`,
       );
     });
   });
@@ -157,8 +183,10 @@ describe("Staging Environment - Smoke Tests", () => {
   // ========================================================================
 
   describe("Staging D1 Schema", () => {
-    const CF_API_TOKEN = process.env.CF_API_TOKEN ?? process.env.CLOUDFLARE_API_TOKEN;
-    const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID ?? "5d4d9b7bcdf6a836c16b19e09d198047";
+    const CF_API_TOKEN =
+      process.env.CF_API_TOKEN ?? process.env.CLOUDFLARE_API_TOKEN;
+    const CF_ACCOUNT_ID =
+      process.env.CF_ACCOUNT_ID ?? "5d4d9b7bcdf6a836c16b19e09d198047";
     const STAGING_PLATFORM_DB = "627ac04a-72d9-4a96-b793-10c250218f33";
 
     async function queryD1(dbId: string, sql: string) {
@@ -175,17 +203,30 @@ describe("Staging Environment - Smoke Tests", () => {
         },
       );
       if (!response.ok) return null;
-      return response.json() as Promise<{ success: boolean; result: Array<{ results: Array<Record<string, unknown>> }> }>;
+      return response.json() as Promise<{
+        success: boolean;
+        result: Array<{ results: Array<Record<string, unknown>> }>;
+      }>;
     }
 
     it("Staging Platform DB has organization table with phone column", async () => {
       if (!CF_API_TOKEN) {
-        log("staging-d1-platform", "SKIP", "CF_API_TOKEN niet gezet", undefined, "HIGH");
+        log(
+          "staging-d1-platform",
+          "SKIP",
+          "CF_API_TOKEN niet gezet",
+          undefined,
+          "HIGH",
+        );
         return;
       }
 
-      const result = await queryD1(STAGING_PLATFORM_DB, "PRAGMA table_info(organization)");
-      const columns = result?.result?.[0]?.results?.map((r) => r.name as string) ?? [];
+      const result = await queryD1(
+        STAGING_PLATFORM_DB,
+        "PRAGMA table_info(organization)",
+      );
+      const columns =
+        result?.result?.[0]?.results?.map((r) => r.name as string) ?? [];
 
       log(
         "staging-d1-platform-org",
@@ -193,7 +234,9 @@ describe("Staging Environment - Smoke Tests", () => {
         columns.includes("phone")
           ? `organization: ${columns.length} columns incl. phone`
           : `organization: phone column MISSING (columns: ${columns.join(", ")})`,
-        columns.includes("phone") ? undefined : "Run staging D1 migration for platform",
+        columns.includes("phone")
+          ? undefined
+          : "Run staging D1 migration for platform",
         "CRITICAL",
       );
       expect(columns).toContain("phone");
@@ -202,8 +245,12 @@ describe("Staging Environment - Smoke Tests", () => {
     it("Staging Platform DB has tenant table with ownerPhone column", async () => {
       if (!CF_API_TOKEN) return;
 
-      const result = await queryD1(STAGING_PLATFORM_DB, "PRAGMA table_info(tenant)");
-      const columns = result?.result?.[0]?.results?.map((r) => r.name as string) ?? [];
+      const result = await queryD1(
+        STAGING_PLATFORM_DB,
+        "PRAGMA table_info(tenant)",
+      );
+      const columns =
+        result?.result?.[0]?.results?.map((r) => r.name as string) ?? [];
 
       log(
         "staging-d1-platform-tenant",
@@ -211,7 +258,9 @@ describe("Staging Environment - Smoke Tests", () => {
         columns.includes("ownerPhone")
           ? `tenant: ${columns.length} columns incl. ownerPhone`
           : `tenant: ownerPhone column MISSING`,
-        columns.includes("ownerPhone") ? undefined : "Run migrate-d1.sh staging platform --remote",
+        columns.includes("ownerPhone")
+          ? undefined
+          : "Run migrate-d1.sh staging platform --remote",
         "CRITICAL",
       );
       expect(columns).toContain("ownerPhone");
@@ -224,7 +273,8 @@ describe("Staging Environment - Smoke Tests", () => {
         STAGING_PLATFORM_DB,
         "SELECT name FROM sqlite_master WHERE type='table' AND name='_migration_log'",
       );
-      const tables = result?.result?.[0]?.results?.map((r) => r.name as string) ?? [];
+      const tables =
+        result?.result?.[0]?.results?.map((r) => r.name as string) ?? [];
 
       log(
         "staging-d1-migration-log",
