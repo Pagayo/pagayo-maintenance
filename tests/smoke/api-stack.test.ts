@@ -15,6 +15,10 @@
 import { logTestResult, type TestResult } from "../utils/test-reporter";
 
 const API_URL = "https://api.pagayo.com";
+const INVALID_SHOP_HEADERS = {
+  "X-Shop-ID": "shop_invalid_999",
+  "X-API-Key": "pk_live_shop_invalid_999_deadbeef",
+};
 
 function log(
   test: string,
@@ -453,52 +457,88 @@ describe("API Stack Service - Smoke Tests", () => {
       expect(location).toContain("/packs/js/sdk.js");
     });
 
-    it("Chatwoot contacts endpoint rejects invalid payload", async () => {
+    it("Chatwoot contacts endpoint rejects invalid shop credentials", async () => {
       const response = await fetch(`${API_URL}/chatwoot/contacts`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...INVALID_SHOP_HEADERS,
+        },
         body: JSON.stringify({}),
       });
 
-      if (response.status === 400) {
-        log("chatwoot-contacts-validation", "PASS", "Validation: HTTP 400");
+      if ([401, 403].includes(response.status)) {
+        log(
+          "chatwoot-contacts-auth",
+          "PASS",
+          `Auth boundary: HTTP ${response.status}`,
+        );
       } else if (response.status >= 500) {
         log(
-          "chatwoot-contacts-validation",
+          "chatwoot-contacts-auth",
           "FAIL",
           `Server error: HTTP ${response.status}`,
-          "Check Chatwoot validation middleware",
+          "Check Chatwoot auth middleware",
           "HIGH",
         );
       }
 
-      expect(response.status).toBe(400);
+      expect([401, 403]).toContain(response.status);
     });
 
-    it("Chatwoot conversations endpoint rejects invalid payload", async () => {
+    it("Chatwoot conversations endpoint rejects invalid shop credentials", async () => {
       const response = await fetch(`${API_URL}/chatwoot/conversations`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...INVALID_SHOP_HEADERS,
+        },
         body: JSON.stringify({}),
       });
 
-      if (response.status === 400) {
+      if ([401, 403].includes(response.status)) {
         log(
-          "chatwoot-conversations-validation",
+          "chatwoot-conversations-auth",
           "PASS",
-          "Validation: HTTP 400",
+          `Auth boundary: HTTP ${response.status}`,
         );
       } else if (response.status >= 500) {
         log(
-          "chatwoot-conversations-validation",
+          "chatwoot-conversations-auth",
           "FAIL",
           `Server error: HTTP ${response.status}`,
-          "Check Chatwoot validation middleware",
+          "Check Chatwoot auth middleware",
           "HIGH",
         );
       }
 
-      expect(response.status).toBe(400);
+      expect([401, 403]).toContain(response.status);
+    });
+  });
+
+  describe("Email Service Auth", () => {
+    it("Email templates endpoint rejects invalid shop credentials", async () => {
+      const response = await fetch(`${API_URL}/api/email/templates`, {
+        headers: INVALID_SHOP_HEADERS,
+      });
+
+      if ([401, 403].includes(response.status)) {
+        log(
+          "email-templates-invalid-auth",
+          "PASS",
+          `Auth failure: HTTP ${response.status}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "email-templates-invalid-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check email auth middleware",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403]).toContain(response.status);
     });
   });
 });
