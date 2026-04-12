@@ -43,10 +43,18 @@ jobs:
     name: "Smoke Tests"
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      PAGAYO_SCHEMA_ROOT: ${{ github.workspace }}/pagayo-schema
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Checkout pagayo-schema
+        uses: actions/checkout@v4
+        with:
+          repository: Pagayo/pagayo-schema
+          path: pagayo-schema
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -77,6 +85,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [smoke-tests]
     if: failure()
+    permissions:
+      contents: read
+      issues: write
 
     steps:
       - name: Create GitHub Issue on failure
