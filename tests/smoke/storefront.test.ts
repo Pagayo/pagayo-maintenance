@@ -22,6 +22,8 @@ import {
   ONBOARDING_URL,
   PLATFORM_ADMIN_URL,
   detectTenantActive,
+  SMOKE_ADMIN_CUSTOMER_ID,
+  SMOKE_ADMIN_SESSION_COOKIE,
   SMOKE_SUBSCRIPTION_SESSION_COOKIE,
   SMOKE_SUBSCRIPTION_MAX_MEMBERS_ID,
   SMOKE_SUBSCRIPTION_ADULT_LIMIT_ID,
@@ -58,6 +60,8 @@ describe("Storefront Service - Smoke Tests", () => {
    * Optionele fixture-config voor limiet smoke-tests.
    * Zonder deze env vars draaien alleen fail-closed contract checks.
    */
+  const adminSessionCookieFixture = SMOKE_ADMIN_SESSION_COOKIE;
+  const adminCustomerIdFixture = SMOKE_ADMIN_CUSTOMER_ID;
   const subscriptionLimitSessionCookie = SMOKE_SUBSCRIPTION_SESSION_COOKIE;
   const subscriptionMaxMembersId = SMOKE_SUBSCRIPTION_MAX_MEMBERS_ID;
   const subscriptionAdultLimitId = SMOKE_SUBSCRIPTION_ADULT_LIMIT_ID;
@@ -133,6 +137,42 @@ describe("Storefront Service - Smoke Tests", () => {
       return rawCookie;
     }
     return `pagayo_session=${rawCookie}`;
+  }
+
+  async function resolveAdminSessionCookie(): Promise<{
+    sessionCookie: string | null;
+    severity: "WARN" | "FAIL";
+    reason?: string;
+  }> {
+    if (adminSessionCookieFixture) {
+      return {
+        sessionCookie: adminSessionCookieFixture,
+        severity: "WARN",
+      };
+    }
+
+    if (!isLocalEnvironment()) {
+      return {
+        sessionCookie: null,
+        severity: "WARN",
+        reason:
+          "Overgeslagen: geauthenticeerde admin contracttest vereist lokale login of SMOKE_ADMIN_SESSION_COOKIE fixture",
+      };
+    }
+
+    const loginResult = await loginAsAdmin();
+    if (!loginResult.success || !loginResult.sessionCookie) {
+      return {
+        sessionCookie: null,
+        severity: "FAIL",
+        reason: loginResult.error ?? "Admin login gaf geen sessiecookie terug",
+      };
+    }
+
+    return {
+      sessionCookie: loginResult.sessionCookie,
+      severity: "WARN",
+    };
   }
 
   function extractCookieValue(
@@ -1476,29 +1516,24 @@ describe("Storefront Service - Smoke Tests", () => {
     it("POST /api/admin/orders/:orderId/resend-emails ondersteunt admin contract met geldige sessie", async () => {
       const testName = "admin-orders-resend-emails-contract";
 
-      if (!isLocalEnvironment()) {
+      const adminSession = await resolveAdminSessionCookie();
+      if (!adminSession.sessionCookie) {
         log(
           testName,
-          "WARN",
-          "Overgeslagen: geauthenticeerde admin contracttest draait alleen lokaal",
+          adminSession.severity,
+          adminSession.reason ?? "Geen admin sessie beschikbaar",
+          adminSession.severity === "FAIL"
+            ? "Check lokale seeded admin user + POST /api/admin/login endpoint"
+            : "Zet SMOKE_ADMIN_SESSION_COOKIE voor remote/staging contractvalidatie",
+          adminSession.severity === "FAIL" ? "CRITICAL" : "HIGH",
         );
+        if (adminSession.severity === "FAIL") {
+          expect(adminSession.sessionCookie).toBeTruthy();
+        }
         return;
       }
 
-      const loginResult = await loginAsAdmin();
-      if (!loginResult.success || !loginResult.sessionCookie) {
-        log(
-          testName,
-          "FAIL",
-          loginResult.error ?? "Admin login gaf geen sessiecookie terug",
-          "Check lokale seeded admin user + /api/admin/login endpoint",
-          "CRITICAL",
-        );
-        expect(loginResult.success).toBe(true);
-        return;
-      }
-
-      const adminFetch = createAuthFetch(loginResult.sessionCookie);
+      const adminFetch = createAuthFetch(adminSession.sessionCookie);
       const csrfResponse = await adminFetch(`${STOREFRONT_URL}/api/admin/csrf`);
 
       if (csrfResponse.status !== 200) {
@@ -1545,7 +1580,7 @@ describe("Storefront Service - Smoke Tests", () => {
           headers: {
             "Content-Type": "application/json",
             "X-CSRF-Token": csrfToken,
-            Cookie: `${buildSessionCookieHeader(loginResult.sessionCookie)}; csrf_token=${csrfCookie}`,
+            Cookie: `${buildSessionCookieHeader(adminSession.sessionCookie)}; csrf_token=${csrfCookie}`,
           },
           body: JSON.stringify({
             emailTypes: ["order_confirmation"],
@@ -1641,32 +1676,86 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([200, 404]).toContain(response.status);
     });
 
-    it("POST /api/admin/blog met bestaande page slug retourneert 409 SLUG_CONFLICT", async () => {
-      const testName = "admin-blog-page-slug-conflict-contract";
+    it("PUT /api/admin/customers/:id bewaart adreswijziging in detail contract (fixture)", async () => {
+      const testName = "admin-customers-save-address-contract";
 
-      if (!isLocalEnvironment()) {
+      if (!hasValidPositiveInt(adminCustomerIdFixture)) {
         log(
           testName,
-          "WARN",
-          "Overgeslagen: geauthenticeerde admin contracttest draait alleen lokaal",
+          "SKIP",
+          "Fixture ontbreekt: zet SMOKE_ADMIN_CUSTOMER_ID voor save-contract validatie",
         );
         return;
       }
 
-      const loginResult = await loginAsAdmin();
-      if (!loginResult.success || !loginResult.sessionCookie) {
+      const adminSession = await resolveAdminSessionCookie();
+      if (!adminSession.sessionCookie) {
+        log(
+          testName,
+          adminSession.severity,
+          adminSession.reason ?? "Geen admin sessie beschikbaar",
+          adminSession.severity === "FAIL"
+            ? "Check lokale seeded admin user + POST /api/admin/login endpoint"
+            : "Zet SMOKE_ADMIN_SESSION_COOKIE voor remote/staging contractvalidatie",
+          adminSession.severity === "FAIL" ? "CRITICAL" : "HIGH",
+        );
+        if (adminSession.severity === "FAIL") {
+          expect(adminSession.sessionCookie).toBeTruthy();
+        }
+        return;
+      }
+
+      const adminFetch = createAuthFetch(adminSession.sessionCookie);
+      const detailResponse = await adminFetch(
+        `${STOREFRONT_URL}/api/admin/customers/${adminCustomerIdFixture}`,
+      );
+
+      if (skipIfNoTenant(detailResponse, testName)) return;
+
+      if (detailResponse.status !== 200) {
         log(
           testName,
           "FAIL",
-          loginResult.error ?? "Admin login gaf geen sessiecookie terug",
-          "Check lokale seeded admin user + /api/admin/login endpoint",
-          "CRITICAL",
+          `Fixture customer niet bereikbaar: HTTP ${detailResponse.status}`,
+          "Controleer SMOKE_ADMIN_CUSTOMER_ID en admin customer route",
+          "HIGH",
         );
-        expect(loginResult.success).toBe(true);
+        expect(detailResponse.status).toBe(200);
         return;
       }
 
-      const adminFetch = createAuthFetch(loginResult.sessionCookie);
+      const detailBody = await readJsonBody(detailResponse);
+      const detailData =
+        typeof detailBody?.data === "object" && detailBody.data !== null
+          ? (detailBody.data as Record<string, unknown>)
+          : null;
+
+      const firstName =
+        typeof detailData?.firstName === "string" ? detailData.firstName : "";
+      const lastName =
+        typeof detailData?.lastName === "string" ? detailData.lastName : "";
+      const email = typeof detailData?.email === "string" ? detailData.email : "";
+      const phone =
+        typeof detailData?.phone === "string" ? detailData.phone : "";
+      const street =
+        typeof detailData?.street === "string" ? detailData.street : "";
+      const houseNumber =
+        typeof detailData?.houseNumber === "string" ? detailData.houseNumber : "";
+      const zipcode =
+        typeof detailData?.zipcode === "string" ? detailData.zipcode : "";
+      const city = typeof detailData?.city === "string" ? detailData.city : "";
+      const country =
+        typeof detailData?.country === "string" ? detailData.country : "NL";
+
+      if (!firstName || !lastName || !email || !street || !houseNumber || !zipcode || !city) {
+        log(
+          testName,
+          "SKIP",
+          "Fixture customer mist verplichte velden voor veilige save-contract test",
+        );
+        return;
+      }
+
       const csrfResponse = await adminFetch(`${STOREFRONT_URL}/api/admin/csrf`);
       if (csrfResponse.status !== 200) {
         log(
@@ -1705,7 +1794,149 @@ describe("Storefront Service - Smoke Tests", () => {
         return;
       }
 
-      const cookieHeader = `${buildSessionCookieHeader(loginResult.sessionCookie)}; csrf_token=${csrfCookie}`;
+      const marker = Date.now().toString().slice(-6);
+      const updatedCity = `${city}-smoke-${marker}`;
+      const cookieHeader = `${buildSessionCookieHeader(adminSession.sessionCookie)}; csrf_token=${csrfCookie}`;
+
+      const performSave = async (cityValue: string): Promise<Response> => {
+        return fetch(
+          `${STOREFRONT_URL}/api/admin/customers/${adminCustomerIdFixture}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-Token": csrfToken,
+              Cookie: cookieHeader,
+            },
+            body: JSON.stringify({
+              firstName,
+              lastName,
+              email,
+              phone,
+              street,
+              houseNumber,
+              zipcode,
+              city: cityValue,
+              country,
+            }),
+            redirect: "manual",
+          },
+        );
+      };
+
+      const saveResponse = await performSave(updatedCity);
+      const saveBody = await readJsonBody(saveResponse);
+      const saveRequestId =
+        typeof saveBody?.requestId === "string" && saveBody.requestId.length > 0;
+
+      if (saveResponse.status !== 200 || !saveRequestId) {
+        log(
+          testName,
+          "FAIL",
+          `Save contract faalt: HTTP ${saveResponse.status}, requestId=${saveRequestId}`,
+          "Check /api/admin/customers/:id PUT response envelope",
+          "HIGH",
+        );
+        expect(saveResponse.status).toBe(200);
+        expect(saveRequestId).toBe(true);
+        return;
+      }
+
+      try {
+        const verifyResponse = await adminFetch(
+          `${STOREFRONT_URL}/api/admin/customers/${adminCustomerIdFixture}`,
+        );
+        const verifyBody = await readJsonBody(verifyResponse);
+        const verifyData =
+          typeof verifyBody?.data === "object" && verifyBody.data !== null
+            ? (verifyBody.data as Record<string, unknown>)
+            : null;
+        const persistedCity =
+          typeof verifyData?.city === "string" ? verifyData.city : null;
+
+        if (verifyResponse.status === 200 && persistedCity === updatedCity) {
+          log(
+            testName,
+            "PASS",
+            "Admin customer save is zichtbaar in detail-read (address SSOT contract intact)",
+          );
+        } else {
+          log(
+            testName,
+            "FAIL",
+            `Detail reflecteert save niet: HTTP ${verifyResponse.status}, city=${String(persistedCity)}`,
+            "Check customer PUT sync met address SSOT",
+            "HIGH",
+          );
+        }
+
+        expect(verifyResponse.status).toBe(200);
+        expect(persistedCity).toBe(updatedCity);
+      } finally {
+        await performSave(city);
+      }
+    });
+
+    it("POST /api/admin/blog met bestaande page slug retourneert 409 SLUG_CONFLICT", async () => {
+      const testName = "admin-blog-page-slug-conflict-contract";
+
+      const adminSession = await resolveAdminSessionCookie();
+      if (!adminSession.sessionCookie) {
+        log(
+          testName,
+          adminSession.severity,
+          adminSession.reason ?? "Geen admin sessie beschikbaar",
+          adminSession.severity === "FAIL"
+            ? "Check lokale seeded admin user + POST /api/admin/login endpoint"
+            : "Zet SMOKE_ADMIN_SESSION_COOKIE voor remote/staging contractvalidatie",
+          adminSession.severity === "FAIL" ? "CRITICAL" : "HIGH",
+        );
+        if (adminSession.severity === "FAIL") {
+          expect(adminSession.sessionCookie).toBeTruthy();
+        }
+        return;
+      }
+
+      const adminFetch = createAuthFetch(adminSession.sessionCookie);
+      const csrfResponse = await adminFetch(`${STOREFRONT_URL}/api/admin/csrf`);
+      if (csrfResponse.status !== 200) {
+        log(
+          testName,
+          "FAIL",
+          `CSRF bootstrap faalt: HTTP ${csrfResponse.status}`,
+          "Check /api/admin/csrf met admin sessie",
+          "HIGH",
+        );
+        expect(csrfResponse.status).toBe(200);
+        return;
+      }
+
+      const csrfBody = await readJsonBody(csrfResponse);
+      const csrfData =
+        typeof csrfBody?.data === "object" && csrfBody.data !== null
+          ? (csrfBody.data as Record<string, unknown>)
+          : null;
+      const csrfToken =
+        typeof csrfData?.csrfToken === "string" ? csrfData.csrfToken : null;
+      const csrfCookie = extractCookieValue(
+        csrfResponse.headers.get("set-cookie") ?? "",
+        "csrf_token",
+      );
+
+      if (!csrfToken || !csrfCookie) {
+        log(
+          testName,
+          "FAIL",
+          `CSRF bootstrap incompleet: token=${Boolean(csrfToken)}, cookie=${Boolean(csrfCookie)}`,
+          "Check /api/admin/csrf response body + Set-Cookie",
+          "HIGH",
+        );
+        expect(csrfToken).toBeTruthy();
+        expect(csrfCookie).toBeTruthy();
+        return;
+      }
+
+      const cookieHeader = `${buildSessionCookieHeader(adminSession.sessionCookie)}; csrf_token=${csrfCookie}`;
       const csrfHeaders = {
         "Content-Type": "application/json",
         "X-CSRF-Token": csrfToken,
@@ -3364,29 +3595,24 @@ describe("Storefront Service - Smoke Tests", () => {
     it("ATLAS entitlement blijft hard enforced op path-based API + admin route", async () => {
       const testName = "atlas-commerce-entitlement-contract";
 
-      if (!isLocalEnvironment()) {
+      const adminSession = await resolveAdminSessionCookie();
+      if (!adminSession.sessionCookie) {
         log(
           testName,
-          "WARN",
-          "Overgeslagen: entitlement contracttest vereist lokale admin sessie",
+          adminSession.severity,
+          adminSession.reason ?? "Geen admin sessie beschikbaar",
+          adminSession.severity === "FAIL"
+            ? "Check lokale seeded admin user + POST /api/admin/login endpoint"
+            : "Zet SMOKE_ADMIN_SESSION_COOKIE voor remote/staging contractvalidatie",
+          adminSession.severity === "FAIL" ? "CRITICAL" : "HIGH",
         );
+        if (adminSession.severity === "FAIL") {
+          expect(adminSession.sessionCookie).toBeTruthy();
+        }
         return;
       }
 
-      const loginResult = await loginAsAdmin();
-      if (!loginResult.success || !loginResult.sessionCookie) {
-        log(
-          testName,
-          "FAIL",
-          loginResult.error ?? "Admin login gaf geen sessiecookie terug",
-          "Check lokale seeded admin user + /api/admin/login endpoint",
-          "CRITICAL",
-        );
-        expect(loginResult.success).toBe(true);
-        return;
-      }
-
-      const sessionCookie = loginResult.sessionCookie;
+      const sessionCookie = adminSession.sessionCookie;
       const adminFetch = createAuthFetch(sessionCookie);
 
       const currentOverridesResponse = await adminFetch(
@@ -3776,6 +4002,70 @@ describe("Storefront Service - Smoke Tests", () => {
           "WARN",
           `Onverwachte status: HTTP ${response.status}`,
         );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("POST /api/checkout detects email typo contract without 500", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ productId: "smoke-test", qty: 1 }],
+          customer: {
+            email: "smoke@gmail.nl",
+            phone: "+31612345678",
+          },
+          acceptedTerms: true,
+          paymentMethod: "test",
+        }),
+      });
+
+      if (skipIfNoTenant(response, "checkout-email-typo-contract")) return;
+
+      const body = await readJsonBody(response);
+      const errorCode = getErrorCode(body);
+
+      if (response.status === 403) {
+        log(
+          "checkout-email-typo-contract",
+          "WARN",
+          "Endpoint bescherming actief: HTTP 403 (typo-contract niet bereikt)",
+        );
+      } else if (
+        response.status === 400 &&
+        errorCode === "EMAIL_TYPO_DETECTED"
+      ) {
+        log(
+          "checkout-email-typo-contract",
+          "PASS",
+          "Checkout typo-detectie contract actief: EMAIL_TYPO_DETECTED",
+        );
+      } else if (response.status === 400 && errorCode) {
+        log(
+          "checkout-email-typo-contract",
+          "WARN",
+          `HTTP 400 met afwijkende error.code: ${errorCode}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "checkout-email-typo-contract",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check checkout typo detectie flow en error mapping",
+          "CRITICAL",
+        );
+      } else {
+        log(
+          "checkout-email-typo-contract",
+          "WARN",
+          `Onverwachte status: HTTP ${response.status}`,
+        );
+      }
+
+      if (response.status === 400 && errorCode) {
+        expect(errorCode).toBe("EMAIL_TYPO_DETECTED");
       }
 
       expect(response.status).toBeLessThan(500);

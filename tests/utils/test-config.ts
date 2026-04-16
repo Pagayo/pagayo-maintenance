@@ -33,6 +33,20 @@ export const WORKFLOWS_URL =
 export const MARKETING_URL =
   process.env.MARKETING_TEST_URL ?? "https://www.pagayo.com";
 
+/** Optionele customer session cookie voor authenticated smoke-profiel buiten localhost */
+export const SMOKE_CUSTOMER_SESSION_COOKIE =
+  process.env.SMOKE_CUSTOMER_SESSION_COOKIE?.trim() || null;
+
+/** Optionele admin session cookie voor authenticated smoke-profiel buiten localhost */
+export const SMOKE_ADMIN_SESSION_COOKIE =
+  process.env.SMOKE_ADMIN_SESSION_COOKIE?.trim() || null;
+
+/** Optionele admin-customer fixture voor save-contract smoke test */
+export const SMOKE_ADMIN_CUSTOMER_ID = Number.parseInt(
+  process.env.SMOKE_ADMIN_CUSTOMER_ID ?? "",
+  10,
+);
+
 /** Optionele customer session cookie voor fixture-gedreven storefront smoke tests */
 export const SMOKE_SUBSCRIPTION_SESSION_COOKIE =
   process.env.SMOKE_SUBSCRIPTION_SESSION_COOKIE?.trim() || null;

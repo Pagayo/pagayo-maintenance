@@ -1,15 +1,15 @@
 /**
  * Code Quality Tests - ESLint
  *
- * Runt ESLint op alle Pagayo repos om code quality issues te vinden
+ * Runt ESLint op alle relevante Pagayo repos om code quality issues te vinden
  * VOORDAT er gecommit wordt naar GitHub.
  *
- * Dit voorkomt dat CI faalt na een push.
+ * Hard gate: 0 errors EN 0 warnings.
  */
 
 import { describe, it, expect } from "vitest";
 import { execSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 
 const WORKSPACE_ROOT = "/Users/sjoerdoverdiep/my-vscode-workspace";
 
@@ -20,6 +20,7 @@ const REPOS_WITH_LINT = [
   "pagayo-edge",
   "pagayo-workflows",
   "pagayo-config",
+  "pagayo-schema",
   "pagayo-marketing",
 ];
 
@@ -31,7 +32,7 @@ function log(repo: string, status: "PASS" | "FAIL" | "SKIP", message: string) {
 describe("Code Quality - ESLint", () => {
   for (const repo of REPOS_WITH_LINT) {
     it(
-      `${repo} passes ESLint (0 errors)`,
+      `${repo} passes ESLint (0 errors, 0 warnings)`,
       { timeout: 180000 },
       async () => {
         const repoPath = `${WORKSPACE_ROOT}/${repo}`;
@@ -50,40 +51,22 @@ describe("Code Quality - ESLint", () => {
         }
 
         try {
-          const packageJson = JSON.parse(
-            execSync(`cat ${packageJsonPath}`, { encoding: "utf-8" }),
-          );
+          const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
 
           if (!packageJson.scripts?.lint) {
             log(repo, "SKIP", "geen lint script");
             return;
           }
 
-          // Run ESLint
-          const result = execSync(`cd ${repoPath} && npm run lint 2>&1`, {
+          // Run ESLint strikt: warnings moeten ook failen
+          execSync(`cd ${repoPath} && npm run lint -- --max-warnings=0 2>&1`, {
             encoding: "utf-8",
             timeout: 120000,
             maxBuffer: 10 * 1024 * 1024, // 10MB buffer
           });
 
-          // Check voor errors (niet warnings)
-          const hasErrors =
-            result.includes("error") &&
-            !result.includes("0 errors") &&
-            result.includes("problems");
-
-          if (hasErrors) {
-            log(repo, "FAIL", "ESLint errors gevonden");
-            // Extract error count
-            const match = result.match(/(\d+) errors?/);
-            const errorCount = match ? match[1] : "unknown";
-            expect.fail(
-              `ESLint found ${errorCount} errors in ${repo}:\n${result.slice(-500)}`,
-            );
-          } else {
-            log(repo, "PASS", "geen errors");
-            expect(true).toBe(true);
-          }
+          log(repo, "PASS", "geen lint errors/warnings");
+          expect(true).toBe(true);
         } catch (error) {
           // execSync throws als exit code != 0
           const output =
@@ -92,15 +75,21 @@ describe("Code Quality - ESLint", () => {
             "";
 
           // Parse error output
-          const match = output.match(/(\d+) errors?/);
-          const errorCount = match ? match[1] : "?";
+          const errorMatch = output.match(/(\d+)\s+errors?/);
+          const warningMatch = output.match(/(\d+)\s+warnings?/);
+          const errorCount = errorMatch ? errorMatch[1] : "0";
+          const warningCount = warningMatch ? warningMatch[1] : "0";
 
-          log(repo, "FAIL", `${errorCount} ESLint errors`);
+          log(
+            repo,
+            "FAIL",
+            `${errorCount} errors, ${warningCount} warnings (strict lint gate)`,
+          );
 
           // Toon laatste 1000 chars voor context
           const snippet = output.slice(-1000);
           expect.fail(
-            `ESLint failed for ${repo} (${errorCount} errors):\n${snippet}`,
+            `ESLint failed for ${repo} (${errorCount} errors, ${warningCount} warnings):\n${snippet}`,
           );
         }
       },
