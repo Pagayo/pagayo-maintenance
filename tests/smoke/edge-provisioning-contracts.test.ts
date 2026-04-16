@@ -69,15 +69,11 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
         return;
       }
 
-      if (response.status === 401) {
-        log("edge-rate-limit-check-unauthorized", "PASS", "Fail-closed: HTTP 401");
-      } else if (response.status === 500) {
+      if ([401, 403].includes(response.status)) {
         log(
           "edge-rate-limit-check-unauthorized",
-          "WARN",
-          "HTTP 500 op unauth request (wel fail-closed, maar servercontract instabiel)",
-          "Controleer edge secret binding/runtime config en deploystatus",
-          "HIGH",
+          "PASS",
+          `Fail-closed: HTTP ${response.status}`,
         );
       } else {
         log(
@@ -89,7 +85,7 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
         );
       }
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 403]).toContain(response.status);
     });
 
     it("GET /api/rate-limit/status fails closed without trusted auth", async () => {
@@ -106,19 +102,11 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
         return;
       }
 
-      if (response.status === 401) {
+      if ([401, 403].includes(response.status)) {
         log(
           "edge-rate-limit-status-unauthorized",
           "PASS",
-          "Fail-closed: HTTP 401",
-        );
-      } else if (response.status === 500) {
-        log(
-          "edge-rate-limit-status-unauthorized",
-          "WARN",
-          "HTTP 500 op unauth request (wel fail-closed, maar servercontract instabiel)",
-          "Controleer edge secret binding/runtime config en deploystatus",
-          "HIGH",
+          `Fail-closed: HTTP ${response.status}`,
         );
       } else {
         log(
@@ -130,7 +118,7 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
         );
       }
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 403]).toContain(response.status);
     });
 
     it("trusted caller can access edge rate-limit endpoints (optional)", async () => {
@@ -197,7 +185,7 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
         }),
       });
 
-      if ([401, 503].includes(response.status)) {
+      if ([401, 403].includes(response.status)) {
         log(
           "provisioning-tenants-unauthorized",
           "PASS",
@@ -213,7 +201,7 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
         );
       }
 
-      expect([401, 503]).toContain(response.status);
+      expect([401, 403]).toContain(response.status);
     });
 
     it("POST /api/platform/tenants/provision remains protected by platform auth", async () => {
@@ -265,15 +253,11 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
         return;
       }
 
-      if (response.status === 401) {
-        log("workflows-api-unauthorized", "PASS", "Fail-closed: HTTP 401");
-      } else if (response.status === 500) {
+      if ([401, 403].includes(response.status)) {
         log(
           "workflows-api-unauthorized",
-          "WARN",
-          "HTTP 500 op unauth request (wel fail-closed, maar servercontract instabiel)",
-          "Controleer workflows EDGE_SECRET binding en runtime config",
-          "HIGH",
+          "PASS",
+          `Fail-closed: HTTP ${response.status}`,
         );
       } else {
         log(
@@ -285,7 +269,7 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
         );
       }
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 403]).toContain(response.status);
     });
 
     it("X-Edge-Secret unlocks workflows routing contract (optional)", async () => {

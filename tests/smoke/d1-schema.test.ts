@@ -114,11 +114,31 @@ const CF_ACCOUNT_ID =
   process.env.CF_ACCOUNT_ID ??
   process.env.CLOUDFLARE_ACCOUNT_ID ??
   "5d4d9b7bcdf6a836c16b19e09d198047";
+const REQUIRE_CF_API_TOKEN =
+  process.env.REQUIRE_CF_API_TOKEN === "true" ||
+  process.env.REQUIRE_D1_SCHEMA_TOKEN === "true" ||
+  process.env.CI === "true";
 
 // Production D1 database IDs
+const DEFAULT_TENANT_DATABASE_ID = "394cb77c-fc12-4bd4-85c9-13937dbb3305";
+
+function parseTenantDatabaseIds(): string[] {
+  const raw = process.env.TENANT_D1_DATABASE_IDS?.trim();
+  if (!raw) return [DEFAULT_TENANT_DATABASE_ID];
+
+  const parsed = raw
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+
+  return parsed.length > 0 ? [...new Set(parsed)] : [DEFAULT_TENANT_DATABASE_ID];
+}
+
+const TENANT_DATABASE_IDS = parseTenantDatabaseIds();
+
 const DATABASES = {
   PLATFORM: "e7b19343-f213-4d3d-9966-364a20b01b97",
-  TENANT: "394cb77c-fc12-4bd4-85c9-13937dbb3305",
+  TENANT: DEFAULT_TENANT_DATABASE_ID,
   API: "538adacb-1164-4d50-b1d8-6c2208d20ed9",
 } as const;
 
@@ -211,6 +231,12 @@ describe("D1 Database Schema - Smoke Tests", () => {
   const canRunTests = Boolean(CF_API_TOKEN);
 
   beforeAll(() => {
+    if (!canRunTests && REQUIRE_CF_API_TOKEN) {
+      throw new Error(
+        "CF_API_TOKEN ontbreekt maar is verplicht in deze run (CI/REQUIRE_CF_API_TOKEN=true).",
+      );
+    }
+
     if (!canRunTests) {
       console.warn(
         "⚠️  CF_API_TOKEN niet gezet — D1 schema tests worden overgeslagen.\n" +
@@ -265,7 +291,7 @@ describe("D1 Database Schema - Smoke Tests", () => {
           ? `${table}: all ${columns.length} required columns present`
           : `${table}: missing columns: ${missingColumns.join(", ")}`,
         missingColumns.length > 0
-          ? `Migration needed for ${table}. Check migrations/platform-v2/ for the relevant SQL.`
+          ? `Migration needed for ${table}. Check migrations/platform/ for the relevant SQL.`
           : undefined,
         "CRITICAL",
       );
@@ -274,29 +300,32 @@ describe("D1 Database Schema - Smoke Tests", () => {
   });
 
   // ========================================================================
-  // TENANT DB (eerste tenant — 518970)
+  // TENANT DB SAMPLE SET
   // ========================================================================
 
   describe("Tenant DB", () => {
-    it("has all expected tables", async () => {
+    it("all sampled tenant DBs have all expected tables", async () => {
       if (!canRunTests) return;
 
-      const tables = await getTableNames(DATABASES.TENANT);
       const expected = Object.keys(EXPECTED_TENANT);
-      const missing = expected.filter((t) => !tables.includes(t));
 
-      log(
-        "tenant-tables",
-        missing.length === 0 ? "PASS" : "FAIL",
-        missing.length === 0
-          ? `All ${expected.length} expected tables present (${tables.length} total)`
-          : `Missing tables: ${missing.join(", ")}`,
-        missing.length > 0
-          ? "Run: cd pagayo-schema && ./scripts/migrate-d1.sh production tenant --remote"
-          : undefined,
-        "CRITICAL",
-      );
-      expect(missing).toEqual([]);
+      for (const databaseId of TENANT_DATABASE_IDS) {
+        const tables = await getTableNames(databaseId);
+        const missing = expected.filter((t) => !tables.includes(t));
+
+        log(
+          `tenant-tables-${databaseId.slice(0, 8)}`,
+          missing.length === 0 ? "PASS" : "FAIL",
+          missing.length === 0
+            ? `Tenant DB ${databaseId}: all ${expected.length} expected tables present (${tables.length} total)`
+            : `Tenant DB ${databaseId}: missing tables: ${missing.join(", ")}`,
+          missing.length > 0
+            ? "Run: cd pagayo-schema && ./scripts/migrate-d1.sh production tenant --remote"
+            : undefined,
+          "CRITICAL",
+        );
+        expect(missing).toEqual([]);
+      }
     });
 
     it.each(
@@ -304,26 +333,28 @@ describe("D1 Database Schema - Smoke Tests", () => {
         table,
         columns,
       })),
-    )("$table has required columns", async ({ table, columns }) => {
+    )("$table has required columns in all sampled tenant DBs", async ({ table, columns }) => {
       if (!canRunTests) return;
 
-      const actualColumns = await getTableColumns(DATABASES.TENANT, table);
-      const missingColumns = columns.filter(
-        (c: string) => !actualColumns.includes(c),
-      );
+      for (const databaseId of TENANT_DATABASE_IDS) {
+        const actualColumns = await getTableColumns(databaseId, table);
+        const missingColumns = columns.filter(
+          (c: string) => !actualColumns.includes(c),
+        );
 
-      log(
-        `tenant-${table}-columns`,
-        missingColumns.length === 0 ? "PASS" : "FAIL",
-        missingColumns.length === 0
-          ? `${table}: all ${columns.length} required columns present`
-          : `${table}: missing columns: ${missingColumns.join(", ")}`,
-        missingColumns.length > 0
-          ? `Migration needed for ${table}. Check migrations/tenant-v2/ for the relevant SQL.`
-          : undefined,
-        "CRITICAL",
-      );
-      expect(missingColumns).toEqual([]);
+        log(
+          `tenant-${table}-columns-${databaseId.slice(0, 8)}`,
+          missingColumns.length === 0 ? "PASS" : "FAIL",
+          missingColumns.length === 0
+            ? `Tenant DB ${databaseId} ${table}: all ${columns.length} required columns present`
+            : `Tenant DB ${databaseId} ${table}: missing columns: ${missingColumns.join(", ")}`,
+          missingColumns.length > 0
+            ? `Migration needed for ${table}. Check migrations/tenant/ for the relevant SQL.`
+            : undefined,
+          "CRITICAL",
+        );
+        expect(missingColumns).toEqual([]);
+      }
     });
   });
 
@@ -373,7 +404,7 @@ describe("D1 Database Schema - Smoke Tests", () => {
           ? `${table}: all ${columns.length} required columns present`
           : `${table}: missing columns: ${missingColumns.join(", ")}`,
         missingColumns.length > 0
-          ? `Migration needed for ${table}. Check migrations/api-v2/ for the relevant SQL.`
+          ? `Migration needed for ${table}. Check migrations/api/ for the relevant SQL.`
           : undefined,
         "CRITICAL",
       );

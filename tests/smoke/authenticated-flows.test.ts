@@ -4,10 +4,9 @@
  * DOEL: Valideer dat authenticated happy paths ECHT werken.
  * Dit is het verschil tussen "infra-groen" en "product-groen".
  *
- * VEREISTEN:
- * - STOREFRONT_TEST_URL moet naar localhost wijzen (lokale dev server)
- * - Seeded test data (users, subscriptions) in lokale D1 database
- * - Wrangler dev server draaiend op de juiste port
+ * MODI:
+ * - Lokaal: login via seeded users op localhost
+ * - Remote/staging: fixture session cookies via env vars
  *
  * WANNEER RUNNEN:
  * - Na wijzigingen aan session/auth middleware
@@ -16,12 +15,22 @@
  * - Wanneer product-groen validatie nodig is
  *
  * GEBRUIK:
- *   STOREFRONT_TEST_URL=http://localhost:3000 npm run test -- tests/smoke/authenticated-flows.test.ts
+ *   Lokaal:
+ *     STOREFRONT_TEST_URL=http://localhost:3000 npm run test -- tests/smoke/authenticated-flows.test.ts
+ *   Remote/staging:
+ *     STOREFRONT_TEST_URL=https://demo.staging.pagayo.app \
+ *     SMOKE_CUSTOMER_SESSION_COOKIE=<cookie> \
+ *     SMOKE_ADMIN_SESSION_COOKIE=<cookie> \
+ *     npm run test -- tests/smoke/authenticated-flows.test.ts
  * ============================================================================
  */
 
 import { logTestResult, type TestResult } from "../utils/test-reporter";
-import { STOREFRONT_URL } from "../utils/test-config";
+import {
+  STOREFRONT_URL,
+  SMOKE_CUSTOMER_SESSION_COOKIE,
+  SMOKE_ADMIN_SESSION_COOKIE,
+} from "../utils/test-config";
 import {
   isLocalEnvironment,
   loginAsCustomer,
@@ -49,14 +58,19 @@ function log(
 
 describe("Authenticated Flows - Product Validation", () => {
   const isLocal = isLocalEnvironment();
+  const hasCustomerFixture = Boolean(SMOKE_CUSTOMER_SESSION_COOKIE);
+  const hasAdminFixture = Boolean(SMOKE_ADMIN_SESSION_COOKIE);
+  const canRunCustomerFlow = isLocal || hasCustomerFixture;
+  const canRunAdminFlow = isLocal || hasAdminFixture;
+  const canRunUnauthorizedGuards = canRunCustomerFlow || canRunAdminFlow;
 
   beforeAll(() => {
-    if (!isLocal) {
+    if (!canRunCustomerFlow && !canRunAdminFlow) {
       console.log(
-        `⚠️  STOREFRONT_TEST_URL=${STOREFRONT_URL} is niet localhost — authenticated tests worden overgeslagen`,
+        `⚠️  STOREFRONT_TEST_URL=${STOREFRONT_URL} is niet localhost en er zijn geen smoke-session fixtures gezet`,
       );
       console.log(
-        `    Run met: STOREFRONT_TEST_URL=http://localhost:3000 npm run test -- tests/smoke/authenticated-flows.test.ts`,
+        "    Zet SMOKE_CUSTOMER_SESSION_COOKIE en SMOKE_ADMIN_SESSION_COOKIE voor remote/staging profile",
       );
     }
   });
@@ -66,18 +80,21 @@ describe("Authenticated Flows - Product Validation", () => {
     let loginSucceeded = false;
 
     beforeAll(async () => {
-      if (!isLocal) return;
+      if (!canRunCustomerFlow) return;
 
-      const result = await loginAsCustomer();
-      if (result.success && result.sessionCookie) {
-        customerFetch = createAuthFetch(result.sessionCookie);
-        loginSucceeded = true;
-        log(
-          "customer-login",
-          "PASS",
-          "Customer login succesvol, session cookie ontvangen",
-        );
-      } else {
+      if (isLocal) {
+        const result = await loginAsCustomer();
+        if (result.success && result.sessionCookie) {
+          customerFetch = createAuthFetch(result.sessionCookie);
+          loginSucceeded = true;
+          log(
+            "customer-login",
+            "PASS",
+            "Customer login succesvol, session cookie ontvangen",
+          );
+          return;
+        }
+
         log(
           "customer-login",
           "FAIL",
@@ -85,19 +102,34 @@ describe("Authenticated Flows - Product Validation", () => {
           "Check of test user is seeded: scripts/local-seeds/",
           "CRITICAL",
         );
+        return;
+      }
+
+      if (SMOKE_CUSTOMER_SESSION_COOKIE) {
+        customerFetch = createAuthFetch(SMOKE_CUSTOMER_SESSION_COOKIE);
+        loginSucceeded = true;
+        log(
+          "customer-login",
+          "PASS",
+          "Customer fixture session cookie gebruikt voor remote/staging smoke",
+        );
       }
     });
 
     it("customer kan inloggen en ontvangt session cookie", () => {
-      if (!isLocal) {
-        log("customer-login", "WARN", "Overgeslagen: niet lokaal");
+      if (!canRunCustomerFlow) {
+        log(
+          "customer-login",
+          "WARN",
+          "Overgeslagen: geen lokale omgeving en geen SMOKE_CUSTOMER_SESSION_COOKIE",
+        );
         return;
       }
       expect(loginSucceeded).toBe(true);
     });
 
     it("GET /api/account retourneert user data met auth", async () => {
-      if (!isLocal || !loginSucceeded) {
+      if (!canRunCustomerFlow || !loginSucceeded) {
         log("account-authenticated", "WARN", "Overgeslagen: geen auth sessie");
         return;
       }
@@ -125,7 +157,7 @@ describe("Authenticated Flows - Product Validation", () => {
     });
 
     it("GET /api/orders retourneert order lijst met auth", async () => {
-      if (!isLocal || !loginSucceeded) {
+      if (!canRunCustomerFlow || !loginSucceeded) {
         log("orders-authenticated", "WARN", "Overgeslagen: geen auth sessie");
         return;
       }
@@ -153,7 +185,7 @@ describe("Authenticated Flows - Product Validation", () => {
     });
 
     it("GET /api/subscription retourneert subscription data met auth", async () => {
-      if (!isLocal || !loginSucceeded) {
+      if (!canRunCustomerFlow || !loginSucceeded) {
         log(
           "subscription-authenticated",
           "WARN",
@@ -186,7 +218,7 @@ describe("Authenticated Flows - Product Validation", () => {
     });
 
     it("GET /api/account/addresses retourneert adresboek met auth", async () => {
-      if (!isLocal || !loginSucceeded) {
+      if (!canRunCustomerFlow || !loginSucceeded) {
         log(
           "addresses-authenticated",
           "WARN",
@@ -219,18 +251,21 @@ describe("Authenticated Flows - Product Validation", () => {
     let loginSucceeded = false;
 
     beforeAll(async () => {
-      if (!isLocal) return;
+      if (!canRunAdminFlow) return;
 
-      const result = await loginAsAdmin();
-      if (result.success && result.sessionCookie) {
-        adminFetch = createAuthFetch(result.sessionCookie);
-        loginSucceeded = true;
-        log(
-          "admin-login",
-          "PASS",
-          "Admin login succesvol, session cookie ontvangen",
-        );
-      } else {
+      if (isLocal) {
+        const result = await loginAsAdmin();
+        if (result.success && result.sessionCookie) {
+          adminFetch = createAuthFetch(result.sessionCookie);
+          loginSucceeded = true;
+          log(
+            "admin-login",
+            "PASS",
+            "Admin login succesvol, session cookie ontvangen",
+          );
+          return;
+        }
+
         log(
           "admin-login",
           "FAIL",
@@ -238,19 +273,34 @@ describe("Authenticated Flows - Product Validation", () => {
           "Check of admin user is seeded + POST /api/admin/login endpoint",
           "CRITICAL",
         );
+        return;
+      }
+
+      if (SMOKE_ADMIN_SESSION_COOKIE) {
+        adminFetch = createAuthFetch(SMOKE_ADMIN_SESSION_COOKIE);
+        loginSucceeded = true;
+        log(
+          "admin-login",
+          "PASS",
+          "Admin fixture session cookie gebruikt voor remote/staging smoke",
+        );
       }
     });
 
     it("admin kan inloggen en ontvangt session cookie", () => {
-      if (!isLocal) {
-        log("admin-login", "WARN", "Overgeslagen: niet lokaal");
+      if (!canRunAdminFlow) {
+        log(
+          "admin-login",
+          "WARN",
+          "Overgeslagen: geen lokale omgeving en geen SMOKE_ADMIN_SESSION_COOKIE",
+        );
         return;
       }
       expect(loginSucceeded).toBe(true);
     });
 
     it("GET /api/admin/orders retourneert data met admin auth", async () => {
-      if (!isLocal || !loginSucceeded) {
+      if (!canRunAdminFlow || !loginSucceeded) {
         log(
           "admin-orders-authenticated",
           "WARN",
@@ -281,7 +331,7 @@ describe("Authenticated Flows - Product Validation", () => {
     });
 
     it("GET /api/admin/subscriptions retourneert data met admin auth", async () => {
-      if (!isLocal || !loginSucceeded) {
+      if (!canRunAdminFlow || !loginSucceeded) {
         log(
           "admin-subscriptions-authenticated",
           "WARN",
@@ -314,7 +364,7 @@ describe("Authenticated Flows - Product Validation", () => {
     });
 
     it("GET /api/admin/team retourneert team data met admin auth", async () => {
-      if (!isLocal || !loginSucceeded) {
+      if (!canRunAdminFlow || !loginSucceeded) {
         log(
           "admin-team-authenticated",
           "WARN",
@@ -342,33 +392,78 @@ describe("Authenticated Flows - Product Validation", () => {
 
   describe("Cross-check: ongeauthenticeerd MOET falen", () => {
     it("GET /api/account zonder auth retourneert 401", async () => {
-      if (!isLocal) return;
+      if (!canRunUnauthorizedGuards) {
+        log(
+          "account-no-auth-guard",
+          "WARN",
+          "Overgeslagen: geen lokale omgeving en geen authenticated fixture profiel",
+        );
+        return;
+      }
 
       const response = await fetch(`${STOREFRONT_URL}/api/account`);
+      if (response.status === 404) {
+        log(
+          "account-no-auth-guard",
+          "WARN",
+          "Tenant niet actief op target host; guard-contract niet valideerbaar",
+        );
+        return;
+      }
       log(
         "account-no-auth-guard",
-        response.status === 401 ? "PASS" : "FAIL",
-        `Status: ${response.status} (verwacht: 401)`,
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status} (verwacht: 401 of 403)`,
       );
-      expect(response.status).toBe(401);
+      expect([401, 403]).toContain(response.status);
     });
 
     it("GET /api/subscription zonder auth retourneert 401", async () => {
-      if (!isLocal) return;
+      if (!canRunUnauthorizedGuards) {
+        log(
+          "subscription-no-auth-guard",
+          "WARN",
+          "Overgeslagen: geen lokale omgeving en geen authenticated fixture profiel",
+        );
+        return;
+      }
 
       const response = await fetch(`${STOREFRONT_URL}/api/subscription`);
+      if (response.status === 404) {
+        log(
+          "subscription-no-auth-guard",
+          "WARN",
+          "Tenant niet actief op target host; guard-contract niet valideerbaar",
+        );
+        return;
+      }
       log(
         "subscription-no-auth-guard",
-        response.status === 401 ? "PASS" : "FAIL",
-        `Status: ${response.status} (verwacht: 401)`,
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status} (verwacht: 401 of 403)`,
       );
-      expect(response.status).toBe(401);
+      expect([401, 403]).toContain(response.status);
     });
 
     it("GET /api/admin/orders zonder auth retourneert 401", async () => {
-      if (!isLocal) return;
+      if (!canRunUnauthorizedGuards) {
+        log(
+          "admin-orders-no-auth-guard",
+          "WARN",
+          "Overgeslagen: geen lokale omgeving en geen authenticated fixture profiel",
+        );
+        return;
+      }
 
       const response = await fetch(`${STOREFRONT_URL}/api/admin/orders`);
+      if (response.status === 404) {
+        log(
+          "admin-orders-no-auth-guard",
+          "WARN",
+          "Tenant niet actief op target host; guard-contract niet valideerbaar",
+        );
+        return;
+      }
       log(
         "admin-orders-no-auth-guard",
         [401, 403].includes(response.status) ? "PASS" : "FAIL",

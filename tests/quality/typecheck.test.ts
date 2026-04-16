@@ -20,6 +20,7 @@ const REPOS_WITH_TYPESCRIPT = [
   "pagayo-edge",
   "pagayo-workflows",
   "pagayo-config",
+  "pagayo-schema",
 ];
 
 function log(repo: string, status: "PASS" | "FAIL" | "SKIP", message: string) {

@@ -62,6 +62,11 @@ const REPOS_WITH_TESTS: Array<{
     command: "npx vitest run",
     minTests: 450,
   },
+  {
+    name: "pagayo-schema",
+    command: "npx vitest run",
+    minTests: 80,
+  },
 ];
 
 function log(
