@@ -3780,6 +3780,70 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect(response.status).toBeLessThan(500);
     });
+
+    it("POST /api/checkout detects email typo contract without 500", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ productId: "smoke-test", qty: 1 }],
+          customer: {
+            email: "smoke@gmail.nl",
+            phone: "+31612345678",
+          },
+          acceptedTerms: true,
+          paymentMethod: "test",
+        }),
+      });
+
+      if (skipIfNoTenant(response, "checkout-email-typo-contract")) return;
+
+      const body = await readJsonBody(response);
+      const errorCode = getErrorCode(body);
+
+      if (response.status === 403) {
+        log(
+          "checkout-email-typo-contract",
+          "WARN",
+          "Endpoint bescherming actief: HTTP 403 (typo-contract niet bereikt)",
+        );
+      } else if (
+        response.status === 400 &&
+        errorCode === "EMAIL_TYPO_DETECTED"
+      ) {
+        log(
+          "checkout-email-typo-contract",
+          "PASS",
+          "Checkout typo-detectie contract actief: EMAIL_TYPO_DETECTED",
+        );
+      } else if (response.status === 400 && errorCode) {
+        log(
+          "checkout-email-typo-contract",
+          "WARN",
+          `HTTP 400 met afwijkende error.code: ${errorCode}`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "checkout-email-typo-contract",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check checkout typo detectie flow en error mapping",
+          "CRITICAL",
+        );
+      } else {
+        log(
+          "checkout-email-typo-contract",
+          "WARN",
+          `Onverwachte status: HTTP ${response.status}`,
+        );
+      }
+
+      if (response.status === 400 && errorCode) {
+        expect(errorCode).toBe("EMAIL_TYPO_DETECTED");
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
   });
 
   // ==========================================================================
