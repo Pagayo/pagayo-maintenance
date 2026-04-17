@@ -278,7 +278,7 @@ echo "║                          📊 SAMENVATTING                            
 echo "╚════════════════════════════════════════════════════════════════════════╝"
 echo ""
 
-if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" ]]; then
+if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$DESIGN_DRIFT" == "true" ]]; then
     echo "❌ PRE-FLIGHT CHECK GEFAALD"
     echo ""
     if [[ "$UNCOMMITTED" == "true" ]]; then
@@ -287,6 +287,11 @@ if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" ]]; then
     if [[ "$DIVERGED" == "true" ]]; then
         echo "   • Branches zijn gedivergeerd - vraag Sjoerd wat te doen"
     fi
+    if [[ "$DESIGN_DRIFT" == "true" ]]; then
+        echo "   • @pagayo/design lokaal ≠ npm — publiceer eerst!"
+        echo "     FIX: cd pagayo-design && npm version patch && npm publish"
+        echo "     DAN: cd pagayo-storefront && npm install @pagayo/design@<nieuwe-versie>"
+    fi
     echo ""
     echo "🛑 STOP: Los bovenstaande issues op voordat je doorgaat!"
     exit 1
@@ -294,9 +299,6 @@ else
     echo "✅ PRE-FLIGHT CHECK GESLAAGD"
     if [[ "$DEP_DRIFT" == "true" ]]; then
         echo "   ⚠️  Dependency drift gedetecteerd (niet blokkerend)"
-    fi
-    if [[ "$DESIGN_DRIFT" == "true" ]]; then
-        echo "   🚨 @pagayo/design lokaal ≠ npm — publiceer eerst!"
     fi
     echo ""
     echo "🚀 Je mag doorgaan met git operaties."
