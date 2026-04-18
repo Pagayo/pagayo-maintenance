@@ -138,7 +138,40 @@ else
 fi
 echo ""
 
-# CHECK 5: (verwijderd — was beheer-only)
+# =============================================================================
+# CHECK 5: Branch Freshness vs main (hard blokkade)
+# =============================================================================
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 CHECK 5: Branch Freshness vs main"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+MAIN_BEHIND=false
+
+if git show-ref --verify --quiet "refs/remotes/origin/main"; then
+    if [[ "$CURRENT_BRANCH" == "main" ]]; then
+        echo "✅ Huidige branch is main"
+    else
+        BEHIND_MAIN=$(git rev-list --count "HEAD..origin/main")
+        AHEAD_MAIN=$(git rev-list --count "origin/main..HEAD")
+
+        if [[ "$BEHIND_MAIN" -gt 0 ]]; then
+            echo "❌ Branch is $BEHIND_MAIN commits ACHTER origin/main"
+            echo "   Local branch: $CURRENT_BRANCH"
+            echo "   Ahead of main: $AHEAD_MAIN"
+            echo ""
+            echo "   Laatste commits op main die ontbreken:"
+            git log --oneline HEAD..origin/main --max-count=3 | sed 's/^/   - /'
+            echo ""
+            echo "   ACTIE: merge/rebase origin/main in deze branch vóór deploy/push"
+            MAIN_BEHIND=true
+        else
+            echo "✅ Branch is up-to-date met origin/main (ahead=$AHEAD_MAIN, behind=0)"
+        fi
+    fi
+else
+    echo "⚠️  origin/main niet gevonden - freshness check overgeslagen"
+fi
+echo ""
 
 # =============================================================================
 # CHECK 6: Cross-Repo Dependency Sync (wrangler, drizzle-orm)
@@ -278,7 +311,7 @@ echo "║                          📊 SAMENVATTING                            
 echo "╚════════════════════════════════════════════════════════════════════════╝"
 echo ""
 
-if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$DESIGN_DRIFT" == "true" ]]; then
+if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "true" || "$DESIGN_DRIFT" == "true" ]]; then
     echo "❌ PRE-FLIGHT CHECK GEFAALD"
     echo ""
     if [[ "$UNCOMMITTED" == "true" ]]; then
@@ -286,6 +319,9 @@ if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$DESIGN_DRIFT" == "t
     fi
     if [[ "$DIVERGED" == "true" ]]; then
         echo "   • Branches zijn gedivergeerd - vraag Sjoerd wat te doen"
+    fi
+    if [[ "$MAIN_BEHIND" == "true" ]]; then
+        echo "   • Branch loopt achter op origin/main - merge/rebase eerst"
     fi
     if [[ "$DESIGN_DRIFT" == "true" ]]; then
         echo "   • @pagayo/design lokaal ≠ npm — publiceer eerst!"
