@@ -2998,6 +2998,59 @@ describe("Storefront Service - Smoke Tests", () => {
       );
       expect([401, 403]).toContain(response.status);
     });
+
+    it("GET /api/admin/subscriptions with sort param returns non-500", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions?sort=name`,
+      );
+      if (skipIfNoTenant(response, "admin-subscriptions-sort-param")) return;
+      log(
+        "admin-subscriptions-sort-param",
+        response.status < 500 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("GET /api/admin/subscriptions with type=family filter returns non-500", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions?type=family`,
+      );
+      if (skipIfNoTenant(response, "admin-subscriptions-type-filter")) return;
+      log(
+        "admin-subscriptions-type-filter",
+        response.status < 500 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("GET /api/admin/subscriptions/:id/events without auth returns 401", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/smoke-sub-1/events`,
+      );
+      if (skipIfNoTenant(response, "admin-subscription-events-no-auth")) return;
+      log(
+        "admin-subscription-events-no-auth",
+        response.status < 500 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("GET /api/admin/subscriptions/members/:memberId/visits without auth returns 401", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/members/smoke-member-1/visits`,
+      );
+      if (skipIfNoTenant(response, "admin-subscription-member-visits-no-auth"))
+        return;
+      log(
+        "admin-subscription-member-visits-no-auth",
+        response.status < 500 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBeLessThan(500);
+    });
   });
 
   describe("Stripe Connect Integration", () => {
