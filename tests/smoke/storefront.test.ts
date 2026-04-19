@@ -4093,6 +4093,50 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(["no-store", "no-cache"]).toContain(cacheControl);
     });
 
+    it("POST /api/check-in/verify returns minimal public contract", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/check-in/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ passCode: "PAG-SMOKE-VERIFY-001" }),
+      });
+
+      if (skipIfNoTenant(response, "check-in-verify-public")) return;
+
+      const body = await readJsonBody(response);
+
+      const hasNoPii =
+        body !== null &&
+        typeof body.data === "object" &&
+        body.data !== null &&
+        !("firstName" in body.data) &&
+        !("lastName" in body.data) &&
+        !("email" in body.data) &&
+        !("photoUrl" in body.data) &&
+        !("holder" in body.data);
+
+      if (response.status === 200 && hasNoPii) {
+        log(
+          "check-in-verify-public",
+          "PASS",
+          `Status: ${response.status}, contract minimal without PII`,
+        );
+      } else {
+        log(
+          "check-in-verify-public",
+          "FAIL",
+          `HTTP ${response.status} of contract bevat PII velden`,
+          "Check public check-in verify route contract en data exposure",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(body?.success).toBe(true);
+      expect(hasNoPii).toBe(true);
+    });
+
     it("GET /api/admin/settings/opening-hours requires auth", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/settings/opening-hours`,
