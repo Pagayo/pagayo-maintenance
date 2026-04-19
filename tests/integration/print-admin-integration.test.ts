@@ -84,11 +84,7 @@ describe("Admin Print Integration - Real Database & Endpoints", () => {
       if (result.success && result.sessionCookie) {
         adminFetch = createAuthFetch(result.sessionCookie);
         adminLoginSucceeded = true;
-        log(
-          "admin-login",
-          "PASS",
-          "Admin login succesvol (lokale seed)",
-        );
+        log("admin-login", "PASS", "Admin login succesvol (lokale seed)");
       } else {
         log(
           "admin-login",
@@ -105,11 +101,7 @@ describe("Admin Print Integration - Real Database & Endpoints", () => {
     if (hasAdminFixture) {
       adminFetch = createAuthFetch(SMOKE_ADMIN_SESSION_COOKIE);
       adminLoginSucceeded = true;
-      log(
-        "admin-login",
-        "PASS",
-        "Admin session via fixture (remote/staging)",
-      );
+      log("admin-login", "PASS", "Admin session via fixture (remote/staging)");
     }
 
     // Bepaal test subscription ID
@@ -152,11 +144,7 @@ describe("Admin Print Integration - Real Database & Endpoints", () => {
 
     it("GET /api/admin/print-context/:id retourneert subscription + holders met admin auth", async () => {
       if (!canRun || !adminLoginSucceeded) {
-        log(
-          "print-context-data",
-          "WARN",
-          "Overgeslagen: geen admin sessie",
-        );
+        log("print-context-data", "WARN", "Overgeslagen: geen admin sessie");
         return;
       }
 
@@ -236,7 +224,11 @@ describe("Admin Print Integration - Real Database & Endpoints", () => {
           "PASS",
           `Print context geldig: subscription=${subscription.id}, holders=${holders.length}`,
         );
-        expect(data.success && data.data.subscription && Array.isArray(data.data.holders)).toBeTruthy();
+        expect(
+          data.success &&
+            data.data.subscription &&
+            Array.isArray(data.data.holders),
+        ).toBeTruthy();
       } else if (response.status === 404) {
         log(
           "print-context-data",
@@ -257,11 +249,7 @@ describe("Admin Print Integration - Real Database & Endpoints", () => {
 
     it("GET /api/admin/print-context/:id valideert subscription state", async () => {
       if (!canRun || !adminLoginSucceeded) {
-        log(
-          "print-context-state",
-          "WARN",
-          "Overgeslagen: geen admin sessie",
-        );
+        log("print-context-state", "WARN", "Overgeslagen: geen admin sessie");
         return;
       }
 
@@ -280,11 +268,7 @@ describe("Admin Print Integration - Real Database & Endpoints", () => {
 
       const data = await response.json();
       if (!data.success || !data.data?.subscription) {
-        log(
-          "print-context-state",
-          "FAIL",
-          "Geen subscription in response",
-        );
+        log("print-context-state", "FAIL", "Geen subscription in response");
         return;
       }
 
@@ -424,7 +408,11 @@ describe("Admin Print Integration - Real Database & Endpoints", () => {
 
     it("POST /api/admin/print-confirmation/:id is idempotent (kan meerdere keren opgeroepen)", async () => {
       if (!canRun || !adminLoginSucceeded) {
-        log("print-confirmation-idempotency", "WARN", "Overgeslagen: geen admin sessie");
+        log(
+          "print-confirmation-idempotency",
+          "WARN",
+          "Overgeslagen: geen admin sessie",
+        );
         return;
       }
 

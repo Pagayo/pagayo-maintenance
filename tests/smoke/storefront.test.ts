@@ -1365,6 +1365,17 @@ describe("Storefront Service - Smoke Tests", () => {
         path: "/api/admin/kv-sync/status",
         action: "Check admin kv-sync route mount en requireAdmin guard",
       },
+      {
+        testName: "admin-print-context-route",
+        path: "/api/admin/print-context/test-id",
+        action: "Check admin print-context route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-print-confirmation-route",
+        path: "/api/admin/print-confirmation/test-id",
+        action:
+          "Check admin print-confirmation route mount en requireAdmin guard",
+      },
     ] as const;
 
     for (const route of protectedAdminRoutes) {
