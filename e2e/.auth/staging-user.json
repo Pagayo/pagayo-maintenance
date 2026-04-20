@@ -1,0 +1,65 @@
+{
+  "cookies": [
+    {
+      "name": "csrf_token",
+      "value": "4011ae9f-e4be-401d-adff-7e97ea47b953",
+      "domain": "demo.staging.pagayo.app",
+      "path": "/",
+      "expires": 1776796765.516018,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "m",
+      "value": "92a41f19-1dd4-48fb-988c-c0434c4d9949fbd9e4",
+      "domain": "m.stripe.com",
+      "path": "/",
+      "expires": 1811270367.875192,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "__stripe_mid",
+      "value": "3cc18457-90ad-429c-8730-df3e6d1b40bc8ab5bf",
+      "domain": ".demo.staging.pagayo.app",
+      "path": "/",
+      "expires": 1808246370,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "__stripe_sid",
+      "value": "51fa4aa4-06b5-4583-8028-82729de9acf6197d12",
+      "domain": ".demo.staging.pagayo.app",
+      "path": "/",
+      "expires": 1776712170,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "pagayo_session",
+      "value": "a909cfb2-8a18-4005-a8c1-910acd8ed69f",
+      "domain": "demo.staging.pagayo.app",
+      "path": "/",
+      "expires": 1776796769.780114,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://demo.staging.pagayo.app",
+      "localStorage": [
+        {
+          "name": "pagayo-auth",
+          "value": "{\"state\":{\"user\":{\"id\":9,\"firstName\":\"Sjoerd\",\"lastName\":\"Overdiep\",\"email\":\"sjoerd@overdiep.me\",\"authProvider\":\"email\",\"providerId\":null,\"phone\":null,\"role\":\"customer\",\"status\":\"active\",\"emailVerified\":false,\"resetExpires\":\"2026-03-29T17:27:29.038Z\",\"lastLogin\":\"2026-04-20T18:39:11.150Z\",\"createdAt\":\"2026-03-28T09:16:10.897Z\",\"updatedAt\":\"2026-04-20T18:39:11.150Z\"},\"isAuthenticated\":true},\"version\":0}"
+        }
+      ]
+    }
+  ]
+}
