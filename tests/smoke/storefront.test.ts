@@ -113,6 +113,29 @@ describe("Storefront Service - Smoke Tests", () => {
     }
   });
 
+  it("GET /api/meta/connect/callback without params returns 400", async () => {
+    const response = await fetch(`${STOREFRONT_URL}/api/meta/connect/callback`);
+
+    const status = response.status;
+    if (status === 400) {
+      log(
+        "meta-connect-callback-contract",
+        "PASS",
+        `Status: ${status} (verwacht zonder code/state)`,
+      );
+      expect(status).toBe(400);
+      return;
+    }
+
+    log(
+      "meta-connect-callback-contract",
+      "FAIL",
+      `Onverwachte status: ${status}`,
+      "Controleer storefront routing voor /api/meta/connect/callback",
+    );
+    expect(status).toBe(400);
+  });
+
   /**
    * Guard voor tenant-afhankelijke tests.
    * Als geen tenant actief en response = 404 → log WARNING en return true (skip assert).
