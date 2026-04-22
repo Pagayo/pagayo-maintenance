@@ -1,0 +1,79 @@
+# =============================================================================
+# Cloudflare API Token Monitor
+# =============================================================================
+# Doel:
+# - Dagelijkse controle op tokenstatus en expiry
+# - Vroege waarschuwing bij threshold breaches
+# - Hard fail op critical/emergency of API/config fouten
+# =============================================================================
+
+name: Cloudflare Token Monitor
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-token-monitor
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    name: "Cloudflare Token Expiry"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run token monitor
+        id: monitor
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/cloudflare/token-expiry-check.mjs --json | tee token-monitor.json
+
+      - name: Publish summary
+        if: always()
+        run: |
+          if [ ! -f token-monitor.json ]; then
+            echo "## Cloudflare Token Monitor" >> "$GITHUB_STEP_SUMMARY"
+            echo "Monitor output ontbreekt" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "## Cloudflare Token Monitor" >> "$GITHUB_STEP_SUMMARY"
+          node -e '
+            const fs = require("node:fs");
+            const data = JSON.parse(fs.readFileSync("token-monitor.json", "utf8"));
+            const lines = [];
+            lines.push(`- success: ${data.success}`);
+            lines.push(`- severity: ${data.severity ?? "unknown"}`);
+            lines.push(`- tokenStatus: ${data.tokenStatus ?? "unknown"}`);
+            lines.push(`- expiresOn: ${data.expiresOn ?? "null"}`);
+            lines.push(`- daysUntilExpiry: ${data.daysUntilExpiry ?? "unknown"}`);
+            if (data.reason) lines.push(`- reason: ${data.reason}`);
+            if (data.error?.code) lines.push(`- error: ${data.error.code} (${data.error.message})`);
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
+          '
+
+      - name: Fail on monitor error
+        if: steps.monitor.outcome == 'failure'
+        run: |
+          echo "Cloudflare token monitor faalde of retourneerde critical status"
+          exit 1

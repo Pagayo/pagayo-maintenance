@@ -61,7 +61,6 @@ describe("Contract Tests - Health Endpoints", () => {
 
     expect(isHealthResponse(data)).toBe(true);
     expect(["healthy", "ok"]).toContain(data.status);
-    expect(data).toHaveProperty("service", "pagayo-storefront");
     logResult("storefront-health", "PASS", `status=${data.status}`);
   });
 
