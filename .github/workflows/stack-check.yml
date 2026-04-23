@@ -1,0 +1,23 @@
+# =============================================================================
+# Pagayo Maintenance - Stack Manifest Drift Guard (zelf-test)
+# =============================================================================
+# Draait de drift-guard op deze repo zelf via de reusable workflow.
+# Dit garandeert dat script-wijzigingen niet zelf drift introduceren.
+# =============================================================================
+
+name: Stack Check
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Self-reference naar dezelfde staging-ref tijdens grounding-batch.
+  # TODO: Switch to @main after grounding batch merge.
+  stack-check:
+    uses: Pagayo/pagayo-maintenance/.github/workflows/reusable-check-stack.yml@feature/batch-staging-20260416

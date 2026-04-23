@@ -12,6 +12,13 @@
 #   5. test
 # Waarom vóór lint/test: sneller en goedkoper falen.
 #
+# Scan-modi:
+#   - Default (workspace-aware): scan twee niveaus boven dit script, d.w.z.
+#     de volledige mono-workspace die alle Pagayo repos bevat.
+#   - Single-repo (CI per repo): zet de env var CHECK_TARGET naar een
+#     absoluut pad (bv. $GITHUB_WORKSPACE). Alleen die directory wordt
+#     dan gescand. Backward-compatible: zonder CHECK_TARGET geen gedragswijziging.
+#
 # Referentie: pagayo-vault/STACK-MANIFEST.md
 # Referentie: pagayo-vault/PAGAYO-NIVEAU.md
 #
@@ -27,8 +34,19 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
-# Workspace root = twee niveaus boven dit script (.../pagayo-maintenance/scripts -> workspace root)
-ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# ROOT bepaling:
+#   - CHECK_TARGET env gezet → single-repo modus (alleen die dir scannen)
+#   - anders → workspace-root modus (twee niveaus boven dit script)
+if [[ -n "${CHECK_TARGET:-}" ]]; then
+  if [[ ! -d "$CHECK_TARGET" ]]; then
+    echo "check-stack-manifest: CHECK_TARGET '$CHECK_TARGET' is geen directory." >&2
+    exit 2
+  fi
+  ROOT="$(cd "$CHECK_TARGET" && pwd)"
+  echo "Stack manifest check: single-repo modus, ROOT=$ROOT"
+else
+  ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+fi
 
 # Verboden termen — p1-p2-grounding-restpakket sectie 4.1
 # Aanpassingen t.o.v. origineel:
