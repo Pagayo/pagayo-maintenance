@@ -1,0 +1,80 @@
+# =============================================================================
+# Reusable Pre-Prod Guard
+# -----------------------------------------------------------------------------
+# Weigert een productie-deploy als de caller-SHA niet matcht met de laatste
+# verified-staging SHA in pagayo-maintenance/releases/current.json.
+#
+# Gebruik in caller:
+#   preprod-guard:
+#     if: inputs.deploy_mode == 'production-only' || inputs.deploy_mode == 'full'
+#     uses: Pagayo/pagayo-maintenance/.github/workflows/reusable-preprod-guard.yml@<ref>
+#     with:
+#       repo: pagayo-storefront
+#       sha:  ${{ github.sha }}   # of CHECKOUT_REF-resolved full SHA
+# =============================================================================
+
+name: Reusable - Pre-Prod Guard
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        description: 'Consumer repo naam (key in releases/current.json)'
+        required: true
+        type: string
+      sha:
+        description: 'Full SHA die men naar productie wil deployen'
+        required: true
+        type: string
+      manifest_ref:
+        description: 'Branch/ref in pagayo-maintenance waaruit het manifest gelezen wordt'
+        required: false
+        type: string
+        default: 'main'
+
+jobs:
+  verify:
+    name: Verify staging-verified SHA
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch release manifest
+        env:
+          REF: ${{ inputs.manifest_ref }}
+        run: |
+          URL="https://raw.githubusercontent.com/Pagayo/pagayo-maintenance/${REF}/releases/current.json"
+          echo "Manifest URL: $URL"
+          curl -fsSL "$URL" -o manifest.json
+          echo "✅ Manifest opgehaald:"
+          jq '.version, .updated_at, .updated_by' manifest.json
+
+      - name: Compare caller SHA to verified staging SHA
+        env:
+          REPO: ${{ inputs.repo }}
+          CALLER_SHA: ${{ inputs.sha }}
+        run: |
+          if ! jq -e --arg repo "$REPO" '.repos[$repo]' manifest.json >/dev/null; then
+            echo "::error::Repo '$REPO' bestaat niet in release manifest."
+            exit 1
+          fi
+
+          VERIFIED_SHA="$(jq -r --arg repo "$REPO" '.repos[$repo].staging_sha // ""' manifest.json)"
+          VERIFIED_AT="$(jq -r --arg repo "$REPO" '.repos[$repo].verified_at // ""' manifest.json)"
+
+          echo "Caller SHA    : $CALLER_SHA"
+          echo "Verified SHA  : ${VERIFIED_SHA:-<none>}"
+          echo "Verified at   : ${VERIFIED_AT:-<none>}"
+
+          if [[ -z "$VERIFIED_SHA" || "$VERIFIED_SHA" == "null" ]]; then
+            echo "::error::Geen verified staging SHA voor '$REPO'. Run staging-deploy + smoke eerst."
+            exit 1
+          fi
+
+          if [[ "$CALLER_SHA" != "$VERIFIED_SHA" ]]; then
+            echo "::error::Deploy-SHA '$CALLER_SHA' is NIET verified in staging voor '$REPO'."
+            echo "::error::Laatste verified SHA: '$VERIFIED_SHA' (at $VERIFIED_AT)."
+            echo "::error::Run staging-deploy op deze SHA eerst, of update het manifest handmatig voor een rollback/hotfix (zie RUNBOOK-release-manifest.md)."
+            exit 1
+          fi
+
+          echo "✅ Caller SHA matcht verified staging SHA voor $REPO."
