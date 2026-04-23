@@ -1,5 +1,9 @@
 # 🏗️ Pagayo Infrastructure Maintenance
 
+> ⚠️ HISTORISCH DOCUMENT
+> Deze inhoud beschrijft legacy Cloud Run / GCP / PostgreSQL / Neon / Hyperdrive / Prisma architectuur.
+> Pagayo draait 100% op Cloudflare. Leidend: `pagayo-vault/STACK-MANIFEST.md` en `pagayo-vault/PAGAYO-NIVEAU.md`.
+
 **Laatst bijgewerkt:** 29 maart 2026
 
 ---

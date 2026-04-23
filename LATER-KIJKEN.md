@@ -1,5 +1,9 @@
 # 📋 Later Kijken
 
+> ⚠️ HISTORISCH DOCUMENT
+> Deze inhoud beschrijft legacy Cloud Run / GCP / PostgreSQL / Neon / Hyperdrive / Prisma architectuur.
+> Pagayo draait 100% op Cloudflare. Leidend: `pagayo-vault/STACK-MANIFEST.md` en `pagayo-vault/PAGAYO-NIVEAU.md`.
+
 **Doel:** Dingen die we in de gaten moeten houden, maar nu geen prioriteit hebben.
 
 > Dit is geen bug-lijst of todo-lijst. Dit zijn punten die we **bewust parkeren** omdat ze nu geen probleem vormen, maar waar we af en toe naar moeten kijken.

@@ -1,5 +1,9 @@
 # GitHub Status - 31 januari 2026
 
+> ⚠️ HISTORISCH DOCUMENT
+> Deze inhoud beschrijft legacy Cloud Run / GCP / PostgreSQL / Neon / Hyperdrive / Prisma architectuur.
+> Pagayo draait 100% op Cloudflare. Leidend: `pagayo-vault/STACK-MANIFEST.md` en `pagayo-vault/PAGAYO-NIVEAU.md`.
+
 > **Laatst bijgewerkt:** 31-01-2026 16:30 door GitHubOps-GPT
 
 ## 📊 Samenvatting
