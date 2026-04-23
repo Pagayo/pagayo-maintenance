@@ -42,7 +42,9 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: Pagayo/pagayo-maintenance
-          ref: ${{ github.workflow_sha }}
+          # Zie reusable-check-stack.yml — github.workflow_sha werkt niet in workflow_call
+          # vanuit pull_request events. Pin aan grounding-staging-branch tot merge.
+          ref: feature/batch-staging-20260416
           path: .maintenance
 
       - name: Run deployer preflight

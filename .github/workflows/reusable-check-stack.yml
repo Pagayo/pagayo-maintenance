@@ -36,9 +36,12 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: Pagayo/pagayo-maintenance
-          # Pin aan dezelfde SHA als de reusable workflow-versie die de caller aanroept.
-          # Zo blijft script + workflow in lockstep (geen drift tussen @ref en script-inhoud).
-          ref: ${{ github.workflow_sha }}
+          # Tijdens grounding-batch: pin aan staging-branch zodat script + workflow in lockstep
+          # blijven met de @ref die consumers gebruiken.
+          # `github.workflow_sha` werkt NIET: resolveert in workflow_call vanuit pull_request
+          # events naar de caller's merge-SHA → "not our ref".
+          # TODO: na grounding-merge dit veld verwijderen (default = main) of `ref: main` pinnen.
+          ref: feature/batch-staging-20260416
           path: .maintenance
 
       - name: Install ripgrep (fallback — pre-installed op github-hosted ubuntu-latest)
