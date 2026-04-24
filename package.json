@@ -29,7 +29,10 @@
     "test:precommit": "vitest run tests/quality/",
     "health": "./scripts/health-check.sh",
     "health:quick": "./scripts/health-check.sh --quick",
-    "health:access": "./scripts/health-check.sh --access"
+    "health:access": "./scripts/health-check.sh --access",
+    "cloudflare:token:check": "node scripts/cloudflare/token-expiry-check.mjs",
+    "cloudflare:token:check:json": "node scripts/cloudflare/token-expiry-check.mjs --json",
+    "cloudflare:token:check:dry": "node scripts/cloudflare/token-expiry-check.mjs --dry-run --json"
   },
   "devDependencies": {
     "typescript": "^5.7.3",

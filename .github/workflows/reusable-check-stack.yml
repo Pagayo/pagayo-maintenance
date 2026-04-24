@@ -1,0 +1,53 @@
+# =============================================================================
+# Reusable: Pagayo Stack Manifest Drift Guard
+# =============================================================================
+# Scant de caller repo op verboden stack-termen (zie STACK-MANIFEST.md voor de
+# volledige lijst) buiten de allow-list. Single source of truth:
+# pagayo-maintenance/scripts/check-stack-manifest.sh.
+#
+# Gebruik vanuit een consumer repo (bv. storefront/ci.yml):
+#
+#   jobs:
+#     stack-check:
+#       uses: Pagayo/pagayo-maintenance/.github/workflows/reusable-check-stack.yml@main
+#
+# Tijdens grounding-batch gebruik de staging-ref:
+#   uses: Pagayo/pagayo-maintenance/.github/workflows/reusable-check-stack.yml@feature/batch-staging-20260416
+#
+# Referentie: pagayo-vault/STACK-MANIFEST.md
+# =============================================================================
+
+name: Reusable Stack Check
+
+on:
+  workflow_call:
+
+jobs:
+  stack-check:
+    name: Stack Manifest Drift Guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout caller repo
+        uses: actions/checkout@v6
+
+      - name: Checkout pagayo-maintenance (script + manifest)
+        uses: actions/checkout@v6
+        with:
+          repository: Pagayo/pagayo-maintenance
+          # Tijdens grounding-batch: pin aan staging-branch zodat script + workflow in lockstep
+          # blijven met de @ref die consumers gebruiken.
+          # `github.workflow_sha` werkt NIET: resolveert in workflow_call vanuit pull_request
+          # events naar de caller's merge-SHA → "not our ref".
+          # TODO: na grounding-merge dit veld verwijderen (default = main) of `ref: main` pinnen.
+          ref: feature/batch-staging-20260416
+          path: .maintenance
+
+      - name: Install ripgrep (fallback — pre-installed op github-hosted ubuntu-latest)
+        run: command -v rg >/dev/null 2>&1 || sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
+
+      - name: Run drift guard (single-repo mode)
+        env:
+          CHECK_TARGET: ${{ github.workspace }}
+        run: bash .maintenance/scripts/check-stack-manifest.sh

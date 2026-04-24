@@ -1,5 +1,9 @@
 # 🏗️ Pagayo Infrastructure Maintenance
 
+> ⚠️ HISTORISCH DOCUMENT
+> Deze inhoud beschrijft legacy Cloud Run / GCP / PostgreSQL / Neon / Hyperdrive / Prisma architectuur.
+> Pagayo draait 100% op Cloudflare. Leidend: `pagayo-vault/STACK-MANIFEST.md` en `pagayo-vault/PAGAYO-NIVEAU.md`.
+
 **Laatst bijgewerkt:** 29 maart 2026
 
 ---
@@ -135,6 +139,7 @@ entrypoint = "ProvisioningHandler"
 | Frequentie | Taak | Commando/Actie |
 |------------|------|----------------|
 | **Dagelijks** | (Automated) Health checks | GitHub Actions workflow |
+| **Dagelijks** | (Automated) Cloudflare token expiry monitor | GitHub Actions `cloudflare-token-monitor.yml` |
 | **Wekelijks** | Smoke tests handmatig | `npm run test:smoke` in beheer |
 | **Maandelijks** | Cloudflare Access policies review | Check dashboard vs access-policies.json |
 | **Kwartaal** | SSL certificaten check | Cloudflare auto-renews, maar controleer |
@@ -146,8 +151,20 @@ entrypoint = "ProvisioningHandler"
 | Script | Locatie | Functie |
 |--------|---------|---------|
 | `sync-secrets.sh` | `pagayo-maintenance/scripts/` | Secrets naar Workers |
+| `token-expiry-check.mjs` | `pagayo-maintenance/scripts/cloudflare/` | Cloudflare API token status + expiry thresholds |
 | `sync-access-policies.ts` | `pagayo-beheer/scripts/` | Access policies naar Cloudflare |
 | `health-check.sh` | `pagayo-maintenance/scripts/` | Quick health check alle domeinen |
+
+### Cloudflare Token Monitor (handmatig)
+
+```bash
+cd /Users/sjoerdoverdiep/my-vscode-workspace/pagayo-maintenance
+npm run cloudflare:token:check:json
+```
+
+Escalatiebeleid:
+- `severity=critical` of `severity=emergency`: direct rotatie starten.
+- `severity=high`: zelfde dag rotatie plannen.
 
 ---
 

@@ -1,0 +1,68 @@
+# =============================================================================
+# Update Release Manifest
+# -----------------------------------------------------------------------------
+# Wordt getriggerd door staging-deploy workflows van consumer-repo's nadat hun
+# smoke tests groen zijn. Werkt releases/current.json bij en commit direct naar
+# main.
+#
+# Consumers triggeren via:
+#   gh workflow run update-release-manifest.yml \
+#     -R Pagayo/pagayo-maintenance \
+#     --ref main \
+#     -f repo=<repo-name> \
+#     -f sha=<full-sha>
+# =============================================================================
+
+name: Update Release Manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: 'Consumer repo naam (bv. pagayo-storefront)'
+        required: true
+        type: string
+      sha:
+        description: 'Full 40-char git SHA die groen door staging-smoke kwam'
+        required: true
+        type: string
+
+concurrency:
+  group: update-release-manifest
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    name: Update manifest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate inputs
+        env:
+          REPO: ${{ inputs.repo }}
+          SHA:  ${{ inputs.sha }}
+        run: |
+          if ! [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::sha moet een full 40-char git SHA zijn (gekregen: '$SHA')"
+            exit 1
+          fi
+          if [[ -z "$REPO" ]]; then
+            echo "::error::repo input is verplicht"
+            exit 1
+          fi
+
+      - name: Run update script
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          chmod +x scripts/update-release-manifest.sh
+          scripts/update-release-manifest.sh "${{ inputs.repo }}" "${{ inputs.sha }}"

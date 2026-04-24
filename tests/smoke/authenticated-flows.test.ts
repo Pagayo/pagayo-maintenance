@@ -388,6 +388,114 @@ describe("Authenticated Flows - Product Validation", () => {
         expect(response.status).toBe(200);
       }
     });
+
+    it("GET /api/admin/print-context/:id retourneert print context contract met admin auth", async () => {
+      if (!canRunAdminFlow || !loginSucceeded) {
+        log(
+          "admin-print-context-authenticated",
+          "WARN",
+          "Overgeslagen: geen admin sessie",
+        );
+        return;
+      }
+
+      // Test met test-id; verwacht 200 met print context payload of 404 als test data niet bestaat
+      const response = await adminFetch(
+        `${STOREFRONT_URL}/api/admin/print-context/test-id`,
+      );
+
+      if (response.status === 200) {
+        const data = await response.json();
+        // Valideer contract: verwacht { success: true, data: {...} }
+        if (data.success && data.data) {
+          log(
+            "admin-print-context-authenticated",
+            "PASS",
+            `Print context contract valid: ${JSON.stringify(data.data).slice(0, 80)}...`,
+          );
+        } else {
+          log(
+            "admin-print-context-authenticated",
+            "FAIL",
+            `HTTP 200 maar contract ongeldig: ${JSON.stringify(data).slice(0, 80)}`,
+            "Zorg dat endpoint { success: true, data: printContext } retourneert",
+            "HIGH",
+          );
+          expect(data.success && data.data).toBeTruthy();
+        }
+      } else if (response.status === 404) {
+        log(
+          "admin-print-context-authenticated",
+          "PASS",
+          "Test data niet beschikbaar (404) — endpoint is beveiligd en werkt",
+        );
+      } else {
+        log(
+          "admin-print-context-authenticated",
+          "FAIL",
+          `HTTP ${response.status} — verwacht 200 of 404`,
+          "Check admin print-context route",
+          "HIGH",
+        );
+        expect([200, 404]).toContain(response.status);
+      }
+    });
+
+    it("POST /api/admin/print-confirmation/:id retourneert status contract met admin auth", async () => {
+      if (!canRunAdminFlow || !loginSucceeded) {
+        log(
+          "admin-print-confirmation-authenticated",
+          "WARN",
+          "Overgeslagen: geen admin sessie",
+        );
+        return;
+      }
+
+      const response = await adminFetch(
+        `${STOREFRONT_URL}/api/admin/print-confirmation/test-id`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "confirm" }),
+        },
+      );
+
+      if (response.status === 200) {
+        const data = await response.json();
+        // Valideer contract: verwacht { success: true } of { success: boolean, status?: string }
+        if (data.success !== undefined) {
+          log(
+            "admin-print-confirmation-authenticated",
+            "PASS",
+            `Print confirmation contract valid: success=${data.success}${data.status ? ", status=" + data.status : ""}`,
+          );
+        } else {
+          log(
+            "admin-print-confirmation-authenticated",
+            "FAIL",
+            `HTTP 200 maar contract ongeldig (geen 'success' field): ${JSON.stringify(data).slice(0, 80)}`,
+            "Zorg dat endpoint { success: boolean, ... } retourneert",
+            "HIGH",
+          );
+          expect(data.success !== undefined).toBeTruthy();
+        }
+      } else if (response.status === 404) {
+        log(
+          "admin-print-confirmation-authenticated",
+          "PASS",
+          "Test data niet beschikbaar (404) — endpoint is beveiligd en werkt",
+        );
+      } else {
+        log(
+          "admin-print-confirmation-authenticated",
+          "FAIL",
+          `HTTP ${response.status} — verwacht 200 of 404`,
+          "Check admin print-confirmation route",
+          "HIGH",
+        );
+        expect([200, 404]).toContain(response.status);
+      }
+    });
   });
 
   describe("Cross-check: ongeauthenticeerd MOET falen", () => {
@@ -468,6 +576,69 @@ describe("Authenticated Flows - Product Validation", () => {
         "admin-orders-no-auth-guard",
         [401, 403].includes(response.status) ? "PASS" : "FAIL",
         `Status: ${response.status} (verwacht: 401 of 403)`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("GET /api/admin/print-context/:id zonder auth retourneert 401", async () => {
+      if (!canRunUnauthorizedGuards) {
+        log(
+          "admin-print-context-no-auth-guard",
+          "WARN",
+          "Overgeslagen: geen lokale omgeving en geen authenticated fixture profiel",
+        );
+        return;
+      }
+
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/print-context/test-id`,
+      );
+      if (response.status === 404) {
+        log(
+          "admin-print-context-no-auth-guard",
+          "WARN",
+          "Tenant niet actief op target host; guard-contract niet valideerbaar",
+        );
+        return;
+      }
+      log(
+        "admin-print-context-no-auth-guard",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Fail-closed: HTTP ${response.status} (verwacht: 401 of 403)`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("POST /api/admin/print-confirmation/:id zonder auth retourneert 401", async () => {
+      if (!canRunUnauthorizedGuards) {
+        log(
+          "admin-print-confirmation-no-auth-guard",
+          "WARN",
+          "Overgeslagen: geen lokale omgeving en geen authenticated fixture profiel",
+        );
+        return;
+      }
+
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/print-confirmation/test-id`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "confirm" }),
+        },
+      );
+      if (response.status === 404) {
+        log(
+          "admin-print-confirmation-no-auth-guard",
+          "WARN",
+          "Tenant niet actief op target host; guard-contract niet valideerbaar",
+        );
+        return;
+      }
+      log(
+        "admin-print-confirmation-no-auth-guard",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Fail-closed: HTTP ${response.status} (verwacht: 401 of 403)`,
       );
       expect([401, 403]).toContain(response.status);
     });

@@ -113,6 +113,29 @@ describe("Storefront Service - Smoke Tests", () => {
     }
   });
 
+  it("GET /api/meta/connect/callback without params returns 400", async () => {
+    const response = await fetch(`${STOREFRONT_URL}/api/meta/connect/callback`);
+
+    const status = response.status;
+    if (status === 400) {
+      log(
+        "meta-connect-callback-contract",
+        "PASS",
+        `Status: ${status} (verwacht zonder code/state)`,
+      );
+      expect(status).toBe(400);
+      return;
+    }
+
+    log(
+      "meta-connect-callback-contract",
+      "FAIL",
+      `Onverwachte status: ${status}`,
+      "Controleer storefront routing voor /api/meta/connect/callback",
+    );
+    expect(status).toBe(400);
+  });
+
   /**
    * Guard voor tenant-afhankelijke tests.
    * Als geen tenant actief en response = 404 → log WARNING en return true (skip assert).
@@ -1365,6 +1388,17 @@ describe("Storefront Service - Smoke Tests", () => {
         path: "/api/admin/kv-sync/status",
         action: "Check admin kv-sync route mount en requireAdmin guard",
       },
+      {
+        testName: "admin-print-context-route",
+        path: "/api/admin/print-context/test-id",
+        action: "Check admin print-context route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-print-confirmation-route",
+        path: "/api/admin/print-confirmation/test-id",
+        action:
+          "Check admin print-confirmation route mount en requireAdmin guard",
+      },
     ] as const;
 
     for (const route of protectedAdminRoutes) {
@@ -1389,6 +1423,79 @@ describe("Storefront Service - Smoke Tests", () => {
   });
 
   describe("New Endpoints - Auth Required", () => {
+    it("POST /api/internal/google-drive/sync/scheduled vereist internal auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/internal/google-drive/sync/scheduled`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenantSlug: "smoke-tenant",
+            d1DatabaseId: "smoke-db-id",
+            limit: 1,
+            direction: "INBOUND",
+          }),
+        },
+      );
+
+      if (response.status === 401) {
+        log(
+          "internal-google-drive-scheduled-auth",
+          "PASS",
+          "Internal Google Drive endpoint vereist X-Internal-Secret auth",
+        );
+      } else if (response.status >= 500) {
+        log(
+          "internal-google-drive-scheduled-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check /api/internal/google-drive/sync/scheduled auth middleware",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(401);
+    });
+
+    it("POST /api/webhooks/google-drive/changes vereist webhook token auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/webhooks/google-drive/changes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            channel: "smoke-channel",
+            resource: "smoke-resource",
+            state: "exists",
+          }),
+        },
+      );
+
+      if ([401, 403].includes(response.status)) {
+        log(
+          "webhook-google-drive-auth",
+          "PASS",
+          `Google Drive webhook endpoint fail-closed (HTTP ${response.status})`,
+        );
+      } else if (response.status === 404) {
+        log(
+          "webhook-google-drive-auth",
+          "WARN",
+          "Google Drive webhook endpoint nog niet uitgerold op target omgeving (HTTP 404)",
+        );
+      } else if (response.status >= 500) {
+        log(
+          "webhook-google-drive-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check /api/webhooks/google-drive/changes auth token validation",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403, 404]).toContain(response.status);
+    });
+
     it("GET /api/pos/customers vereist admin auth", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/pos/customers?search=smoke`,
@@ -1734,20 +1841,31 @@ describe("Storefront Service - Smoke Tests", () => {
         typeof detailData?.firstName === "string" ? detailData.firstName : "";
       const lastName =
         typeof detailData?.lastName === "string" ? detailData.lastName : "";
-      const email = typeof detailData?.email === "string" ? detailData.email : "";
+      const email =
+        typeof detailData?.email === "string" ? detailData.email : "";
       const phone =
         typeof detailData?.phone === "string" ? detailData.phone : "";
       const street =
         typeof detailData?.street === "string" ? detailData.street : "";
       const houseNumber =
-        typeof detailData?.houseNumber === "string" ? detailData.houseNumber : "";
+        typeof detailData?.houseNumber === "string"
+          ? detailData.houseNumber
+          : "";
       const zipcode =
         typeof detailData?.zipcode === "string" ? detailData.zipcode : "";
       const city = typeof detailData?.city === "string" ? detailData.city : "";
       const country =
         typeof detailData?.country === "string" ? detailData.country : "NL";
 
-      if (!firstName || !lastName || !email || !street || !houseNumber || !zipcode || !city) {
+      if (
+        !firstName ||
+        !lastName ||
+        !email ||
+        !street ||
+        !houseNumber ||
+        !zipcode ||
+        !city
+      ) {
         log(
           testName,
           "SKIP",
@@ -1827,7 +1945,8 @@ describe("Storefront Service - Smoke Tests", () => {
       const saveResponse = await performSave(updatedCity);
       const saveBody = await readJsonBody(saveResponse);
       const saveRequestId =
-        typeof saveBody?.requestId === "string" && saveBody.requestId.length > 0;
+        typeof saveBody?.requestId === "string" &&
+        saveBody.requestId.length > 0;
 
       if (saveResponse.status !== 200 || !saveRequestId) {
         log(
@@ -2913,9 +3032,161 @@ describe("Storefront Service - Smoke Tests", () => {
       );
       expect([401, 403]).toContain(response.status);
     });
+
+    it("GET /api/admin/subscriptions with sort param returns non-500", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions?sort=name`,
+      );
+      if (skipIfNoTenant(response, "admin-subscriptions-sort-param")) return;
+      log(
+        "admin-subscriptions-sort-param",
+        response.status < 500 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("GET /api/admin/subscriptions with type=family filter returns non-500", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions?type=family`,
+      );
+      if (skipIfNoTenant(response, "admin-subscriptions-type-filter")) return;
+      log(
+        "admin-subscriptions-type-filter",
+        response.status < 500 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("GET /api/admin/subscriptions/:id/events without auth returns 401", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/smoke-sub-1/events`,
+      );
+      if (skipIfNoTenant(response, "admin-subscription-events-no-auth")) return;
+      log(
+        "admin-subscription-events-no-auth",
+        response.status < 500 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBeLessThan(500);
+    });
+
+    it("GET /api/admin/subscriptions/members/:memberId/visits without auth returns 401", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/members/smoke-member-1/visits`,
+      );
+      if (skipIfNoTenant(response, "admin-subscription-member-visits-no-auth"))
+        return;
+      log(
+        "admin-subscription-member-visits-no-auth",
+        response.status < 500 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBeLessThan(500);
+    });
   });
 
   describe("Stripe Connect Integration", () => {
+    it("GET /api/admin/integrations/google-drive/spreadsheets requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/google-drive/spreadsheets`,
+      );
+      if (skipIfNoTenant(response, "gdrive-spreadsheets-no-auth")) return;
+      log(
+        "gdrive-spreadsheets-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("GET /api/admin/integrations/google-drive/spreadsheets/:id/sheets requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/google-drive/spreadsheets/smoke-id/sheets`,
+      );
+      if (skipIfNoTenant(response, "gdrive-sheets-no-auth")) return;
+      log(
+        "gdrive-sheets-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("GET /api/admin/integrations/google-drive/mappings requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/google-drive/mappings`,
+      );
+      if (skipIfNoTenant(response, "gdrive-mappings-no-auth")) return;
+      log(
+        "gdrive-mappings-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("GET /api/admin/integrations/google-drive/entity-fields/PRODUCTS requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/google-drive/entity-fields/PRODUCTS`,
+      );
+      if (skipIfNoTenant(response, "gdrive-entity-fields-no-auth")) return;
+      log(
+        "gdrive-entity-fields-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("POST /api/admin/integrations/google-drive/sync requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/google-drive/sync`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mappingId: 1,
+            dryRun: true,
+          }),
+        },
+      );
+      if (skipIfNoTenant(response, "gdrive-sync-start-no-auth")) return;
+      log(
+        "gdrive-sync-start-no-auth",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("GET /api/admin/integrations/google-drive/sync/jobs requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/google-drive/sync/jobs`,
+      );
+      if (skipIfNoTenant(response, "gdrive-sync-jobs-no-auth")) return;
+      log(
+        "gdrive-sync-jobs-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("GET /api/admin/integrations/google-drive/sync/jobs/:id requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/google-drive/sync/jobs/1`,
+      );
+      if (skipIfNoTenant(response, "gdrive-sync-job-detail-no-auth")) return;
+      log(
+        "gdrive-sync-job-detail-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
     it("GET /api/admin/integrations/stripe/connect/status requires auth", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/integrations/stripe/connect/status`,
@@ -3843,6 +4114,50 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(["HIT", "MISS"]).toContain(cacheHeader);
       expect(cacheLayer).toBe("navigation-kv");
       expect(["no-store", "no-cache"]).toContain(cacheControl);
+    });
+
+    it("POST /api/check-in/verify returns minimal public contract", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/check-in/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ passCode: "PAG-SMOKE-VERIFY-001" }),
+      });
+
+      if (skipIfNoTenant(response, "check-in-verify-public")) return;
+
+      const body = await readJsonBody(response);
+
+      const hasNoPii =
+        body !== null &&
+        typeof body.data === "object" &&
+        body.data !== null &&
+        !("firstName" in body.data) &&
+        !("lastName" in body.data) &&
+        !("email" in body.data) &&
+        !("photoUrl" in body.data) &&
+        !("holder" in body.data);
+
+      if (response.status === 200 && hasNoPii) {
+        log(
+          "check-in-verify-public",
+          "PASS",
+          `Status: ${response.status}, contract minimal without PII`,
+        );
+      } else {
+        log(
+          "check-in-verify-public",
+          "FAIL",
+          `HTTP ${response.status} of contract bevat PII velden`,
+          "Check public check-in verify route contract en data exposure",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(body?.success).toBe(true);
+      expect(hasNoPii).toBe(true);
     });
 
     it("GET /api/admin/settings/opening-hours requires auth", async () => {

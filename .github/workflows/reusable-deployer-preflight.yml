@@ -1,0 +1,51 @@
+# =============================================================================
+# Reusable: Pagayo Deployer Pre-Flight Check
+# =============================================================================
+# Draait deployer-preflight.sh (uncommitted changes, local↔remote sync, etc.)
+# tegen de caller repo. Bedoeld om vóór een deploy-job te draaien.
+#
+# Gebruik:
+#
+#   jobs:
+#     preflight:
+#       needs: stack-check
+#       uses: Pagayo/pagayo-maintenance/.github/workflows/reusable-deployer-preflight.yml@main
+#
+# Referentie: pagayo-maintenance/.github/scripts/deployer-preflight.sh
+# =============================================================================
+
+name: Reusable Deployer Preflight
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: 'Relatief pad (t.o.v. caller checkout) dat gecontroleerd wordt.'
+        required: false
+        type: string
+        default: '.'
+
+jobs:
+  preflight:
+    name: Deployer Preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout caller repo
+        uses: actions/checkout@v6
+        with:
+          # Volledige geschiedenis nodig voor local↔remote sync check
+          fetch-depth: 0
+
+      - name: Checkout pagayo-maintenance (preflight script)
+        uses: actions/checkout@v6
+        with:
+          repository: Pagayo/pagayo-maintenance
+          # Zie reusable-check-stack.yml — github.workflow_sha werkt niet in workflow_call
+          # vanuit pull_request events. Pin aan grounding-staging-branch tot merge.
+          ref: feature/batch-staging-20260416
+          path: .maintenance
+
+      - name: Run deployer preflight
+        run: bash .maintenance/.github/scripts/deployer-preflight.sh "${{ inputs.target }}"

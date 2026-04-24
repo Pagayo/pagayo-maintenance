@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "updated_at": "2026-04-23T00:00:00Z",
+  "updated_by": "initial-setup",
+  "repos": {
+    "pagayo-storefront": {
+      "staging_sha": null,
+      "verified_at": null
+    },
+    "pagayo-api-stack": {
+      "staging_sha": null,
+      "verified_at": null
+    },
+    "pagayo-edge": {
+      "staging_sha": null,
+      "verified_at": null
+    },
+    "pagayo-workflows": {
+      "staging_sha": null,
+      "verified_at": null
+    },
+    "pagayo-schema": {
+      "staging_sha": null,
+      "verified_at": null
+    },
+    "pagayo-config": {
+      "staging_sha": null,
+      "verified_at": null
+    },
+    "pagayo-design": {
+      "staging_sha": null,
+      "verified_at": null
+    },
+    "pagayo-marketing": {
+      "staging_sha": null,
+      "verified_at": null
+    },
+    "pagayo-cloudflare-proxy": {
+      "staging_sha": null,
+      "verified_at": null
+    },
+    "pagayo-maintenance": {
+      "staging_sha": null,
+      "verified_at": null
+    }
+  }
+}
