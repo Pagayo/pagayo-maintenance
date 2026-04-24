@@ -63,19 +63,37 @@ describe("Cloudflare token expiry helpers", () => {
 
 describe("Cloudflare token expiry CLI", () => {
   const scriptPath = "scripts/cloudflare/token-expiry-check.mjs";
+  const nodeExecutable = process.execPath;
+
+  const parseJsonOutput = <T>(rawOutput: string, context: string): T => {
+    const trimmedOutput = rawOutput.trim();
+
+    if (!trimmedOutput) {
+      throw new Error(`${context}: CLI gaf lege stdout terug; verwachtte JSON output.`);
+    }
+
+    try {
+      return JSON.parse(trimmedOutput) as T;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `${context}: ongeldige JSON output (${message}). Ontvangen stdout: ${trimmedOutput}`,
+      );
+    }
+  };
 
   it("dry-run json mode retourneert success payload", () => {
-    const output = execFileSync("node", [scriptPath, "--dry-run", "--json"], {
+    const output = execFileSync(nodeExecutable, [scriptPath, "--dry-run", "--json"], {
       cwd: "/Users/sjoerdoverdiep/my-vscode-workspace/pagayo-maintenance",
       encoding: "utf-8",
     });
 
-    const parsed = JSON.parse(output) as {
+    const parsed = parseJsonOutput<{
       success: boolean;
       simulated: boolean;
       severity: string;
       daysUntilExpiry: number;
-    };
+    }>(output, "dry-run json mode");
 
     expect(parsed.success).toBe(true);
     expect(parsed.simulated).toBe(true);
@@ -88,7 +106,7 @@ describe("Cloudflare token expiry CLI", () => {
     let capturedStatus = -1;
 
     try {
-      execFileSync("node", [scriptPath, "--json"], {
+      execFileSync(nodeExecutable, [scriptPath, "--json"], {
         cwd: "/Users/sjoerdoverdiep/my-vscode-workspace/pagayo-maintenance",
         encoding: "utf-8",
         env: {
@@ -102,10 +120,10 @@ describe("Cloudflare token expiry CLI", () => {
       capturedStatus = err.status ?? -1;
     }
 
-    const parsed = JSON.parse(capturedStdout) as {
+    const parsed = parseJsonOutput<{
       success: boolean;
       error: { code: string };
-    };
+    }>(capturedStdout, "zonder token json mode");
 
     expect(capturedStatus).toBe(EXIT_CODES.FAILURE);
     expect(parsed.success).toBe(false);
