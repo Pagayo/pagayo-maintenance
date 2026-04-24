@@ -8,17 +8,22 @@
 # Lokaal (dry-run):
 #   scripts/update-release-manifest.sh pagayo-storefront abc123... --dry-run
 #
-# In CI (commit + push direct naar main):
-#   scripts/update-release-manifest.sh pagayo-storefront abc123...
+# Lokaal of in CI (alleen bestand bijwerken, geen git side effects):
+#   scripts/update-release-manifest.sh pagayo-storefront abc123... --write-only
 # =============================================================================
 set -euo pipefail
 
 REPO="${1:-}"
 SHA="${2:-}"
-MODE="${3:-commit}"
+MODE="${3:---write-only}"
 
 if [[ -z "$REPO" || -z "$SHA" ]]; then
-  echo "Usage: $0 <repo-name> <full-sha> [--dry-run]" >&2
+  echo "Usage: $0 <repo-name> <full-sha> [--dry-run|--write-only]" >&2
+  exit 2
+fi
+
+if [[ "$MODE" != "--dry-run" && "$MODE" != "--write-only" ]]; then
+  echo "::error::Ongeldige mode '$MODE'. Gebruik --dry-run of --write-only." >&2
   exit 2
 fi
 
@@ -49,6 +54,9 @@ fi
 
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ACTOR="${GITHUB_ACTOR:-github-actions[bot]}"
+SHORT_SHA="${SHA:0:12}"
+COMMIT_MESSAGE="chore(releases): verify $REPO@$SHORT_SHA in staging"
+PR_BRANCH="automation/release-manifest-$REPO"
 
 TMP="$(mktemp)"
 jq \
@@ -62,27 +70,42 @@ jq \
    | .repos[$repo].verified_at = $now' \
   "$MANIFEST" > "$TMP"
 
-mv "$TMP" "$MANIFEST"
-echo "✅ Manifest updated: $REPO -> $SHA ($NOW)"
+if cmp -s "$TMP" "$MANIFEST"; then
+  rm -f "$TMP"
+  echo "ℹ️  Geen manifest-wijziging nodig: $REPO staat al op $SHA."
+
+  if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+    {
+      echo "changed=false"
+      echo "commit_message=$COMMIT_MESSAGE"
+      echo "pr_branch=$PR_BRANCH"
+      echo "pr_title=$COMMIT_MESSAGE"
+    } >> "$GITHUB_OUTPUT"
+  fi
+
+  if [[ "$MODE" == "--dry-run" ]]; then
+    jq --arg repo "$REPO" '.repos[$repo]' "$MANIFEST"
+  fi
+
+  exit 0
+fi
+
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+  {
+    echo "changed=true"
+    echo "commit_message=$COMMIT_MESSAGE"
+    echo "pr_branch=$PR_BRANCH"
+    echo "pr_title=$COMMIT_MESSAGE"
+  } >> "$GITHUB_OUTPUT"
+fi
 
 if [[ "$MODE" == "--dry-run" ]]; then
-  echo "ℹ️  --dry-run: geen commit/push."
-  jq --arg repo "$REPO" '.repos[$repo]' "$MANIFEST"
+  echo "ℹ️  --dry-run: geen bestandsschrijfactie of git-actie."
+  jq --arg repo "$REPO" '.repos[$repo]' "$TMP"
+  rm -f "$TMP"
   exit 0
 fi
 
-# Commit + push direct naar main (manifest is stabieler dan feature-branch:
-# staat voor "verified in staging", niet voor "work in progress").
-cd "$REPO_ROOT"
-git config user.name  "github-actions[bot]"
-git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-if git diff --quiet -- releases/current.json; then
-  echo "ℹ️  Geen wijzigingen aan manifest (identieke SHA). Skip commit."
-  exit 0
-fi
-
-git add releases/current.json
-git commit -m "chore(releases): verify $REPO@${SHA:0:12} in staging"
-git push origin HEAD:main
-echo "✅ Commit gepusht naar main."
+mv "$TMP" "$MANIFEST"
+echo "✅ Manifest bijgewerkt: $REPO -> $SHA ($NOW)"
+echo "ℹ️  Geen git side effects: open een PR vanaf $PR_BRANCH om deze wijziging naar main te brengen."

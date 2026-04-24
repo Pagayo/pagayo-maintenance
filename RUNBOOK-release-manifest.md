@@ -7,15 +7,15 @@ gereleased is via staging.
 ## 1. Concept
 
 | Ding | Betekenis |
-|------|-----------|
+| ---- | --------- |
 | `releases/current.json` | SSOT voor laatst-verified staging-SHA per Pagayo-repo |
-| `scripts/update-release-manifest.sh` | Idempotente updater van de JSON + commit + push |
+| `scripts/update-release-manifest.sh` | Idempotente updater van de JSON zonder git side effects |
 | `.github/workflows/update-release-manifest.yml` | Dispatch-target waar consumer-repo's naar schrijven na groene staging-smoke |
 | `.github/workflows/reusable-preprod-guard.yml` | Reusable workflow die caller-SHA vergelijkt met het manifest |
 
 ## 2. Flow
 
-```
+```text
 [consumer repo]                       [pagayo-maintenance]
   staging deploy + smoke (success)
          │
@@ -28,7 +28,7 @@ gereleased is via staging.
          │                     scripts/update-release-manifest.sh
          │                                   │
          │                                   ▼
-         │                         commit + push → main
+         │                branch + PR + auto-merge → main
          │
          ▼
   productie-deploy (workflow_dispatch, mode=full of production-only)
@@ -102,7 +102,7 @@ cd pagayo-maintenance
 scripts/update-release-manifest.sh pagayo-storefront $(printf '%040d' 1) --dry-run
 ```
 
-Dit toont de te schrijven entry zonder commit/push.
+Dit toont de te schrijven entry zonder bestandsschrijfactie of git side effects.
 
 ## 7. Versie-bump van het manifest
 
