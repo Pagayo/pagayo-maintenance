@@ -3033,6 +3033,27 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([401, 403]).toContain(response.status);
     });
 
+    it("POST /api/internal/payments/backfill-subscriptions requires secret", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/internal/payments/backfill-subscriptions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenantSlug: "y0d7wl",
+            dryRun: true,
+            sendWelcomeEmails: true,
+          }),
+        },
+      );
+      log(
+        "internal-payments-backfill-no-secret",
+        response.status === 401 || response.status === 403 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+
     it("GET /api/admin/subscriptions with sort param returns non-500", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/subscriptions?sort=name`,
