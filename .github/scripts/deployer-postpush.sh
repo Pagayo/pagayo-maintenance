@@ -124,27 +124,27 @@ if [[ "$ALL_PASSED" != "true" ]]; then
     done
 
     echo "╔════════════════════════════════════════════════════════════════════════╗"
-    echo "║  ❌ PRODUCTIE IS NIET GEDEPLOYD!                                      ║"
+    echo "║  ❌ DEPLOY PIPELINE GEFAALD                                           ║"
     echo "║                                                                       ║"
-    echo "║  De code is gepusht maar CI/deploy is gefaald.                       ║"
+    echo "║  De code is gepusht maar CI/deploy is niet geslaagd.                 ║"
     echo "║  Opties:                                                              ║"
     echo "║  1. Fix de CI errors en push opnieuw                                 ║"
-    echo "║  2. Deploy handmatig: npx wrangler deploy --env production           ║"
-    echo "║  3. Escaleer naar Sjoerd                                              ║"
+    echo "║  2. Escaleer naar Sjoerd                                              ║"
     echo "╚════════════════════════════════════════════════════════════════════════╝"
     exit 1
 else
     echo "╔════════════════════════════════════════════════════════════════════════╗"
-    echo "║  ✅ ALLE WORKFLOWS GESLAAGD — PRODUCTIE IS GEDEPLOYD!                ║"
+    echo "║  ✅ ALLE WORKFLOWS GESLAAGD — STAGING-DEPLOY IS GELUKT               ║"
+    echo "║  Productie vereist aparte workflow_dispatch + preprod guard + token  ║"
     echo "╚════════════════════════════════════════════════════════════════════════╝"
 
     # Health check per bekende service
     case "$REPO_NAME" in
         pagayo-storefront)
-            HEALTH_URL="https://demo.pagayo.app/health" ;;
+            HEALTH_URL="https://demo.staging.pagayo.app/health" ;;
 
         pagayo-api-stack)
-            HEALTH_URL="https://api.pagayo.com/api/health" ;;
+            HEALTH_URL="https://staging-api.pagayo.com/health" ;;
         *)
             HEALTH_URL="" ;;
     esac
@@ -155,9 +155,9 @@ else
         sleep 10
         HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "$HEALTH_URL" 2>/dev/null || echo "000")
         if [[ "$HTTP_CODE" == "200" ]]; then
-            echo "✅ Productie health check: OK (HTTP $HTTP_CODE)"
+            echo "✅ Staging health check: OK (HTTP $HTTP_CODE)"
         else
-            echo "⚠️  Productie health check: HTTP $HTTP_CODE — controleer handmatig"
+            echo "⚠️  Staging health check: HTTP $HTTP_CODE — controleer handmatig"
         fi
     fi
 
