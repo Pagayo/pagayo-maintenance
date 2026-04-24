@@ -43,8 +43,8 @@ jobs:
         with:
           repository: Pagayo/pagayo-maintenance
           # Zie reusable-check-stack.yml — github.workflow_sha werkt niet in workflow_call
-          # vanuit pull_request events. Pin aan grounding-staging-branch tot merge.
-          ref: feature/batch-staging-20260416
+          # vanuit pull_request events. Default branch (main) wordt gebruikt.
+          ref: main
           path: .maintenance
 
       - name: Run deployer preflight
