@@ -28,7 +28,7 @@ Productie-deploys valideren de deploy-SHA tegen dit manifest via de `reusable-pr
 
 1. Repo's staging-deploy job draait smoke tests.
 2. Bij success triggert de job (via `gh workflow run`) de `update-release-manifest.yml` workflow in **pagayo-maintenance** met `repo` + `sha`.
-3. Die workflow draait `scripts/update-release-manifest.sh` en commit de update direct naar `main`.
+3. Die workflow draait `scripts/update-release-manifest.sh`, opent of ververst een manifest-PR en zet auto-merge aan zodat `main` alleen via branch protection wordt bijgewerkt.
 
 **Handmatige edits zijn verboden** behalve voor rollback/hotfix (zie `RUNBOOK-release-manifest.md`).
 

@@ -2,8 +2,8 @@
 # Update Release Manifest
 # -----------------------------------------------------------------------------
 # Wordt getriggerd door staging-deploy workflows van consumer-repo's nadat hun
-# smoke tests groen zijn. Werkt releases/current.json bij en commit direct naar
-# main.
+# smoke tests groen zijn. Werkt releases/current.json bij via een branch + PR
+# zodat branch protection op main gerespecteerd blijft.
 #
 # Consumers triggeren via:
 #   gh workflow run update-release-manifest.yml \
@@ -33,6 +33,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   update:
@@ -61,8 +62,61 @@ jobs:
           fi
 
       - name: Run update script
+        id: prepare
         env:
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
           chmod +x scripts/update-release-manifest.sh
-          scripts/update-release-manifest.sh "${{ inputs.repo }}" "${{ inputs.sha }}"
+          scripts/update-release-manifest.sh "${{ inputs.repo }}" "${{ inputs.sha }}" --write-only
+
+      - name: Create or update manifest PR
+        id: manifest_pr
+        if: steps.prepare.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: |
+            releases/current.json
+          branch: ${{ steps.prepare.outputs.pr_branch }}
+          base: main
+          delete-branch: true
+          commit-message: ${{ steps.prepare.outputs.commit_message }}
+          title: ${{ steps.prepare.outputs.pr_title }}
+          body: |
+            ## Release manifest update
+
+            - Repo: `${{ inputs.repo }}`
+            - Verified staging SHA: `${{ inputs.sha }}`
+            - Triggered by: `${{ github.actor }}`
+
+            Deze PR is automatisch aangemaakt door `update-release-manifest.yml`.
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+
+      - name: Report PR status
+        if: steps.prepare.outputs.changed == 'true'
+        run: |
+          if [[ -z "${{ steps.manifest_pr.outputs.pull-request-number }}" ]]; then
+            echo "::error::Manifest wijzigde, maar er is geen pull request aangemaakt of bijgewerkt."
+            exit 1
+          fi
+
+          if [[ "${{ steps.manifest_pr.outputs.pull-request-operation }}" == "created" ]]; then
+            echo "✅ Pull request aangemaakt: #${{ steps.manifest_pr.outputs.pull-request-number }}"
+          elif [[ "${{ steps.manifest_pr.outputs.pull-request-operation }}" == "updated" ]]; then
+            echo "ℹ️  Bestaande pull request bijgewerkt: #${{ steps.manifest_pr.outputs.pull-request-number }}"
+          else
+            echo "ℹ️  Pull request status: ${{ steps.manifest_pr.outputs.pull-request-operation }} (#${{ steps.manifest_pr.outputs.pull-request-number }})"
+          fi
+
+      - name: Enable auto-merge
+        if: steps.prepare.outputs.changed == 'true' && steps.manifest_pr.outputs.pull-request-number != ''
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.manifest_pr.outputs.pull-request-number }}
+          merge-method: squash
+
+      - name: No manifest change
+        if: steps.prepare.outputs.changed != 'true'
+        run: echo "ℹ️  Geen manifest-wijziging nodig; er is geen PR geopend."
