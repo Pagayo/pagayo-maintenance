@@ -32,10 +32,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "📋 CHECK 1: Uncommitted Changes"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if [[ -n $(git status --porcelain) ]]; then
+# In CI (GitHub Actions), untracked files zoals .maintenance/ zijn normaal — negeer die.
+# Controleer alleen tracked modified/staged files.
+if [[ -n $(git status --porcelain --untracked-files=no) ]]; then
     echo "⚠️  WAARSCHUWING: Er zijn uncommitted changes!"
     echo ""
-    git status --short
+    git status --short --untracked-files=no
     echo ""
     echo "❌ ACTIE VEREIST: Commit of stash deze changes eerst!"
     UNCOMMITTED=true
