@@ -24,6 +24,10 @@ on:
         required: false
         type: string
         default: '.'
+      ref:
+        description: 'Optionele git ref voor checkout van de caller repo.'
+        required: false
+        type: string
 
 jobs:
   preflight:
@@ -32,9 +36,18 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout caller repo
+      - name: Checkout caller repo (default ref)
+        if: ${{ inputs.ref == '' }}
         uses: actions/checkout@v6
         with:
+          # Volledige geschiedenis nodig voor local↔remote sync check
+          fetch-depth: 0
+
+      - name: Checkout caller repo (custom ref)
+        if: ${{ inputs.ref != '' }}
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
           # Volledige geschiedenis nodig voor local↔remote sync check
           fetch-depth: 0
 

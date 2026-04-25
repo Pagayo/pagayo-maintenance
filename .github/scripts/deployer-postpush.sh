@@ -20,6 +20,33 @@ cd "$REPO_PATH"
 
 REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
 
+case "$REPO_NAME" in
+    pagayo-storefront)
+        WORKFLOW_NAME="Deploy to Cloudflare Workers" ;;
+    pagayo-api-stack)
+        WORKFLOW_NAME="Deploy to Cloudflare Workers" ;;
+    pagayo-edge)
+        WORKFLOW_NAME="CI & Deploy" ;;
+    *)
+        WORKFLOW_NAME="" ;;
+esac
+
+get_run_count() {
+    if [[ -n "$WORKFLOW_NAME" ]]; then
+        gh run list --commit "$COMMIT_SHA" --workflow "$WORKFLOW_NAME" --json databaseId --jq 'length' 2>/dev/null || echo "0"
+    else
+        gh run list --commit "$COMMIT_SHA" --json databaseId --jq 'length' 2>/dev/null || echo "0"
+    fi
+}
+
+get_run_ids() {
+    if [[ -n "$WORKFLOW_NAME" ]]; then
+        gh run list --commit "$COMMIT_SHA" --workflow "$WORKFLOW_NAME" --json databaseId --jq '.[].databaseId' 2>/dev/null || true
+    else
+        gh run list --commit "$COMMIT_SHA" --json databaseId --jq '.[].databaseId' 2>/dev/null || true
+    fi
+}
+
 # Als geen commit meegegeven, pak HEAD
 if [[ -z "$COMMIT_SHA" ]]; then
     COMMIT_SHA=$(git rev-parse HEAD)
@@ -32,6 +59,9 @@ echo "╚═══════════════════════�
 echo ""
 echo "📁 Repository: $REPO_NAME"
 echo "📦 Commit:     $COMMIT_SHORT"
+if [[ -n "$WORKFLOW_NAME" ]]; then
+    echo "🎯 Workflow:   $WORKFLOW_NAME"
+fi
 echo ""
 
 # Check of gh CLI beschikbaar is
@@ -51,7 +81,7 @@ WAITED=0
 RUNS_FOUND=false
 
 while [[ $WAITED -lt $MAX_WAIT ]]; do
-    RUN_COUNT=$(gh run list --commit "$COMMIT_SHA" --json databaseId --jq 'length' 2>/dev/null || echo "0")
+    RUN_COUNT=$(get_run_count)
     if [[ "$RUN_COUNT" -gt 0 ]]; then
         RUNS_FOUND=true
         break
@@ -78,7 +108,7 @@ echo "📋 Wachten op alle workflows..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Haal alle run IDs op voor dit commit
-ALL_RUN_IDS=$(gh run list --commit "$COMMIT_SHA" --json databaseId --jq '.[].databaseId' 2>/dev/null)
+ALL_RUN_IDS=$(get_run_ids)
 
 ALL_PASSED=true
 FAILED_RUNS=""
@@ -145,6 +175,8 @@ else
 
         pagayo-api-stack)
             HEALTH_URL="https://staging-api.pagayo.com/health" ;;
+        pagayo-edge)
+            HEALTH_URL="https://staging-edge.pagayo.app/health" ;;
         *)
             HEALTH_URL="" ;;
     esac
