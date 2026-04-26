@@ -111,3 +111,17 @@ Bij breaking wijzigingen in de structuur van `current.json`:
 1. Bump `version` (bv. `1` → `2`).
 2. Update `scripts/update-release-manifest.sh` + `reusable-preprod-guard.yml` om de nieuwe structuur te begrijpen.
 3. Consumer-workflows blijven compatibel omdat ze alleen `repo`/`sha` inputs sturen.
+
+## 8. Troubleshooting (`gh api` + manifest)
+
+De GitHub **Contents API** is een `GET`. Gebruik **`?ref=main` in de URL**, niet `-f ref=main` als form field op `gh api`:
+
+```bash
+# Goed:
+gh api 'repos/Pagayo/pagayo-maintenance/contents/releases/current.json?ref=main' --jq .name
+
+# Fout (404 + lege base64-pipeline in CI):
+gh api repos/Pagayo/pagayo-maintenance/contents/releases/current.json -f ref=main
+```
+
+Consumer-deploy workflows pollen het manifest na staging-smoke; die stap gebruikt de querystring-vorm.
