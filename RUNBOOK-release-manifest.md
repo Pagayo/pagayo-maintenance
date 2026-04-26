@@ -111,3 +111,19 @@ Bij breaking wijzigingen in de structuur van `current.json`:
 1. Bump `version` (bv. `1` → `2`).
 2. Update `scripts/update-release-manifest.sh` + `reusable-preprod-guard.yml` om de nieuwe structuur te begrijpen.
 3. Consumer-workflows blijven compatibel omdat ze alleen `repo`/`sha` inputs sturen.
+
+## 8. Troubleshooting
+
+### 8.1 `gh api` voor `releases/current.json`
+
+De GitHub **Contents API** is een `GET`. Gebruik **`?ref=main` in de URL**, niet `-f ref=main` als form field op `gh api`:
+
+```bash
+gh api 'repos/Pagayo/pagayo-maintenance/contents/releases/current.json?ref=main' --jq .name
+```
+
+### 8.2 “Release manifest is niet op tijd bijgewerkt” terwijl deploy groen is
+
+`update-release-manifest.yml` opent/werkt een **PR** op `pagayo-maintenance` met **auto-merge**. Tot die PR op `main` staat (CI op de PR, branch protection, approvals), blijft `staging_sha` in `current.json` op de oude waarde. Consumer-deploys pollen daarom **lang genoeg** op de nieuwe SHA.
+
+Als dit structureel time-out: manifest-PR sneller mergebaar maken (vereiste checks/reviews) of de poll in de consumer-workflow verder verhogen.
