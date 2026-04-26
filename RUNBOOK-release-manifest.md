@@ -126,4 +126,20 @@ gh api 'repos/Pagayo/pagayo-maintenance/contents/releases/current.json?ref=main'
 
 `update-release-manifest.yml` opent/werkt een **PR** op `pagayo-maintenance` met **auto-merge**. Tot die PR op `main` staat (CI op de PR, branch protection, approvals), blijft `staging_sha` in `current.json` op de oude waarde. Consumer-deploys pollen daarom **lang genoeg** op de nieuwe SHA.
 
-Als dit structureel time-out: manifest-PR sneller mergebaar maken (vereiste checks/reviews) of de poll in de consumer-workflow verder verhogen.
+Als GitHub `mergeStateStatus` **BLOCKED** is (bv. verplichte review zonder bypass voor bots), blijft auto-merge hangen. Oplossingen:
+
+1. **Ruleset / branch protection**: voeg een bypass toe voor `github-actions[bot]` of voor pad `releases/**`, of verlaag vereisten op automation-PR’s.
+2. **Consumer** (`RELEASE_MANIFEST_TOKEN`): als de PAT-eigenaar org/repo-admin is, probeert de storefront/api-stack-workflow na timeout automatisch `gh pr merge --admin` op de open manifest-PR (zelfde token als workflow-dispatch).
+3. Zie **§9** voor optionele `RELEASE_MANIFEST_MERGE_PAT` op **pagayo-maintenance** (merge direct vanuit `update-release-manifest.yml`).
+
+## 9. Optioneel: `RELEASE_MANIFEST_MERGE_PAT` (pagayo-maintenance)
+
+Repository secret **alleen** op `Pagayo/pagayo-maintenance`:
+
+| Secret | Doel |
+| ------ | ---- |
+| `RELEASE_MANIFEST_MERGE_PAT` | Classic PAT met `repo` (of org-admin met merge + bypass), owner met rechten om **protected `main`** te mergen. Wordt gebruikt in `update-release-manifest.yml` om de manifest-PR direct met `--squash --admin` te mergen na aanmaak, vóór/naast auto-merge. |
+
+Zonder deze secret blijft het gedrag: PR + auto-merge (zoals voorheen). Met secret falen deploys niet meer op een oneindig geblokkeerde auto-merge zolang de PAT geldig is.
+
+> Fine-grained PAT: minimaal **Contents** en **Pull requests** op `pagayo-maintenance`; de token-eigenaar moet volgens GitHub-regels admin-merge op `main` mogen doen.
