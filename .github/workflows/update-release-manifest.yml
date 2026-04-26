@@ -3,7 +3,8 @@
 # -----------------------------------------------------------------------------
 # Wordt getriggerd door staging-deploy workflows van consumer-repo's nadat hun
 # smoke tests groen zijn. Werkt releases/current.json bij via een branch + PR
-# zodat branch protection op main gerespecteerd blijft.
+# zodat branch protection op main gerespecteerd blijft. Optioneel: secret
+# RELEASE_MANIFEST_MERGE_PAT voert direct admin-merge uit (zie RUNBOOK §9).
 #
 # Consumers triggeren via:
 #   gh workflow run update-release-manifest.yml \
@@ -109,8 +110,35 @@ jobs:
             echo "ℹ️  Pull request status: ${{ steps.manifest_pr.outputs.pull-request-operation }} (#${{ steps.manifest_pr.outputs.pull-request-number }})"
           fi
 
-      - name: Enable auto-merge
+      # Optioneel: zet repository secret RELEASE_MANIFEST_MERGE_PAT (classic `repo` of
+      # org-admin PAT met merge-rechten) zodat manifest-PR's direct op main komen wanneer
+      # branch rules auto-merge blokkeren (bv. required review zonder bot-bypass).
+      - name: Try immediate merge with bypass PAT
+        id: pat_merge
         if: steps.prepare.outputs.changed == 'true' && steps.manifest_pr.outputs.pull-request-number != ''
+        env:
+          MERGE_PAT: ${{ secrets.RELEASE_MANIFEST_MERGE_PAT }}
+        run: |
+          echo "merged=false" >> "$GITHUB_OUTPUT"
+          if [ -z "${MERGE_PAT:-}" ]; then
+            echo "ℹ️ Geen RELEASE_MANIFEST_MERGE_PAT — alleen auto-merge."
+            exit 0
+          fi
+          PR="${{ steps.manifest_pr.outputs.pull-request-number }}"
+          export GH_TOKEN="$MERGE_PAT"
+          echo "🔀 Probeer PR #$PR te mergen met RELEASE_MANIFEST_MERGE_PAT..."
+          if gh pr merge "$PR" --repo "${{ github.repository }}" --squash --admin; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Manifest PR #$PR direct gemerged (bypass PAT)."
+          else
+            echo "::warning::PAT-merge mislukt (rechten of PR-status); val terug op auto-merge."
+          fi
+
+      - name: Enable auto-merge
+        if: >-
+          steps.prepare.outputs.changed == 'true' &&
+          steps.manifest_pr.outputs.pull-request-number != '' &&
+          steps.pat_merge.outputs.merged != 'true'
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

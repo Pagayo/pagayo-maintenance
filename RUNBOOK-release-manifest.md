@@ -111,3 +111,35 @@ Bij breaking wijzigingen in de structuur van `current.json`:
 1. Bump `version` (bv. `1` → `2`).
 2. Update `scripts/update-release-manifest.sh` + `reusable-preprod-guard.yml` om de nieuwe structuur te begrijpen.
 3. Consumer-workflows blijven compatibel omdat ze alleen `repo`/`sha` inputs sturen.
+
+## 8. Troubleshooting
+
+### 8.1 `gh api` voor `releases/current.json`
+
+De GitHub **Contents API** is een `GET`. Gebruik **`?ref=main` in de URL**, niet `-f ref=main` als form field op `gh api`:
+
+```bash
+gh api 'repos/Pagayo/pagayo-maintenance/contents/releases/current.json?ref=main' --jq .name
+```
+
+### 8.2 “Release manifest is niet op tijd bijgewerkt” terwijl deploy groen is
+
+`update-release-manifest.yml` opent/werkt een **PR** op `pagayo-maintenance` met **auto-merge**. Tot die PR op `main` staat (CI op de PR, branch protection, approvals), blijft `staging_sha` in `current.json` op de oude waarde. Consumer-deploys pollen daarom **lang genoeg** op de nieuwe SHA.
+
+Als GitHub `mergeStateStatus` **BLOCKED** is (bv. verplichte review zonder bypass voor bots), blijft auto-merge hangen. Oplossingen:
+
+1. **Ruleset / branch protection**: voeg een bypass toe voor `github-actions[bot]` of voor pad `releases/**`, of verlaag vereisten op automation-PR’s.
+2. **Consumer** (`RELEASE_MANIFEST_TOKEN`): als de PAT-eigenaar org/repo-admin is, probeert de storefront/api-stack-workflow na timeout automatisch `gh pr merge --admin` op de open manifest-PR (zelfde token als workflow-dispatch).
+3. Zie **§9** voor optionele `RELEASE_MANIFEST_MERGE_PAT` op **pagayo-maintenance** (merge direct vanuit `update-release-manifest.yml`).
+
+## 9. Optioneel: `RELEASE_MANIFEST_MERGE_PAT` (pagayo-maintenance)
+
+Repository secret **alleen** op `Pagayo/pagayo-maintenance`:
+
+| Secret | Doel |
+| ------ | ---- |
+| `RELEASE_MANIFEST_MERGE_PAT` | Classic PAT met `repo` (of org-admin met merge + bypass), owner met rechten om **protected `main`** te mergen. Wordt gebruikt in `update-release-manifest.yml` om de manifest-PR direct met `--squash --admin` te mergen na aanmaak, vóór/naast auto-merge. |
+
+Zonder deze secret blijft het gedrag: PR + auto-merge (zoals voorheen). Met secret falen deploys niet meer op een oneindig geblokkeerde auto-merge zolang de PAT geldig is.
+
+> Fine-grained PAT: minimaal **Contents** en **Pull requests** op `pagayo-maintenance`; de token-eigenaar moet volgens GitHub-regels admin-merge op `main` mogen doen.
