@@ -12,7 +12,7 @@ import { pathToFileURL } from "node:url";
  *   node scripts/cloudflare/token-expiry-check.mjs --warn-days 30,14,7,3,1 --critical-days 3
  */
 
-const VERIFY_URL = "https://api.cloudflare.com/client/v4/user/tokens/verify";
+const USER_VERIFY_URL = "https://api.cloudflare.com/client/v4/user/tokens/verify";
 const DEFAULT_WARN_DAYS = [30, 14, 7, 3, 1];
 const DEFAULT_CRITICAL_DAYS = 3;
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -129,6 +129,10 @@ function getTokenFromEnv() {
   return process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN;
 }
 
+function getAccountIdFromEnv() {
+  return process.env.CLOUDFLARE_ACCOUNT_ID || process.env.CF_ACCOUNT_ID || null;
+}
+
 function daysUntil(expiryIso, nowDate = new Date()) {
   const expiryDate = new Date(expiryIso);
   const expiryMs = expiryDate.getTime();
@@ -226,12 +230,12 @@ function evaluateSeverity({
   };
 }
 
-async function verifyToken({ token, timeoutMs }) {
+async function cloudflareGetJson({ url, token, timeoutMs }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(VERIFY_URL, {
+    const response = await fetch(url, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -250,21 +254,66 @@ async function verifyToken({ token, timeoutMs }) {
       );
     }
 
-    if (!response.ok) {
-      const firstError = data?.errors?.[0]?.message || "unknown API error";
-      throw new Error(
-        `Cloudflare verify failed (HTTP ${response.status}): ${firstError}`,
-      );
-    }
-
-    if (!data?.result) {
-      throw new Error("Cloudflare verify payload missing result field");
-    }
-
-    return data;
+    return { response, data };
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function verifyToken({ token, timeoutMs, accountId }) {
+  const userResult = await cloudflareGetJson({
+    url: USER_VERIFY_URL,
+    token,
+    timeoutMs,
+  });
+
+  if (userResult.response.ok && userResult.data?.result) {
+    return { data: userResult.data, verifyMode: "user" };
+  }
+
+  if (!accountId) {
+    const firstError =
+      userResult.data?.errors?.[0]?.message || "unknown API error";
+    throw new Error(
+      `Cloudflare verify failed (HTTP ${userResult.response.status}): ${firstError}`,
+    );
+  }
+
+  const accountVerifyUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/tokens/verify`;
+  const accountResult = await cloudflareGetJson({
+    url: accountVerifyUrl,
+    token,
+    timeoutMs,
+  });
+
+  if (!accountResult.response.ok || !accountResult.data?.result) {
+    const firstError =
+      accountResult.data?.errors?.[0]?.message || "unknown API error";
+    throw new Error(
+      `Cloudflare verify failed (HTTP ${accountResult.response.status}): ${firstError}`,
+    );
+  }
+
+  return { data: accountResult.data, verifyMode: "account" };
+}
+
+async function fetchAccountTokenDetails({ token, timeoutMs, accountId, tokenId }) {
+  const tokenDetailsUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/tokens/${tokenId}`;
+  const detailsResult = await cloudflareGetJson({
+    url: tokenDetailsUrl,
+    token,
+    timeoutMs,
+  });
+
+  if (!detailsResult.response.ok || !detailsResult.data?.result) {
+    const firstError =
+      detailsResult.data?.errors?.[0]?.message || "unknown API error";
+    throw new Error(
+      `Cloudflare token detail lookup failed (HTTP ${detailsResult.response.status}): ${firstError}`,
+    );
+  }
+
+  return detailsResult.data.result;
 }
 
 function formatHuman(result) {
@@ -344,6 +393,7 @@ async function main() {
   }
 
   const token = getTokenFromEnv();
+  const accountId = getAccountIdFromEnv();
 
   if (!token) {
     const payload = {
@@ -360,10 +410,29 @@ async function main() {
   }
 
   try {
-    const verifyData = await verifyToken({ token, timeoutMs: args.timeoutMs });
+    const verifyResult = await verifyToken({
+      token,
+      timeoutMs: args.timeoutMs,
+      accountId,
+    });
+    const verifyData = verifyResult.data;
 
     const tokenStatus = verifyData.result.status || "unknown";
-    const expiresOn = verifyData.result.expires_on ?? null;
+    let expiresOn = verifyData.result.expires_on ?? null;
+
+    if (!expiresOn && verifyResult.verifyMode === "account" && accountId) {
+      const tokenId = verifyData.result.id;
+      if (!tokenId) {
+        throw new Error("Cloudflare account verify payload missing token id");
+      }
+      const tokenDetails = await fetchAccountTokenDetails({
+        token,
+        timeoutMs: args.timeoutMs,
+        accountId,
+        tokenId,
+      });
+      expiresOn = tokenDetails.expires_on ?? null;
+    }
     const daysUntilExpiry = expiresOn ? daysUntil(expiresOn) : null;
 
     const evaluation = evaluateSeverity({
