@@ -40,8 +40,16 @@ jobs:
           ref: main
           path: .maintenance
 
+      # Shell-precedence op de oude one-liner deed `apt-get install` ook wanneer `rg`
+      # al bestond ((A || B) && C). Alleen bij ontbrekende `rg`: update + install.
       - name: Install ripgrep (fallback — pre-installed op github-hosted ubuntu-latest)
-        run: command -v rg >/dev/null 2>&1 || sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
+        run: |
+          if command -v rg >/dev/null 2>&1; then
+            echo "ripgrep (rg) already on PATH — skipping apt"
+            exit 0
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ripgrep
 
       - name: Run drift guard (single-repo mode)
         env:
