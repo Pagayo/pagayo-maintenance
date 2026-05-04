@@ -67,6 +67,18 @@ Voeg de PAT toe als repository secret `RELEASE_MANIFEST_TOKEN` in elk van:
 
 De default `GITHUB_TOKEN` kan geen workflows in andere repo's dispatchen, vandaar de PAT.
 
+### 3.3 Sync met één commando (na PAT aanmaken)
+
+Als de PAT in de browser staat, zet je hem op alle consumer-repos zonder handmatig vier keer te plakken:
+
+```bash
+cd pagayo-maintenance
+chmod +x scripts/sync-github-release-manifest-token.sh
+RELEASE_MANIFEST_PAT='…plak hier de nieuwe PAT…' ./scripts/sync-github-release-manifest-token.sh
+```
+
+Gebruik bij voorkeur een **nieuwe** fine-grained PAT (§3.1), niet je brede persoonlijke `gh`-token: die token verloopt of wisselt van scope mee met je account.
+
 ## 4. Rollback
 
 Scenario: productie draait een nieuwe release en die is kapot. We willen terug naar een eerdere known-good SHA.
