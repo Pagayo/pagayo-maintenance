@@ -17,7 +17,8 @@ permissions:
   contents: read
 
 jobs:
-  # Self-reference naar dezelfde staging-ref tijdens grounding-batch.
-  # TODO: Switch to @main after grounding batch merge.
+  # Zelfde repo: gebruik een relatieve `uses:` zodat PR’s altijd de reusable op
+  # **dezelfde ref** draaien. Een pin naar een oude feature-branch (bv. 20260416)
+  # laat CI eeuwig de verouderde reusable draaien — inclusief apt-fallback voor rg.
   stack-check:
-    uses: Pagayo/pagayo-maintenance/.github/workflows/reusable-check-stack.yml@feature/batch-staging-20260416
+    uses: ./.github/workflows/reusable-check-stack.yml
