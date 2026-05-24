@@ -679,13 +679,36 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.headers.get("content-type")).toContain("text/html");
     });
 
-    it("Contact page serves HTML", async () => {
+    it("Contact page serves HTML with aligned markup contract", async () => {
       const response = await fetch(`${STOREFRONT_URL}/contact`);
 
       if (skipIfNoTenant(response, "contact-page")) return;
 
       if (response.status === 200) {
-        log("contact-page", "PASS", "Contact page accessible");
+        const html = await response.text();
+        const hasAlignedMarkup =
+          html.includes('class="page-title"') &&
+          html.includes('class="contact-form"') &&
+          html.includes('class="contact-sidebar"') &&
+          html.includes("/design/dist/") &&
+          html.includes("webshop.css?") &&
+          html.includes("&d=") &&
+          !html.includes("contact-form-shell") &&
+          !html.includes("contact-title");
+
+        if (hasAlignedMarkup) {
+          log("contact-page", "PASS", "Contact markup + design stylesheet contract OK");
+        } else {
+          log(
+            "contact-page",
+            "FAIL",
+            "Contact HTML mist aligned SSR markup of design stylesheet bust",
+            "Check storefront-partials renderContactBody + design-asset-version",
+            "HIGH",
+          );
+        }
+
+        expect(hasAlignedMarkup).toBe(true);
       } else {
         log(
           "contact-page",
