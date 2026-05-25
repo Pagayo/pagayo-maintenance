@@ -2716,6 +2716,30 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(401);
     });
 
+    it("POST /api/admin/subscriptions/:id/purchase-extra-slots returns 401 without auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/subscriptions/1/purchase-extra-slots`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            count: 1,
+            paymentStatus: "pending",
+            adminPaymentMethod: "admin_invoice",
+          }),
+        },
+      );
+      if (skipIfNoTenant(response, "admin-subscriptions-extra-slots-no-auth")) {
+        return;
+      }
+      log(
+        "admin-subscriptions-extra-slots-no-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect(response.status).toBe(401);
+    });
+
     it("GET /api/subscription returns 401 without auth", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/subscription`);
       if (skipIfNoTenant(response, "customer-subscriptions-no-auth")) return;
