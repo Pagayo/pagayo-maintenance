@@ -475,6 +475,51 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(200);
     });
 
+    it("Public blog API returns first-paint payload", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/blog?page=1&limit=1`);
+
+      if (skipIfNoTenant(response, "public-blog-api")) return;
+      if (response.status === 404) {
+        log(
+          "public-blog-api",
+          "WARN",
+          "Publieke blog API nog niet gedeployed op deze smoke target",
+        );
+        return;
+      }
+
+      if (response.status === 200) {
+        const body = await readJsonBody(response);
+        const data = body?.data;
+        const hasValidShape =
+          typeof data === "object" &&
+          data !== null &&
+          Array.isArray((data as { posts?: unknown }).posts) &&
+          typeof (data as { pagination?: { page?: unknown } }).pagination
+            ?.page === "number";
+        log(
+          "public-blog-api",
+          hasValidShape ? "PASS" : "FAIL",
+          hasValidShape
+            ? "Publieke blog API geeft posts + pagination"
+            : "Response mist posts/pagination shape",
+          hasValidShape ? undefined : "Controleer public-blog.routes.ts response shape",
+          hasValidShape ? undefined : "HIGH",
+        );
+        expect(hasValidShape).toBe(true);
+      } else {
+        log(
+          "public-blog-api",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check public-blog.routes.ts route mount en tenant blog schema",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+    });
+
     it("Categories API returns data", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/categories`);
 
@@ -770,6 +815,38 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/html");
+    });
+
+    it("Blog overview page serves SSR HTML", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/blog`);
+
+      if (skipIfNoTenant(response, "blog-page")) return;
+      if (response.status === 404) {
+        log(
+          "blog-page",
+          "WARN",
+          "Blog overview route nog niet gedeployed op deze smoke target",
+        );
+        return;
+      }
+
+      const body = await response.text();
+      const hasBlogSsrPayload = body.includes("window.__BLOG_LIST__");
+      if (response.status === 200 && hasBlogSsrPayload) {
+        log("blog-page", "PASS", "Blog overview HTML contains SSR payload");
+      } else {
+        log(
+          "blog-page",
+          "FAIL",
+          `HTTP ${response.status}, SSR payload: ${hasBlogSsrPayload}`,
+          "Check page.routes.ts /blog route en renderBlogListPage",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+      expect(hasBlogSsrPayload).toBe(true);
     });
 
     it("Public pages API returns 200 for unknown tag filter", async () => {
