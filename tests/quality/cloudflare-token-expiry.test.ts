@@ -64,6 +64,7 @@ describe("Cloudflare token expiry helpers", () => {
 describe("Cloudflare token expiry CLI", () => {
   const scriptPath = "scripts/cloudflare/token-expiry-check.mjs";
   const nodeExecutable = process.execPath;
+  const repoRoot = process.cwd();
 
   const parseJsonOutput = <T>(rawOutput: string, context: string): T => {
     const trimmedOutput = rawOutput.trim();
@@ -84,7 +85,7 @@ describe("Cloudflare token expiry CLI", () => {
 
   it("dry-run json mode retourneert success payload", () => {
     const output = execFileSync(nodeExecutable, [scriptPath, "--dry-run", "--json"], {
-      cwd: "/Users/sjoerdoverdiep/my-vscode-workspace/pagayo-maintenance",
+      cwd: repoRoot,
       encoding: "utf-8",
     });
 
@@ -107,7 +108,7 @@ describe("Cloudflare token expiry CLI", () => {
 
     try {
       execFileSync(nodeExecutable, [scriptPath, "--json"], {
-        cwd: "/Users/sjoerdoverdiep/my-vscode-workspace/pagayo-maintenance",
+        cwd: repoRoot,
         encoding: "utf-8",
         env: {
           PATH: process.env.PATH ?? "",
