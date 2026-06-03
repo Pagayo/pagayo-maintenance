@@ -15,6 +15,7 @@
 import { logTestResult, type TestResult } from "../utils/test-reporter";
 
 const API_URL = "https://api.pagayo.com";
+const API_INTERNAL_SERVICE_KEY = process.env.API_INTERNAL_SERVICE_KEY;
 const INVALID_SHOP_HEADERS = {
   "X-Shop-ID": "shop_invalid_999",
   "X-API-Key": "pk_live_shop_invalid_999_deadbeef",
@@ -101,6 +102,59 @@ describe("API Stack Service - Smoke Tests", () => {
 
       expect(response.status).toBe(200);
       expect(["ready", "degraded"]).toContain(data?.status);
+    });
+
+    it("API detailed health toont webhook rate limiter status (optional)", async () => {
+      if (!API_INTERNAL_SERVICE_KEY) {
+        log(
+          "api-detailed-rate-limiter",
+          "SKIP",
+          "API_INTERNAL_SERVICE_KEY niet gezet; internal health positive-path overgeslagen",
+        );
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/api/health/detailed`, {
+        headers: {
+          "X-Edge-Secret": API_INTERNAL_SERVICE_KEY,
+        },
+      });
+
+      const data =
+        response.status === 200
+          ? ((await response.json()) as {
+              checks?: {
+                rateLimiter?: {
+                  status?: string;
+                  type?: string;
+                };
+              };
+            })
+          : null;
+
+      const rateLimiter = data?.checks?.rateLimiter;
+      const isConfigured =
+        rateLimiter?.status === "ok" &&
+        rateLimiter?.type === "kv-webhook-window";
+
+      if (response.status === 200 && isConfigured) {
+        log(
+          "api-detailed-rate-limiter",
+          "PASS",
+          "Webhook rate limiter configured via kv-webhook-window",
+        );
+      } else {
+        log(
+          "api-detailed-rate-limiter",
+          "FAIL",
+          `Onverwachte detailed health rateLimiter status: HTTP ${response.status}, status=${rateLimiter?.status ?? "unknown"}, type=${rateLimiter?.type ?? "unknown"}`,
+          "Check API Stack webhook rate-limit backend/config",
+          "CRITICAL",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(isConfigured).toBe(true);
     });
 
     it("Root endpoint returns 200", async () => {

@@ -503,7 +503,9 @@ describe("Storefront Service - Smoke Tests", () => {
           hasValidShape
             ? "Publieke blog API geeft posts + pagination"
             : "Response mist posts/pagination shape",
-          hasValidShape ? undefined : "Controleer public-blog.routes.ts response shape",
+          hasValidShape
+            ? undefined
+            : "Controleer public-blog.routes.ts response shape",
           hasValidShape ? undefined : "HIGH",
         );
         expect(hasValidShape).toBe(true);
@@ -742,7 +744,11 @@ describe("Storefront Service - Smoke Tests", () => {
           !html.includes("contact-title");
 
         if (hasAlignedMarkup) {
-          log("contact-page", "PASS", "Contact markup + design stylesheet contract OK");
+          log(
+            "contact-page",
+            "PASS",
+            "Contact markup + design stylesheet contract OK",
+          );
         } else {
           log(
             "contact-page",
@@ -1550,6 +1556,46 @@ describe("Storefront Service - Smoke Tests", () => {
           "FAIL",
           `Server error: HTTP ${response.status}`,
           "Check /api/internal/google-drive/sync/scheduled auth middleware",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(401);
+    });
+
+    it("POST /api/internal/payments/status fail-closed zonder trusted caller", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/internal/payments/status`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "CF-Worker": "smoke-maintenance-untrusted",
+          },
+          body: JSON.stringify({}),
+        },
+      );
+
+      if (response.status === 401) {
+        log(
+          "internal-payments-caller-boundary",
+          "PASS",
+          "Internal payments endpoint blijft fail-closed zonder trusted caller",
+        );
+      } else if (response.status >= 500) {
+        log(
+          "internal-payments-caller-boundary",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check /api/internal/payments/status internal auth middleware",
+          "HIGH",
+        );
+      } else {
+        log(
+          "internal-payments-caller-boundary",
+          "FAIL",
+          `Onverwachte status: HTTP ${response.status}`,
+          "Check /api/internal/payments/status internal auth middleware",
           "HIGH",
         );
       }
