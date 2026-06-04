@@ -475,6 +475,53 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(response.status).toBe(200);
     });
 
+    it("Public blog API returns first-paint payload", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/blog?page=1&limit=1`);
+
+      if (skipIfNoTenant(response, "public-blog-api")) return;
+      if (response.status === 404) {
+        log(
+          "public-blog-api",
+          "WARN",
+          "Publieke blog API nog niet gedeployed op deze smoke target",
+        );
+        return;
+      }
+
+      if (response.status === 200) {
+        const body = await readJsonBody(response);
+        const data = body?.data;
+        const hasValidShape =
+          typeof data === "object" &&
+          data !== null &&
+          Array.isArray((data as { posts?: unknown }).posts) &&
+          typeof (data as { pagination?: { page?: unknown } }).pagination
+            ?.page === "number";
+        log(
+          "public-blog-api",
+          hasValidShape ? "PASS" : "FAIL",
+          hasValidShape
+            ? "Publieke blog API geeft posts + pagination"
+            : "Response mist posts/pagination shape",
+          hasValidShape
+            ? undefined
+            : "Controleer public-blog.routes.ts response shape",
+          hasValidShape ? undefined : "HIGH",
+        );
+        expect(hasValidShape).toBe(true);
+      } else {
+        log(
+          "public-blog-api",
+          "FAIL",
+          `HTTP ${response.status}`,
+          "Check public-blog.routes.ts route mount en tenant blog schema",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+    });
+
     it("Categories API returns data", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/categories`);
 
@@ -637,6 +684,671 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(["no-store", "no-cache"]).toContain(cacheControl);
     });
 
+    it("Public settings endpoint exposes storefrontContentBlocks contract", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/settings/public`);
+
+      if (skipIfNoTenant(response, "public-settings-storefront-content-blocks"))
+        return;
+
+      const body = response.status === 200 ? await response.json() : null;
+      const data =
+        body &&
+        typeof body === "object" &&
+        typeof body.data === "object" &&
+        body.data
+          ? (body.data as Record<string, unknown>)
+          : null;
+      const blocks =
+        data &&
+        typeof data.storefrontContentBlocks === "object" &&
+        data.storefrontContentBlocks
+          ? (data.storefrontContentBlocks as Record<string, unknown>)
+          : null;
+      const version = blocks?.version;
+      const library = blocks?.library;
+      const placements = blocks?.placements;
+
+      expect(response.status).toBe(200);
+
+      if (!blocks) {
+        log(
+          "public-settings-storefront-content-blocks",
+          "WARN",
+          "storefrontContentBlocks ontbreekt nog in deze omgeving; contract-check wordt overgeslagen",
+          "Deploy storefront met blocks public-settings payload en draai smoke opnieuw",
+          "HIGH",
+        );
+        return;
+      }
+
+      if (
+        response.status === 200 &&
+        typeof version === "number" &&
+        Array.isArray(library) &&
+        Array.isArray(placements)
+      ) {
+        log(
+          "public-settings-storefront-content-blocks",
+          "PASS",
+          `contract ok: version=${version}, library=${library.length}, placements=${placements.length}`,
+        );
+      } else {
+        log(
+          "public-settings-storefront-content-blocks",
+          "FAIL",
+          `Onverwachte response: status=${response.status}, version=${String(version)}, libraryIsArray=${Array.isArray(library)}, placementsIsArray=${Array.isArray(placements)}`,
+          "Check /api/settings/public payload contract voor storefrontContentBlocks",
+          "HIGH",
+        );
+      }
+      expect(typeof version).toBe("number");
+      expect(Array.isArray(library)).toBe(true);
+      expect(Array.isArray(placements)).toBe(true);
+    });
+
+    it("SSR storefront block zones render for configured surfaces", async () => {
+      const publicSettingsResponse = await fetch(
+        `${STOREFRONT_URL}/api/settings/public`,
+      );
+
+      if (
+        skipIfNoTenant(
+          publicSettingsResponse,
+          "ssr-storefront-content-zones-configured-surfaces",
+        )
+      ) {
+        return;
+      }
+
+      expect(publicSettingsResponse.status).toBe(200);
+
+      const publicSettingsBody = await readJsonBody(publicSettingsResponse);
+      const publicData =
+        typeof publicSettingsBody?.data === "object" &&
+        publicSettingsBody.data !== null
+          ? (publicSettingsBody.data as Record<string, unknown>)
+          : null;
+      const storefrontContentBlocksRaw = publicData?.storefrontContentBlocks;
+      const storefrontContentBlocks =
+        typeof storefrontContentBlocksRaw === "object" &&
+        storefrontContentBlocksRaw !== null
+          ? (storefrontContentBlocksRaw as Record<string, unknown>)
+          : null;
+
+      if (!storefrontContentBlocks) {
+        log(
+          "ssr-storefront-content-zones-configured-surfaces",
+          "WARN",
+          "storefrontContentBlocks ontbreekt in public settings; SSR zone-check overgeslagen",
+          "Deploy storefront blocks public settings contract op deze omgeving",
+          "HIGH",
+        );
+        return;
+      }
+
+      const rawPlacements = storefrontContentBlocks.placements;
+      const placements = Array.isArray(rawPlacements)
+        ? (rawPlacements as Array<Record<string, unknown>>)
+        : [];
+      const configuredSurfaces = new Set<string>();
+      const configuredZonesBySurface = new Map<
+        "home" | "product" | "category",
+        Set<string>
+      >();
+
+      for (const placement of placements) {
+        const surface = placement.surface;
+        const enabled = placement.enabled;
+        if (
+          (surface === "home" ||
+            surface === "product" ||
+            surface === "category") &&
+          (enabled === undefined || enabled === true)
+        ) {
+          configuredSurfaces.add(surface);
+          const zone = placement.zone;
+          if (typeof zone === "string" && zone.trim().length > 0) {
+            const typedSurface = surface as "home" | "product" | "category";
+            const zones =
+              configuredZonesBySurface.get(typedSurface) ?? new Set<string>();
+            zones.add(zone.trim());
+            configuredZonesBySurface.set(typedSurface, zones);
+          }
+        }
+      }
+
+      if (configuredSurfaces.size === 0) {
+        log(
+          "ssr-storefront-content-zones-configured-surfaces",
+          "WARN",
+          "Geen actieve home/product/category placements gevonden; SSR zone-check overgeslagen",
+          "Configureer minstens één actieve placement voor home, product of category",
+          "HIGH",
+        );
+        return;
+      }
+
+      const assertSsrSurfaceMarker = (
+        html: string,
+        surface: "home" | "product" | "category",
+      ): boolean => {
+        return (
+          html.includes('data-ssr-storefront-content-blocks="true"') &&
+          html.includes(`data-surface="${surface}"`)
+        );
+      };
+
+      const assertSsrZoneMarker = (
+        html: string,
+        surface: "home" | "product" | "category",
+        zone: string,
+      ): boolean => {
+        return (
+          html.includes('data-ssr-storefront-content-blocks="true"') &&
+          html.includes(`data-surface="${surface}"`) &&
+          html.includes(`data-zone="${zone}"`)
+        );
+      };
+
+      if (configuredSurfaces.has("home")) {
+        const homeResponse = await fetch(STOREFRONT_URL);
+        expect(homeResponse.status).toBe(200);
+        const homeHtml = await homeResponse.text();
+        const hasHomeMarker = assertSsrSurfaceMarker(homeHtml, "home");
+        const expectedHomeZones = [
+          ...(configuredZonesBySurface.get("home") ?? new Set<string>()),
+        ];
+        const missingHomeZones = expectedHomeZones.filter(
+          (zone) => !assertSsrZoneMarker(homeHtml, "home", zone),
+        );
+
+        if (hasHomeMarker && missingHomeZones.length === 0) {
+          log(
+            "ssr-storefront-content-zones-home",
+            "PASS",
+            expectedHomeZones.length > 0
+              ? `Home SSR bevat surface+zones (${expectedHomeZones.join(", ")})`
+              : "Home SSR bevat storefront content zone marker",
+          );
+        } else {
+          log(
+            "ssr-storefront-content-zones-home",
+            "FAIL",
+            `Home SSR mist marker of zones (missing: ${missingHomeZones.join(", ") || "geen"})`,
+            "Check home render + storefront blocks injectie",
+            "HIGH",
+          );
+        }
+
+        expect(hasHomeMarker).toBe(true);
+        expect(missingHomeZones).toHaveLength(0);
+      }
+
+      if (configuredSurfaces.has("category")) {
+        const categoriesResponse = await fetch(
+          `${STOREFRONT_URL}/api/categories`,
+        );
+        expect(categoriesResponse.status).toBe(200);
+        const categoriesBody = await readJsonBody(categoriesResponse);
+        const categoriesRaw = categoriesBody?.data;
+        const categories = Array.isArray(categoriesRaw)
+          ? (categoriesRaw as Array<Record<string, unknown>>)
+          : [];
+
+        const sampleCategory = categories.find((entry) => {
+          if (typeof entry.publicPath === "string" && entry.publicPath.trim()) {
+            return true;
+          }
+          if (typeof entry.slug === "string" && entry.slug.trim()) {
+            return true;
+          }
+          return false;
+        });
+
+        const categoryPath =
+          typeof sampleCategory?.publicPath === "string" &&
+          sampleCategory.publicPath.trim()
+            ? sampleCategory.publicPath
+            : typeof sampleCategory?.slug === "string" &&
+                sampleCategory.slug.trim()
+              ? `/${sampleCategory.slug.trim()}`
+              : null;
+
+        if (!categoryPath) {
+          log(
+            "ssr-storefront-content-zones-category",
+            "WARN",
+            "Geen category pad beschikbaar voor SSR zone-check",
+            "Seed een actieve categorie met publicPath/slug",
+            "HIGH",
+          );
+        } else {
+          const categoryResponse = await fetch(
+            `${STOREFRONT_URL}${categoryPath}`,
+          );
+          expect(categoryResponse.status).toBe(200);
+          const categoryHtml = await categoryResponse.text();
+          const hasCategoryMarker = assertSsrSurfaceMarker(
+            categoryHtml,
+            "category",
+          );
+          const expectedCategoryZones = [
+            ...(configuredZonesBySurface.get("category") ?? new Set<string>()),
+          ];
+          const missingCategoryZones = expectedCategoryZones.filter(
+            (zone) => !assertSsrZoneMarker(categoryHtml, "category", zone),
+          );
+
+          if (hasCategoryMarker && missingCategoryZones.length === 0) {
+            log(
+              "ssr-storefront-content-zones-category",
+              "PASS",
+              expectedCategoryZones.length > 0
+                ? `Category SSR bevat surface+zones (${categoryPath}; ${expectedCategoryZones.join(", ")})`
+                : `Category SSR bevat storefront content zone marker (${categoryPath})`,
+            );
+          } else {
+            log(
+              "ssr-storefront-content-zones-category",
+              "FAIL",
+              `Category SSR mist marker of zones (${categoryPath}; missing: ${missingCategoryZones.join(", ") || "geen"})`,
+              "Check category render + storefront blocks injectie",
+              "HIGH",
+            );
+          }
+
+          expect(hasCategoryMarker).toBe(true);
+          expect(missingCategoryZones).toHaveLength(0);
+        }
+      }
+
+      if (configuredSurfaces.has("product")) {
+        const productsResponse = await fetch(
+          `${STOREFRONT_URL}/api/products?limit=1`,
+        );
+        expect(productsResponse.status).toBe(200);
+        const productsBody = await readJsonBody(productsResponse);
+        const productsRaw = productsBody?.data;
+        const products = Array.isArray(productsRaw)
+          ? (productsRaw as Array<Record<string, unknown>>)
+          : [];
+
+        const sampleProduct = products.find((entry) => {
+          return typeof entry.slug === "string" && entry.slug.trim().length > 0;
+        });
+
+        const productSlug =
+          typeof sampleProduct?.slug === "string"
+            ? sampleProduct.slug.trim().replace(/^\/+/, "")
+            : "";
+        const primaryCategoryPublicPath =
+          typeof sampleProduct?.primaryCategoryPublicPath === "string" &&
+          sampleProduct.primaryCategoryPublicPath.trim()
+            ? sampleProduct.primaryCategoryPublicPath.replace(/\/+$/, "")
+            : "";
+        const productPath = productSlug
+          ? primaryCategoryPublicPath
+            ? `${primaryCategoryPublicPath}/${productSlug}`
+            : `/${productSlug}`
+          : null;
+
+        if (!productPath) {
+          log(
+            "ssr-storefront-content-zones-product",
+            "WARN",
+            "Geen product slug beschikbaar voor SSR zone-check",
+            "Seed een actief product met slug",
+            "HIGH",
+          );
+        } else {
+          const productResponse = await fetch(
+            `${STOREFRONT_URL}${productPath}`,
+          );
+          expect(productResponse.status).toBe(200);
+          const productHtml = await productResponse.text();
+          const hasProductMarker = assertSsrSurfaceMarker(
+            productHtml,
+            "product",
+          );
+          const expectedProductZones = [
+            ...(configuredZonesBySurface.get("product") ?? new Set<string>()),
+          ];
+          const missingProductZones = expectedProductZones.filter(
+            (zone) => !assertSsrZoneMarker(productHtml, "product", zone),
+          );
+
+          if (hasProductMarker && missingProductZones.length === 0) {
+            log(
+              "ssr-storefront-content-zones-product",
+              "PASS",
+              expectedProductZones.length > 0
+                ? `Product SSR bevat surface+zones (${productPath}; ${expectedProductZones.join(", ")})`
+                : `Product SSR bevat storefront content zone marker (${productPath})`,
+            );
+          } else {
+            log(
+              "ssr-storefront-content-zones-product",
+              "FAIL",
+              `Product SSR mist marker of zones (${productPath}; missing: ${missingProductZones.join(", ") || "geen"})`,
+              "Check product render + storefront blocks injectie",
+              "HIGH",
+            );
+          }
+
+          expect(hasProductMarker).toBe(true);
+          expect(missingProductZones).toHaveLength(0);
+        }
+      }
+    });
+
+    it("SSR storefront block zones exclude disabled placements", async () => {
+      const publicSettingsResponse = await fetch(
+        `${STOREFRONT_URL}/api/settings/public`,
+      );
+
+      if (
+        skipIfNoTenant(
+          publicSettingsResponse,
+          "ssr-storefront-content-zones-disabled-placements",
+        )
+      ) {
+        return;
+      }
+
+      expect(publicSettingsResponse.status).toBe(200);
+
+      const publicSettingsBody = await readJsonBody(publicSettingsResponse);
+      const publicData =
+        typeof publicSettingsBody?.data === "object" &&
+        publicSettingsBody.data !== null
+          ? (publicSettingsBody.data as Record<string, unknown>)
+          : null;
+      const storefrontContentBlocksRaw = publicData?.storefrontContentBlocks;
+      const storefrontContentBlocks =
+        typeof storefrontContentBlocksRaw === "object" &&
+        storefrontContentBlocksRaw !== null
+          ? (storefrontContentBlocksRaw as Record<string, unknown>)
+          : null;
+
+      if (!storefrontContentBlocks) {
+        log(
+          "ssr-storefront-content-zones-disabled-placements",
+          "WARN",
+          "storefrontContentBlocks ontbreekt in public settings; disabled-check overgeslagen",
+          "Deploy storefront blocks public settings contract op deze omgeving",
+          "HIGH",
+        );
+        return;
+      }
+
+      type BlockSurface = "home" | "product" | "category";
+      const rawPlacements = storefrontContentBlocks.placements;
+      const placements = Array.isArray(rawPlacements)
+        ? (rawPlacements as Array<Record<string, unknown>>)
+        : [];
+
+      const enabledSurfaceZone = new Set<string>();
+      const disabledZonesBySurface = new Map<BlockSurface, Set<string>>();
+      const toKey = (surface: string, zone: string): string =>
+        `${surface}::${zone}`;
+
+      for (const placement of placements) {
+        const surface = placement.surface;
+        const zone = placement.zone;
+        const enabled = placement.enabled;
+
+        if (
+          (surface === "home" ||
+            surface === "product" ||
+            surface === "category") &&
+          typeof zone === "string" &&
+          zone.trim().length > 0
+        ) {
+          const zoneValue = zone.trim();
+          if (enabled === false) {
+            const typedSurface = surface as BlockSurface;
+            const zones =
+              disabledZonesBySurface.get(typedSurface) ?? new Set<string>();
+            zones.add(zoneValue);
+            disabledZonesBySurface.set(typedSurface, zones);
+          } else {
+            enabledSurfaceZone.add(toKey(surface, zoneValue));
+          }
+        }
+      }
+
+      const effectiveDisabledZonesBySurface = new Map<
+        BlockSurface,
+        Set<string>
+      >();
+      for (const [surface, zones] of disabledZonesBySurface.entries()) {
+        const effectiveZones = new Set<string>();
+        for (const zone of zones) {
+          if (!enabledSurfaceZone.has(toKey(surface, zone))) {
+            effectiveZones.add(zone);
+          }
+        }
+        if (effectiveZones.size > 0) {
+          effectiveDisabledZonesBySurface.set(surface, effectiveZones);
+        }
+      }
+
+      if (effectiveDisabledZonesBySurface.size === 0) {
+        log(
+          "ssr-storefront-content-zones-disabled-placements",
+          "WARN",
+          "Geen exclusief disabled home/product/category placements gevonden; disabled-check overgeslagen",
+          "Voeg een placement toe met enabled=false zonder actieve tegenhanger",
+          "HIGH",
+        );
+        return;
+      }
+
+      const assertSsrZoneMarker = (
+        html: string,
+        surface: BlockSurface,
+        zone: string,
+      ): boolean => {
+        return (
+          html.includes('data-ssr-storefront-content-blocks="true"') &&
+          html.includes(`data-surface="${surface}"`) &&
+          html.includes(`data-zone="${zone}"`)
+        );
+      };
+
+      const htmlBySurface = new Map<BlockSurface, string>();
+
+      if (effectiveDisabledZonesBySurface.has("home")) {
+        const homeResponse = await fetch(STOREFRONT_URL);
+        if (homeResponse.status === 200) {
+          htmlBySurface.set("home", await homeResponse.text());
+        } else {
+          log(
+            "ssr-storefront-content-zones-disabled-home",
+            "WARN",
+            `Home niet beschikbaar voor disabled-check (HTTP ${homeResponse.status})`,
+            "Check storefront homepage route",
+            "HIGH",
+          );
+        }
+      }
+
+      if (effectiveDisabledZonesBySurface.has("category")) {
+        const categoriesResponse = await fetch(
+          `${STOREFRONT_URL}/api/categories`,
+        );
+        if (categoriesResponse.status === 200) {
+          const categoriesBody = await readJsonBody(categoriesResponse);
+          const categoriesRaw = categoriesBody?.data;
+          const categories = Array.isArray(categoriesRaw)
+            ? (categoriesRaw as Array<Record<string, unknown>>)
+            : [];
+          const sampleCategory = categories.find((entry) => {
+            if (
+              typeof entry.publicPath === "string" &&
+              entry.publicPath.trim()
+            ) {
+              return true;
+            }
+            if (typeof entry.slug === "string" && entry.slug.trim()) {
+              return true;
+            }
+            return false;
+          });
+          const categoryPath =
+            typeof sampleCategory?.publicPath === "string" &&
+            sampleCategory.publicPath.trim()
+              ? sampleCategory.publicPath
+              : typeof sampleCategory?.slug === "string" &&
+                  sampleCategory.slug.trim()
+                ? `/${sampleCategory.slug.trim()}`
+                : null;
+
+          if (!categoryPath) {
+            log(
+              "ssr-storefront-content-zones-disabled-category",
+              "WARN",
+              "Geen category pad beschikbaar voor disabled-check",
+              "Seed een actieve categorie met publicPath/slug",
+              "HIGH",
+            );
+          } else {
+            const categoryResponse = await fetch(
+              `${STOREFRONT_URL}${categoryPath}`,
+            );
+            if (categoryResponse.status === 200) {
+              htmlBySurface.set("category", await categoryResponse.text());
+            } else {
+              log(
+                "ssr-storefront-content-zones-disabled-category",
+                "WARN",
+                `Category niet beschikbaar voor disabled-check (HTTP ${categoryResponse.status})`,
+                "Check category route rendering",
+                "HIGH",
+              );
+            }
+          }
+        } else {
+          log(
+            "ssr-storefront-content-zones-disabled-category",
+            "WARN",
+            `Categories API niet beschikbaar voor disabled-check (HTTP ${categoriesResponse.status})`,
+            "Check /api/categories route",
+            "HIGH",
+          );
+        }
+      }
+
+      if (effectiveDisabledZonesBySurface.has("product")) {
+        const productsResponse = await fetch(
+          `${STOREFRONT_URL}/api/products?limit=1`,
+        );
+        if (productsResponse.status === 200) {
+          const productsBody = await readJsonBody(productsResponse);
+          const productsRaw = productsBody?.data;
+          const products = Array.isArray(productsRaw)
+            ? (productsRaw as Array<Record<string, unknown>>)
+            : [];
+          const sampleProduct = products.find(
+            (entry) =>
+              typeof entry.slug === "string" && entry.slug.trim().length > 0,
+          );
+
+          const productSlug =
+            typeof sampleProduct?.slug === "string"
+              ? sampleProduct.slug.trim().replace(/^\/+/, "")
+              : "";
+          const primaryCategoryPublicPath =
+            typeof sampleProduct?.primaryCategoryPublicPath === "string" &&
+            sampleProduct.primaryCategoryPublicPath.trim()
+              ? sampleProduct.primaryCategoryPublicPath.replace(/\/+$/, "")
+              : "";
+          const productPath = productSlug
+            ? primaryCategoryPublicPath
+              ? `${primaryCategoryPublicPath}/${productSlug}`
+              : `/${productSlug}`
+            : null;
+
+          if (!productPath) {
+            log(
+              "ssr-storefront-content-zones-disabled-product",
+              "WARN",
+              "Geen product pad beschikbaar voor disabled-check",
+              "Seed een actief product met slug",
+              "HIGH",
+            );
+          } else {
+            const productResponse = await fetch(
+              `${STOREFRONT_URL}${productPath}`,
+            );
+            if (productResponse.status === 200) {
+              htmlBySurface.set("product", await productResponse.text());
+            } else {
+              log(
+                "ssr-storefront-content-zones-disabled-product",
+                "WARN",
+                `Product niet beschikbaar voor disabled-check (HTTP ${productResponse.status})`,
+                "Check product route rendering",
+                "HIGH",
+              );
+            }
+          }
+        } else {
+          log(
+            "ssr-storefront-content-zones-disabled-product",
+            "WARN",
+            `Products API niet beschikbaar voor disabled-check (HTTP ${productsResponse.status})`,
+            "Check /api/products route",
+            "HIGH",
+          );
+        }
+      }
+
+      let assertedSurfaces = 0;
+      for (const [
+        surface,
+        zones,
+      ] of effectiveDisabledZonesBySurface.entries()) {
+        const html = htmlBySurface.get(surface);
+        if (!html) {
+          continue;
+        }
+
+        const unexpectedZones = [...zones].filter((zone) =>
+          assertSsrZoneMarker(html, surface, zone),
+        );
+
+        if (unexpectedZones.length === 0) {
+          log(
+            `ssr-storefront-content-zones-disabled-${surface}`,
+            "PASS",
+            `Disabled zones niet gerenderd (${[...zones].join(", ")})`,
+          );
+        } else {
+          log(
+            `ssr-storefront-content-zones-disabled-${surface}`,
+            "FAIL",
+            `Disabled zones toch gerenderd (${unexpectedZones.join(", ")})`,
+            "Check storefront block filtering op enabled=false",
+            "HIGH",
+          );
+        }
+
+        expect(unexpectedZones).toHaveLength(0);
+        assertedSurfaces += 1;
+      }
+
+      if (assertedSurfaces === 0) {
+        log(
+          "ssr-storefront-content-zones-disabled-placements",
+          "WARN",
+          "Disabled placements gevonden maar geen surface kon geverifieerd worden op deze omgeving",
+          "Controleer of home/category/product voorbeeldroutes data teruggeven",
+          "HIGH",
+        );
+      }
+    });
+
     it("Products page serves HTML", async () => {
       const response = await fetch(`${STOREFRONT_URL}/products`);
 
@@ -697,7 +1409,11 @@ describe("Storefront Service - Smoke Tests", () => {
           !html.includes("contact-title");
 
         if (hasAlignedMarkup) {
-          log("contact-page", "PASS", "Contact markup + design stylesheet contract OK");
+          log(
+            "contact-page",
+            "PASS",
+            "Contact markup + design stylesheet contract OK",
+          );
         } else {
           log(
             "contact-page",
@@ -770,6 +1486,38 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/html");
+    });
+
+    it("Blog overview page serves SSR HTML", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/blog`);
+
+      if (skipIfNoTenant(response, "blog-page")) return;
+      if (response.status === 404) {
+        log(
+          "blog-page",
+          "WARN",
+          "Blog overview route nog niet gedeployed op deze smoke target",
+        );
+        return;
+      }
+
+      const body = await response.text();
+      const hasBlogSsrPayload = body.includes("window.__BLOG_LIST__");
+      if (response.status === 200 && hasBlogSsrPayload) {
+        log("blog-page", "PASS", "Blog overview HTML contains SSR payload");
+      } else {
+        log(
+          "blog-page",
+          "FAIL",
+          `HTTP ${response.status}, SSR payload: ${hasBlogSsrPayload}`,
+          "Check page.routes.ts /blog route en renderBlogListPage",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+      expect(hasBlogSsrPayload).toBe(true);
     });
 
     it("Public pages API returns 200 for unknown tag filter", async () => {
@@ -1473,6 +2221,46 @@ describe("Storefront Service - Smoke Tests", () => {
           "FAIL",
           `Server error: HTTP ${response.status}`,
           "Check /api/internal/google-drive/sync/scheduled auth middleware",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBe(401);
+    });
+
+    it("POST /api/internal/payments/status fail-closed zonder trusted caller", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/internal/payments/status`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "CF-Worker": "smoke-maintenance-untrusted",
+          },
+          body: JSON.stringify({}),
+        },
+      );
+
+      if (response.status === 401) {
+        log(
+          "internal-payments-caller-boundary",
+          "PASS",
+          "Internal payments endpoint blijft fail-closed zonder trusted caller",
+        );
+      } else if (response.status >= 500) {
+        log(
+          "internal-payments-caller-boundary",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check /api/internal/payments/status internal auth middleware",
+          "HIGH",
+        );
+      } else {
+        log(
+          "internal-payments-caller-boundary",
+          "FAIL",
+          `Onverwachte status: HTTP ${response.status}`,
+          "Check /api/internal/payments/status internal auth middleware",
           "HIGH",
         );
       }

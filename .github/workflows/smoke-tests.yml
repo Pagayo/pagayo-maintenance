@@ -50,11 +50,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Private cross-repo checkout: vereist een repo-read PAT voor Pagayo/pagayo-schema.
+      - name: Require pagayo-schema checkout token
+        env:
+          PAGAYO_SCHEMA_CHECKOUT_TOKEN: ${{ secrets.PAGAYO_SCHEMA_CHECKOUT_TOKEN }}
+        run: |
+          if [ -z "${PAGAYO_SCHEMA_CHECKOUT_TOKEN:-}" ]; then
+            echo "::error::Missing PAGAYO_SCHEMA_CHECKOUT_TOKEN secret; checkout of Pagayo/pagayo-schema requires a repo-read PAT."
+            exit 1
+          fi
+
       - name: Checkout pagayo-schema
         uses: actions/checkout@v4
         with:
           repository: Pagayo/pagayo-schema
           path: pagayo-schema
+          token: ${{ secrets.PAGAYO_SCHEMA_CHECKOUT_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
