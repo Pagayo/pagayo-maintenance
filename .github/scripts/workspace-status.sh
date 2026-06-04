@@ -135,6 +135,56 @@ fi
 
 echo ""
 
+# =============================================================================
+# Copilot Worktrees (GitHub Copilot CLI sessies)
+# =============================================================================
+WORKTREE_BASE="$WORKSPACE_ROOT/copilot-worktrees/collections/my-vscode-workspace"
+
+if [[ -d "$WORKTREE_BASE" ]]; then
+  COPILOT_LINES=()
+
+  for session_dir in "$WORKTREE_BASE"/*/; do
+    session_slug=$(basename "$session_dir")
+    for repo in "${REPOS[@]}"; do
+      wt_path="$session_dir$repo"
+      # Worktrees hebben een .git-bestand (niet een .git-map)
+      if [[ ! -e "$wt_path/.git" ]]; then
+        continue
+      fi
+
+      branch=$(git -C "$wt_path" branch --show-current 2>/dev/null || echo "?")
+      dirty_count=$(git -C "$wt_path" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ')
+
+      ahead=0
+      if git -C "$wt_path" rev-parse --abbrev-ref '@{u}' &>/dev/null; then
+        ahead=$(git -C "$wt_path" rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)
+      fi
+
+      # Rapporteer alleen als er iets te melden is
+      if [[ "$dirty_count" -gt 0 || "$ahead" -gt 0 ]]; then
+        label=""
+        [[ "$dirty_count" -gt 0 ]] && label+="${dirty_count} dirty"
+        [[ "$dirty_count" -gt 0 && "$ahead" -gt 0 ]] && label+=", "
+        [[ "$ahead" -gt 0 ]] && label+="ahead ${ahead}"
+        COPILOT_LINES+=("  🟡 $repo ($session_slug) — $branch — $label")
+        WARNINGS=$((WARNINGS + 1))
+      fi
+    done
+  done
+
+  if [[ "${#COPILOT_LINES[@]}" -gt 0 ]]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📋 Copilot Worktrees (actieve sessies met open werk)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    for line in "${COPILOT_LINES[@]}"; do
+      echo "$line"
+    done
+    echo ""
+    echo "  → Commit of merge worktree-wijzigingen vóór nieuwe opdracht (zie AGENTS.md § Copilot Worktrees)."
+    echo ""
+  fi
+fi
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📋 Advies"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
