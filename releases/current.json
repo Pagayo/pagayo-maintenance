@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-06-04T11:02:42Z",
+  "updated_at": "2026-06-04T11:38:49Z",
   "updated_by": "Pagayo",
   "repos": {
     "pagayo-storefront": {
@@ -16,8 +16,8 @@
       "verified_at": "2026-04-26T11:46:01Z"
     },
     "pagayo-workflows": {
-      "staging_sha": "acdd46b2ce73c03a5b2e9bd8a461dd2a860ac32d",
-      "verified_at": "2026-04-27T11:55:38Z"
+      "staging_sha": "50466ba3cd5e44a2fa4e924f479583107d096152",
+      "verified_at": "2026-06-04T11:38:49Z"
     },
     "pagayo-schema": {
       "staging_sha": null,
