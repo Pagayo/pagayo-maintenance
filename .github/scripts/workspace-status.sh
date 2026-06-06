@@ -44,7 +44,7 @@ CLEAN_LIST=()
 
 for repo in "${REPOS[@]}"; do
   repo_path="$WORKSPACE_ROOT/$repo"
-  if [[ ! -d "$repo_path/.git" ]]; then
+  if [[ ! -e "$repo_path/.git" ]]; then
     echo "  ⊘  $repo — geen git repo (overgeslagen)"
     continue
   fi
