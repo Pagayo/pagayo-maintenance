@@ -29,6 +29,18 @@ Wijzigingen in andere repos moeten hier vaak worden gevalideerd.
 - Edge/Provisioning contracten: `tests/smoke/edge-provisioning-contracts.test.ts`
 - Infra/routing/SSL: `tests/smoke/infrastructure.test.ts`
 
+## CI Failure Catalog (SSoT)
+
+Herhaalde GitHub Actions-fouten: `ci-failure-catalog/catalog.yaml`.
+
+| Script | Doel |
+|--------|------|
+| `.github/scripts/ci-failure-match.sh` | Lookup bij rode CI (vóór fix) |
+| `.github/scripts/ci-failure-backfill.sh` | Eenmalige/mining historische failures |
+| `.github/scripts/ci-failure-weekly.sh` | Wekelijkse diff → `stats.json` + `weekly-*.md` |
+
+**Agent:** bij CI-fix catalogus bijwerken; nieuwe blokkende preflight alleen na Sjoerd-ja. Zie `ci-failure-catalog/README.md` en release-playbook README (*bekende CI-foutklassen*).
+
 ## Verificatiecommando's
 ```bash
 npm run test:smoke

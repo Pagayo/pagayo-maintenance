@@ -185,6 +185,43 @@ if [[ -d "$WORKTREE_BASE" ]]; then
   fi
 fi
 
+# =============================================================================
+# CI health — ci-failure-catalog/stats.json (weekly/backfill)
+# =============================================================================
+STATS_FILE="$WORKSPACE_ROOT/pagayo-maintenance/ci-failure-catalog/stats.json"
+if [[ -f "$STATS_FILE" ]]; then
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "📋 CI health (recent failures)"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  CI_ALERTS=$(node -e "
+    const fs = require('fs');
+    const s = JSON.parse(fs.readFileSync('$STATS_FILE', 'utf8'));
+    const alerts = s.alerts || [];
+    if (alerts.length === 0) {
+      let total = 0;
+      for (const r of Object.values(s.repos || {})) total += r.failures || 0;
+      console.log('OK|' + total + '|' + (s.windowDays || 7) + '|' + (s.generatedAt || ''));
+    } else {
+      console.log('ALERT|' + alerts.join(';;'));
+    }
+  " 2>/dev/null || echo "SKIP|")
+  if [[ "$CI_ALERTS" == ALERT* ]]; then
+    echo "  🔔 ACTION_REQUIRED — nieuwe of stijgende CI-failure clusters"
+    IFS=';;' read -ra ALERT_ARR <<< "${CI_ALERTS#ALERT|}"
+    for a in "${ALERT_ARR[@]}"; do
+      [[ -n "$a" ]] && echo "     • $a"
+    done
+    echo "  → Zie pagayo-maintenance/ci-failure-catalog/weekly-*.md"
+    WARNINGS=$((WARNINGS + 1))
+  elif [[ "$CI_ALERTS" == OK* ]]; then
+    IFS='|' read -r _ total window gen <<< "${CI_ALERTS#OK|}"
+    echo "  ✅ ${total} failure run(s) in laatste ${window}d (stats: ${gen:-onbekend})"
+  else
+    echo "  ⊘  CI stats niet te parsen"
+  fi
+  echo ""
+fi
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📋 Advies"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

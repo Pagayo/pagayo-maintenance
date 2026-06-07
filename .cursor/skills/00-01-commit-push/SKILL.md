@@ -85,6 +85,7 @@ Task Progress:
 - [ ] 7. git push (niet naar main zonder expliciete toestemming Sjoerd)
 - [ ] 8. Push main? → deployer-postpush.sh
 - [ ] 9. gh run watch --exit-status tot eindstatus
+- [ ] 10. Bij CI-failure: `ci-failure-match.sh --run <ID> --repo Pagayo/<repo>` vóór fix (catalog SSoT)
 - [ ] 10. Rapportage (template onder)
 ```
 

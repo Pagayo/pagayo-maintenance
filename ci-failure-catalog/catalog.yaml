@@ -1,0 +1,775 @@
+# CI Failure Catalog — SSoT for known GitHub Actions failure patterns.
+# See README.md for entry lifecycle. Stats live in stats.json (generated).
+
+version: 1
+
+entries:
+  - id: design-asset-version-drift
+    title: Design asset version mismatch after @pagayo/design bump
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+    workflows:
+      - CI
+    jobs:
+      - Validate
+    match:
+      patterns:
+        - design:verify-asset-version
+        - DESIGN_ASSET_VERSION
+        - design-asset-version
+    prevention:
+      layer: preflight
+      ref: deployer-preflight.sh CHECK 7 + npm run design:verify-asset-version
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/README.md
+      summary: >-
+        Bump @pagayo/design in lockfile, run PAGAYO_DESIGN_SOURCE=node_modules npm run copy-design,
+        commit design-asset-version.ts in the same batch as the lockfile bump.
+    status: active
+    confidence: high
+
+  - id: design-local-npm-drift
+    title: Local pagayo-design dist differs from npm lockfile
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+    workflows:
+      - CI
+      - Deploy to Cloudflare Workers
+    match:
+      patterns:
+        - "@pagayo/design"
+        - webshop.css
+        - lokaal.*npm
+        - CSS mismatch
+    prevention:
+      layer: preflight
+      ref: deployer-preflight.sh CHECK 7
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/README.md
+      summary: >-
+        Publish pagayo-design to GitHub Packages, bump storefront lockfile to that semver,
+        copy-design from node_modules, preflight green before push.
+    status: active
+    confidence: high
+
+  - id: lockfile-desync
+    title: package-lock.json out of sync with package.json
+    classification: deterministic
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-edge
+      - pagayo-workflows
+      - pagayo-maintenance
+      - pagayo-marketing
+    workflows:
+      - CI
+    jobs:
+      - Validate
+    match:
+      patterns:
+        - npm ci
+        - package-lock.json
+        - lock file
+        - EUSAGE
+        - "npm error code EUSAGE"
+    prevention:
+      layer: ci-doctor
+      ref: npm ci locally after package.json changes
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/01-commit-push.md
+      summary: Run npm install in the affected repo, commit package-lock.json with package.json changes.
+    status: active
+    confidence: high
+
+  - id: migration-policy-violation
+    title: Tenant migration policy or manifest check failed
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+    workflows:
+      - CI
+      - Deploy to Cloudflare Workers
+    match:
+      patterns:
+        - tenant:migration:policy
+        - copilot-migration-check
+        - migration manifest
+        - lockfile-drift
+        - classification.*lazy-safe
+    prevention:
+      layer: preflight
+      ref: copilot-migration-check.sh
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/01-commit-push.md
+      summary: >-
+        Run copilot-migration-check.sh, fix manifest entry, version bump, and consumer lockfiles
+        per pagayo-schema publish flow.
+    status: active
+    confidence: high
+
+  - id: schema-root-missing
+    title: PAGAYO_SCHEMA_ROOT or pagayo-schema migrations not found
+    classification: infra
+    repos:
+      - pagayo-maintenance
+    workflows:
+      - Platform Smoke Tests
+      - Smoke Tests
+    match:
+      patterns:
+        - PAGAYO_SCHEMA_ROOT
+        - pagayo-schema/migrations
+        - Kon pagayo-schema
+    prevention:
+      layer: workflow
+      ref: smoke-tests.yml checkout pagayo-schema + PAGAYO_SCHEMA_ROOT env
+    fix:
+      playbook: pagayo-docs/github-ops-agent/2026-04-11-maintenance-smoke-failure-analysis.md
+      summary: >-
+        Ensure smoke workflow checks out pagayo-schema and sets PAGAYO_SCHEMA_ROOT for d1-schema tests.
+    status: active
+    confidence: high
+
+  - id: stack-manifest-drift
+    title: Stack manifest drift vs pagayo-maintenance SSoT
+    classification: deterministic
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-edge
+      - pagayo-workflows
+      - pagayo-config
+      - pagayo-schema
+    workflows:
+      - CI
+      - stack-check
+    match:
+      patterns:
+        - stack-check
+        - STACK-MANIFEST
+        - stack manifest
+        - reusable-check-stack
+    prevention:
+      layer: ci-doctor
+      ref: npm run ci:stack-check
+    fix:
+      playbook: pagayo-vault/STACK-MANIFEST.md
+      summary: Align consumer repo stack references with pagayo-maintenance manifest SSoT.
+    status: active
+    confidence: high
+
+  - id: client-shard-oom
+    title: Client test shard heap out of memory
+    classification: flake
+    repos:
+      - pagayo-storefront
+    workflows:
+      - CI
+    jobs:
+      - Client Tests
+    match:
+      patterns:
+        - heap out of memory
+        - JavaScript heap out of memory
+        - Ineffective mark-compacts
+    prevention:
+      layer: none
+      ref: ci.yml OOM-aware retry policy — do not retry OOM; split shards further
+    fix:
+      playbook: pagayo-storefront/docs/LOCAL-CI.md
+      summary: >-
+        OOM is deterministic — reduce shard size or isolate heavy tests; run npm run ci:replay for
+        the failing shard locally with NODE_OPTIONS heap increase only for diagnosis.
+    status: active
+    confidence: high
+
+  - id: client-shard-worker-crash
+    title: Vitest worker crash in client shard
+    classification: flake
+    repos:
+      - pagayo-storefront
+    workflows:
+      - CI
+    jobs:
+      - Client Tests
+    match:
+      patterns:
+        - Worker forks emitted error
+        - Worker exited unexpectedly
+    prevention:
+      layer: none
+      ref: ci.yml allows one retry for worker crashes
+    fix:
+      playbook: pagayo-storefront/docs/LOCAL-CI.md
+      summary: Replay the failed shard locally with npm run ci:replay; fix root test instability.
+    status: active
+    confidence: medium
+
+  - id: eslint-failure
+    title: ESLint check failed
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-edge
+      - pagayo-workflows
+    workflows:
+      - CI
+      - Deploy to Cloudflare Workers
+    jobs:
+      - Validate
+    match:
+      patterns:
+        - "npm run lint"
+        - ESLint
+        - eslint
+    prevention:
+      layer: ci-doctor
+      ref: npm run lint locally
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/01-commit-push.md
+      summary: Run npm run lint in the repo and fix reported issues before push.
+    status: active
+    confidence: high
+
+  - id: typecheck-failure
+    title: TypeScript check failed
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-edge
+      - pagayo-workflows
+      - pagayo-maintenance
+    workflows:
+      - CI
+      - Deploy to Cloudflare Workers
+    jobs:
+      - Validate
+    match:
+      patterns:
+        - typecheck
+        - "npm run typecheck"
+        - TS[0-9]+
+        - error TS
+    prevention:
+      layer: ci-doctor
+      ref: npm run typecheck locally
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/01-commit-push.md
+      summary: Run npm run typecheck locally and fix all reported type errors.
+    status: active
+    confidence: high
+
+  - id: cloudflare-token-missing
+    title: Cloudflare API token missing or invalid in CI
+    classification: infra
+    repos:
+      - pagayo-maintenance
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-marketing
+    workflows:
+      - Cloudflare Token Monitor
+      - Deploy to Cloudflare Workers
+      - Deploy
+    match:
+      patterns:
+        - TOKEN_MISSING
+        - CLOUDFLARE_API_TOKEN
+        - CF_API_TOKEN
+        - "error code: 10000"
+        - Authentication error
+    prevention:
+      layer: workflow
+      ref: GitHub secrets + token scopes in workflow repo settings
+    fix:
+      playbook: pagayo-docs/github-ops-agent/2026-04-24-github-problemen-prioriteit.md
+      summary: Verify Cloudflare API token secret and scopes for the failing workflow; rotate if expired.
+    status: active
+    confidence: high
+
+  - id: dependabot-private-registry
+    title: Dependabot cannot auth to GitHub Packages for @pagayo packages
+    classification: infra
+    repos:
+      - pagayo-edge
+      - pagayo-storefront
+      - pagayo-workflows
+      - pagayo-config
+      - pagayo-design
+    workflows:
+      - Dependabot
+    match:
+      patterns:
+        - dependabot
+        - private_source_authentication_failure
+        - npm.pkg.github.com
+        - "@pagayo/"
+    prevention:
+      layer: workflow
+      ref: dependabot.yml registry credentials
+    fix:
+      playbook: pagayo-docs/github-ops-agent/2026-04-24-github-problemen-prioriteit.md
+      summary: Restore Dependabot registry credentials for npm.pkg.github.com in repo settings.
+    status: active
+    confidence: high
+
+  - id: verify-ci-sha-missing
+    title: Deploy blocked — no successful CI on target SHA
+    classification: deterministic
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+    workflows:
+      - Deploy to Cloudflare Workers
+    match:
+      patterns:
+        - verify-ci-sha
+        - CI must pass
+        - no successful CI
+        - geslaagde CI
+    prevention:
+      layer: playbook-trigger
+      ref: playbook 02 — only dispatch staging after CI green on SHA
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/02-staging.md
+      summary: Fix failing CI on the branch SHA first; do not re-dispatch deploy until ci.yml succeeds.
+    status: active
+    confidence: high
+
+  - id: github-permissions-403
+    title: GitHub Actions token lacks permission for cross-repo or issue write
+    classification: infra
+    repos:
+      - pagayo-maintenance
+    workflows:
+      - Platform Smoke Tests
+      - Smoke Tests
+    match:
+      patterns:
+        - "Resource not accessible by integration"
+        - "403"
+        - permissions
+        - issues: write
+    prevention:
+      layer: workflow
+      ref: workflow permissions block in YAML
+    fix:
+      playbook: pagayo-docs/github-ops-agent/2026-04-11-maintenance-smoke-failure-analysis.md
+      summary: Add required permissions (e.g. issues write, contents read) to the failing workflow job.
+    status: active
+    confidence: high
+
+  - id: header-cache-flake
+    title: Header compliance cache assertion flaky (no-store vs cacheable)
+    classification: flake
+    repos:
+      - pagayo-maintenance
+    workflows:
+      - Platform Smoke Tests
+      - Smoke Tests
+    match:
+      patterns:
+        - header-compliance
+        - Cache-Control
+        - no-store
+        - edge-cache-categories
+    prevention:
+      layer: none
+      ref: investigate /api/categories Cache-Control consistency
+    fix:
+      playbook: pagayo-docs/github-ops-agent/2026-04-11-maintenance-smoke-failure-analysis.md
+      summary: Validate why /api/categories sometimes returns no-store; stabilize cache headers or test assertion.
+    status: active
+    confidence: medium
+
+  - id: workers-test-failure
+    title: Workers unit tests failed
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+    workflows:
+      - CI
+    jobs:
+      - Workers Tests
+    match:
+      patterns:
+        - ci:workers
+        - Workers Tests
+        - test-workers
+    prevention:
+      layer: ci-doctor
+      ref: npm run ci:workers
+    fix:
+      playbook: pagayo-storefront/docs/LOCAL-CI.md
+      summary: Run npm run ci:workers locally and fix failing tests before push.
+    status: active
+    confidence: high
+
+  - id: admin-critical-gate-failure
+    title: Admin critical gate (print) failed
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+    workflows:
+      - CI
+    jobs:
+      - Admin Critical Gate
+    match:
+      patterns:
+        - admin-critical
+        - Admin Critical Gate
+        - ci:admin-critical
+    prevention:
+      layer: ci-doctor
+      ref: npm run ci:admin-critical
+    fix:
+      playbook: pagayo-storefront/docs/LOCAL-CI.md
+      summary: Run npm run ci:admin-critical locally; fix admin print-critical regressions.
+    status: active
+    confidence: high
+
+  - id: sibling-design-uncommitted
+    title: Open uncommitted changes in sibling pagayo-design during storefront work
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+    workflows:
+      - CI
+      - Deploy to Cloudflare Workers
+    match:
+      patterns:
+        - sibling.*pagayo-design
+        - open.*wijzigingen.*pagayo-design
+        - CHECK 7
+    prevention:
+      layer: preflight
+      ref: deployer-preflight.sh CHECK 7 sibling guard
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/README.md
+      summary: Commit or stash pagayo-design changes; complete design publish chain before storefront push.
+    status: active
+    confidence: high
+
+  - id: branch-behind-main
+    title: Feature branch behind origin/main at push time
+    classification: deterministic
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-edge
+      - pagayo-workflows
+    workflows:
+      - CI
+      - Deploy to Cloudflare Workers
+    match:
+      patterns:
+        - ACHTER origin/main
+        - behind origin/main
+        - CHECK 5
+        - merge/rebase origin/main
+    prevention:
+      layer: preflight
+      ref: deployer-preflight.sh CHECK 5
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/01-commit-push.md
+      summary: Merge or rebase origin/main into the feature branch before push or deploy dispatch.
+    status: active
+    confidence: high
+
+  - id: marketing-pages-deploy-auth
+    title: Cloudflare Pages deploy auth failure for marketing
+    classification: infra
+    repos:
+      - pagayo-marketing
+    workflows:
+      - Deploy
+    match:
+      patterns:
+        - wrangler pages deploy
+        - pagayo-marketing
+        - Pages project
+    prevention:
+      layer: workflow
+      ref: marketing deploy workflow secrets
+    fix:
+      playbook: pagayo-docs/github-ops-agent/2026-04-24-github-problemen-prioriteit.md
+      summary: Verify Cloudflare token scopes for Pages deploy on pagayo-marketing project.
+    status: active
+    confidence: high
+
+  - id: node-spawn-enoent
+    title: Node binary not found in maintenance quality test spawn
+    classification: infra
+    repos:
+      - pagayo-maintenance
+    workflows:
+      - Platform Smoke Tests
+      - Cloudflare Token Monitor
+    match:
+      patterns:
+        - spawnSync node ENOENT
+        - Unexpected end of JSON input
+        - cloudflare-token-expiry
+    prevention:
+      layer: workflow
+      ref: use setup-node or absolute node path in spawned tests
+    fix:
+      playbook: pagayo-docs/github-ops-agent/2026-04-24-github-problemen-prioriteit.md
+      summary: Fix quality test to use node from PATH or setup-node in the workflow job.
+    status: active
+    confidence: medium
+
+  - id: ci-validate-job-failure
+    title: CI Validate job failed (lint, typecheck, or ci:validate)
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-edge
+      - pagayo-workflows
+    workflows:
+      - CI
+    jobs:
+      - Validate
+    match:
+      patterns:
+        - "Validate:CI"
+        - "Validate.*failed"
+        - ci:validate
+    prevention:
+      layer: ci-doctor
+      ref: npm run ci:doctor
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/01-commit-push.md
+      summary: Run npm run ci:doctor locally; fix lint, typecheck, or ci:validate failures before push.
+    status: active
+    confidence: high
+
+  - id: client-shard-generic-failure
+    title: Client test shard failed (unspecified test error)
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+    workflows:
+      - CI
+    jobs:
+      - Client Tests
+    match:
+      patterns:
+        - "Client Tests \\(main shard"
+        - ci:client-shard
+    prevention:
+      layer: ci-doctor
+      ref: npm run ci:replay -- SHARD
+    fix:
+      playbook: pagayo-storefront/docs/LOCAL-CI.md
+      summary: Replay failing shard with npm run ci:replay -- N; fix failing tests locally before push.
+    status: active
+    confidence: medium
+
+  - id: deploy-preflight-job-failure
+    title: Deploy workflow deployer-preflight job failed
+    classification: deterministic
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+    workflows:
+      - Deploy to Cloudflare Workers
+    jobs:
+      - Deployer Preflight
+    match:
+      patterns:
+        - deployer-preflight
+        - Deployer Preflight
+    prevention:
+      layer: preflight
+      ref: deployer-preflight.sh locally before push
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/01-commit-push.md
+      summary: Run deployer-preflight.sh locally and resolve all blockers before push or deploy dispatch.
+    status: active
+    confidence: high
+
+  - id: deploy-staging-failure
+    title: Deploy to staging job failed
+    classification: infra
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-edge
+      - pagayo-workflows
+    workflows:
+      - Deploy to Cloudflare Workers
+    match:
+      patterns:
+        - Deploy to staging
+        - wrangler deploy
+        - staging deploy
+    prevention:
+      layer: playbook-trigger
+      ref: playbook 02 — CI green on SHA before staging dispatch
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/02-staging.md
+      summary: Inspect deploy logs for wrangler/auth errors; ensure CI passed on target SHA and secrets are valid.
+    status: active
+    confidence: medium
+
+  - id: d1-migrate-failure
+    title: D1 migration job failed in deploy workflow
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+    workflows:
+      - Deploy to Cloudflare Workers
+    match:
+      patterns:
+        - Migrate D1
+        - d1 migrations
+        - migration failed
+    prevention:
+      layer: preflight
+      ref: copilot-migration-check.sh
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/01-commit-push.md
+      summary: Fix migration manifest and policy locally; re-run copilot-migration-check before redeploy.
+    status: active
+    confidence: medium
+
+  - id: release-manifest-guard-failure
+    title: Pre-prod release-manifest guard failed
+    classification: deterministic
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+    workflows:
+      - Deploy to Cloudflare Workers
+    match:
+      patterns:
+        - release-manifest
+        - staging-verified SHA
+        - preprod-guard
+    prevention:
+      layer: playbook-trigger
+      ref: update-release-manifest after green staging smoke
+    fix:
+      playbook: pagayo-maintenance/RUNBOOK-release-manifest.md
+      summary: Ensure staging smoke passed and release manifest lists the target SHA before production deploy.
+    status: active
+    confidence: high
+
+  - id: tenant-runtime-monitor-failure
+    title: Tenant runtime monitor workflow failed
+    classification: infra
+    repos:
+      - pagayo-storefront
+    workflows:
+      - Tenant Runtime Monitor
+    match:
+      patterns:
+        - Tenant Runtime Monitor
+        - tenant-runtime-monitor
+    prevention:
+      layer: none
+      ref: scheduled monitor — investigate tenant health endpoint
+    fix:
+      playbook: pagayo-storefront/AGENTS.md
+      summary: Inspect tenant-runtime-monitor workflow logs for specific tenant/runtime errors.
+    status: active
+    confidence: medium
+
+  - id: platform-smoke-tests-failure
+    title: Platform smoke tests workflow failed
+    classification: infra
+    repos:
+      - pagayo-maintenance
+    workflows:
+      - Platform Smoke Tests
+      - Smoke Tests
+    match:
+      patterns:
+        - Platform Smoke Tests
+        - metadata-only:Platform Smoke Tests
+    prevention:
+      layer: workflow
+      ref: smoke-tests.yml cross-repo checkout and env
+    fix:
+      playbook: pagayo-docs/github-ops-agent/2026-04-11-maintenance-smoke-failure-analysis.md
+      summary: Fix smoke workflow dependencies (schema checkout, permissions, token monitor).
+    status: active
+    confidence: high
+
+  - id: marketing-pages-deploy-failure
+    title: Marketing Cloudflare Pages deploy workflow failed
+    classification: infra
+    repos:
+      - pagayo-marketing
+    workflows:
+      - Deploy to Cloudflare Pages
+      - Deploy
+    match:
+      patterns:
+        - Deploy to Cloudflare Pages
+        - metadata-only:Deploy to Cloudflare Pages
+        - wrangler pages
+    prevention:
+      layer: workflow
+      ref: marketing deploy secrets and token scopes
+    fix:
+      playbook: pagayo-docs/github-ops-agent/2026-04-24-github-problemen-prioriteit.md
+      summary: Verify Cloudflare Pages deploy token and project configuration.
+    status: active
+    confidence: high
+
+  - id: ci-workflow-generic-failure
+    title: CI workflow failed (job metadata unavailable)
+    classification: ai-behavioral
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-edge
+      - pagayo-workflows
+    workflows:
+      - CI
+      - CI & Deploy
+    match:
+      patterns:
+        - "metadata-only:CI:failure"
+        - "metadata-only:CI & Deploy"
+    prevention:
+      layer: ci-doctor
+      ref: npm run ci:doctor before push
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/01-commit-push.md
+      summary: Open failed CI run; use ci-failure-match on logs; run ci:doctor or ci:replay locally.
+    status: active
+    confidence: medium
+
+  - id: deploy-workflow-generic-failure
+    title: Deploy workflow failed (job metadata unavailable)
+    classification: infra
+    repos:
+      - pagayo-storefront
+      - pagayo-api-stack
+      - pagayo-edge
+      - pagayo-workflows
+    workflows:
+      - Deploy to Cloudflare Workers
+    match:
+      patterns:
+        - "metadata-only:Deploy to Cloudflare Workers"
+        - Deploy to Cloudflare Workers:failure
+    prevention:
+      layer: playbook-trigger
+      ref: playbook 02 — staging-only after CI green
+    fix:
+      playbook: pagayo-vault/.github/release-playbooks/02-staging.md
+      summary: Open failed deploy run in GitHub; fix the specific failed job (preflight, verify-ci-sha, migrate, or deploy).
+    status: active
+    confidence: low

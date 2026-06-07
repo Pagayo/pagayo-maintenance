@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-07T12:32:18.640Z",
+  "source": "weekly",
+  "windowDays": 7,
+  "repos": {
+    "pagayo-storefront": {
+      "failures": 36,
+      "matched": 35
+    },
+    "pagayo-api-stack": {
+      "failures": 4,
+      "matched": 2
+    },
+    "pagayo-edge": {
+      "failures": 4,
+      "matched": 4
+    },
+    "pagayo-workflows": {
+      "failures": 3,
+      "matched": 3
+    },
+    "pagayo-maintenance": {
+      "failures": 33,
+      "matched": 33
+    },
+    "pagayo-marketing": {
+      "failures": 2,
+      "matched": 2
+    }
+  },
+  "clusters": [
+    {
+      "fingerprint": "metadata-only:Platform Smoke Tests:failure",
+      "count": 33,
+      "workflowName": "Platform Smoke Tests",
+      "catalogId": "platform-smoke-tests-failure",
+      "repo": "pagayo-maintenance",
+      "sampleRunIds": [
+        27086308683,
+        27079012262,
+        27070562388,
+        27062545010,
+        27055974591
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:CI:failure",
+      "count": 23,
+      "workflowName": "CI",
+      "catalogId": "ci-workflow-generic-failure",
+      "repo": "pagayo-storefront",
+      "sampleRunIds": [
+        27090366282,
+        27090198645,
+        27086917020,
+        27085199760,
+        27084992991
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:Deploy to Cloudflare Workers:failure",
+      "count": 11,
+      "workflowName": "Deploy to Cloudflare Workers",
+      "catalogId": "deploy-workflow-generic-failure",
+      "repo": "pagayo-storefront",
+      "sampleRunIds": [
+        27092509333,
+        27092233737,
+        27057931310,
+        27057856953,
+        26968062717
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:CI & Deploy:failure",
+      "count": 3,
+      "workflowName": "CI & Deploy",
+      "catalogId": "ci-workflow-generic-failure",
+      "repo": "pagayo-edge",
+      "sampleRunIds": [
+        27017741653,
+        26928329238,
+        26842883863
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:CI & Deploy:failure",
+      "count": 3,
+      "workflowName": "CI & Deploy",
+      "catalogId": "ci-workflow-generic-failure",
+      "repo": "pagayo-workflows",
+      "sampleRunIds": [
+        27017743637,
+        26866081845,
+        26842890248
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:CI:failure",
+      "count": 2,
+      "workflowName": "CI",
+      "catalogId": "ci-workflow-generic-failure",
+      "repo": "pagayo-api-stack",
+      "sampleRunIds": [
+        27017290655,
+        26936467192
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:Dependabot Updates:failure",
+      "count": 2,
+      "workflowName": "Dependabot Updates",
+      "catalogId": null,
+      "repo": "pagayo-api-stack",
+      "sampleRunIds": [
+        26936294416,
+        26787541355
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:Deploy to Cloudflare Pages:failure",
+      "count": 2,
+      "workflowName": "Deploy to Cloudflare Pages",
+      "catalogId": "marketing-pages-deploy-failure",
+      "repo": "pagayo-marketing",
+      "sampleRunIds": [
+        27017291255,
+        26995210020
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:Tenant Runtime Monitor:failure",
+      "count": 1,
+      "workflowName": "Tenant Runtime Monitor",
+      "catalogId": "tenant-runtime-monitor-failure",
+      "repo": "pagayo-storefront",
+      "sampleRunIds": [
+        27092572281
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:Publish Product-Help to KV:failure",
+      "count": 1,
+      "workflowName": "Publish Product-Help to KV",
+      "catalogId": null,
+      "repo": "pagayo-storefront",
+      "sampleRunIds": [
+        27017698780
+      ]
+    },
+    {
+      "fingerprint": "metadata-only:Dependabot Updates:failure",
+      "count": 1,
+      "workflowName": "Dependabot Updates",
+      "catalogId": "dependabot-private-registry",
+      "repo": "pagayo-edge",
+      "sampleRunIds": [
+        26787540373
+      ]
+    }
+  ],
+  "alerts": []
+}

@@ -1,0 +1,59 @@
+# =============================================================================
+# CI Failure Weekly — mine last 7 days, update stats.json + weekly report
+# =============================================================================
+# Commits only when stats/report change. Exit 1 when ACTION_REQUIRED alerts exist
+# so the workflow shows visible signal for agents (no issue spam).
+# =============================================================================
+
+name: CI Failure Weekly
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  weekly:
+    name: Mine and report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run weekly mining
+        id: weekly
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./.github/scripts/ci-failure-weekly.sh
+
+      - name: Commit stats and report if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ci-failure-catalog/stats.json ci-failure-catalog/weekly-*.md || true
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore(ci-failure): weekly stats and report"
+            git push
+          fi
+
+      - name: Fail on ACTION_REQUIRED
+        if: steps.weekly.outcome == 'failure'
+        run: |
+          echo "::error::CI failure weekly reported ACTION_REQUIRED — see ci-failure-catalog/weekly-*.md"
+          exit 1

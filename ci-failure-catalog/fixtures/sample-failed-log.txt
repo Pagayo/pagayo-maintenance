@@ -1,0 +1,4 @@
+Run npm run design:verify-asset-version
+Checking design-asset-version.ts against node_modules/@pagayo/design
+::error::design:verify-asset-version failed: DESIGN_ASSET_VERSION 1.2.3 does not match lockfile 1.2.4
+Process completed with exit code 1.

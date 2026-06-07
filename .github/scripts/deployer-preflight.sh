@@ -306,6 +306,20 @@ if [[ -d "$DESIGN_LOCAL" ]]; then
 fi
 
 # =============================================================================
+# CHECK 8: CI Failure Catalog — preflight-layer routing (informational)
+# =============================================================================
+CATALOG_FILE="$WORKSPACE_ROOT/pagayo-maintenance/ci-failure-catalog/catalog.yaml"
+if [[ -f "$CATALOG_FILE" ]]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📋 CHECK 8: CI Failure Catalog (preflight hooks)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    CATALOG_PREFLIGHT=$(node "$WORKSPACE_ROOT/pagayo-maintenance/ci-failure-catalog/list-preflight.mjs" 2>/dev/null || echo "  ⚠️  catalog parse failed")
+    echo "$CATALOG_PREFLIGHT"
+    echo "  (Blokkerende checks: CHECK 5/7 + copilot-migration-check — catalog is lookup SSoT)"
+    echo ""
+fi
+
+# =============================================================================
 # SUMMARY
 # =============================================================================
 echo "╔════════════════════════════════════════════════════════════════════════╗"
