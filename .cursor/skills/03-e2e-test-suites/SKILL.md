@@ -1,5 +1,5 @@
 ---
-name: e2e-test-suites
+name: 03-e2e-test-suites
 description: Runs Pagayo Playwright E2E staging suites, fixes failures, re-runs until green, then commits. Use when the user asks to run E2E tests, staging E2E, test:e2e:staging, Playwright staging suites, or fix E2E failures.
 ---
 
