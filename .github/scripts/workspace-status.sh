@@ -214,8 +214,10 @@ if [[ -f "$STATS_FILE" ]]; then
     echo "  → Zie pagayo-maintenance/ci-failure-catalog/weekly-*.md"
     WARNINGS=$((WARNINGS + 1))
   elif [[ "$CI_ALERTS" == OK* ]]; then
-    IFS='|' read -r _ total window gen <<< "${CI_ALERTS#OK|}"
-    echo "  ✅ ${total} failure run(s) in laatste ${window}d (stats: ${gen:-onbekend})"
+    ci_total=$(echo "${CI_ALERTS#OK|}" | cut -d'|' -f1)
+    ci_window=$(echo "${CI_ALERTS#OK|}" | cut -d'|' -f2)
+    ci_gen=$(echo "${CI_ALERTS#OK|}" | cut -d'|' -f3)
+    echo "  ✅ ${ci_total} failure run(s) in laatste ${ci_window}d (stats: ${ci_gen:-onbekend})"
   else
     echo "  ⊘  CI stats niet te parsen"
   fi
