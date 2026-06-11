@@ -182,7 +182,7 @@ D. Registers + cadans
 Schrijf rapport: pagayo-vault/vaultguard/YYYY-MM-DD-daily-delta.md
 PROMPT_EOF
 
-FULL_PROMPT="$(cat "\$PROMPT_FILE")
+FULL_PROMPT="\$(cat "\$PROMPT_FILE")
 
 \$(cat "\$DELTA_PROMPT")"
 
@@ -210,7 +210,7 @@ WORKSPACE_FILE="$WORKSPACE/pagayo.code-workspace"
 {
   echo '{'
   echo '  "folders": ['
-  local first=true
+  first=true
   for repo in "${REPOS[@]}"; do
     if [[ ! -d "$WORKSPACE/$repo" ]]; then
       continue
