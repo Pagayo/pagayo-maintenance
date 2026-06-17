@@ -136,31 +136,35 @@ describe("Storefront Service - Smoke Tests", () => {
     expect(status).toBe(400);
   });
 
-  it("GET /pos/1 zonder auth lekt geen POS terminal shell", async () => {
-    await assertAnonymousTerminalRouteProtected(
+  it("GET /pos/1 zonder auth serveert lock-shell zonder publieke cache", async () => {
+    await assertAnonymousTerminalShellNotCached(
       "/pos/1",
-      "anonymous-pos-terminal-protected",
+      "anonymous-pos-terminal-shell",
+      'id="pos-app"',
     );
   });
 
-  it("GET /pos/1/daily-close zonder auth lekt geen dagafsluiting shell", async () => {
-    await assertAnonymousTerminalRouteProtected(
+  it("GET /pos/1/daily-close zonder auth serveert lock-shell zonder publieke cache", async () => {
+    await assertAnonymousTerminalShellNotCached(
       "/pos/1/daily-close",
-      "anonymous-pos-daily-close-protected",
+      "anonymous-pos-daily-close-shell",
+      'id="pos-app"',
     );
   });
 
-  it("GET /balie zonder auth lekt geen balie terminal shell", async () => {
-    await assertAnonymousTerminalRouteProtected(
+  it("GET /balie zonder auth serveert lock-shell zonder publieke cache", async () => {
+    await assertAnonymousTerminalShellNotCached(
       "/balie",
-      "anonymous-balie-terminal-protected",
+      "anonymous-balie-terminal-shell",
+      'id="members-balie-app"',
     );
   });
 
-  it("GET /admin/check-in/1 zonder auth lekt geen check-in terminal shell", async () => {
-    await assertAnonymousTerminalRouteProtected(
+  it("GET /admin/check-in/1 zonder auth serveert lock-shell zonder publieke cache", async () => {
+    await assertAnonymousTerminalShellNotCached(
       "/admin/check-in/1",
-      "anonymous-check-in-terminal-protected",
+      "anonymous-check-in-terminal-shell",
+      'id="check-in-terminal-app"',
     );
   });
 
@@ -177,6 +181,74 @@ describe("Storefront Service - Smoke Tests", () => {
       return true;
     }
     return false;
+  }
+
+  async function assertAnonymousTerminalShellNotCached(
+    path: string,
+    testName: string,
+    mountMarker: string,
+  ): Promise<void> {
+    const response = await fetch(`${STOREFRONT_URL}${path}`, {
+      method: "GET",
+      redirect: "manual",
+    });
+
+    if (skipIfNoTenant(response, testName)) {
+      return;
+    }
+
+    const responseCache = response.headers.get("x-response-cache");
+    const cacheControl = response.headers.get("cache-control") ?? "";
+
+    if (responseCache === "HIT") {
+      log(
+        testName,
+        "FAIL",
+        `Status: ${response.status}; x-response-cache=HIT`,
+        "Terminal shell mag nooit uit publieke response cache komen",
+        "CRITICAL",
+      );
+      expect(responseCache).not.toBe("HIT");
+      return;
+    }
+
+    const body = await response.text();
+    const hasShell =
+      body.includes(mountMarker) && body.includes("data-terminal-session");
+
+    if (response.status === 200 && hasShell && cacheControl.includes("no-store")) {
+      log(
+        testName,
+        "PASS",
+        `Status: 200 lock-shell; cache-control=${cacheControl}; x-response-cache=${responseCache ?? "n/a"}`,
+      );
+      expect(hasShell).toBe(true);
+      return;
+    }
+
+    const protectedStatus =
+      response.status >= 300 && response.status < 400
+        ? true
+        : response.status === 401 || response.status === 403;
+
+    if (protectedStatus) {
+      log(
+        testName,
+        "PASS",
+        `Status: ${response.status}; x-response-cache=${responseCache ?? "n/a"}`,
+      );
+      expect(protectedStatus).toBe(true);
+      return;
+    }
+
+    log(
+      testName,
+      "FAIL",
+      `Status: ${response.status}; shell=${hasShell}; cache-control=${cacheControl}`,
+      "Verwacht 200 no-store lock-shell of auth redirect/401",
+      "CRITICAL",
+    );
+    expect(response.status === 200 && hasShell).toBe(true);
   }
 
   async function assertAnonymousTerminalRouteProtected(
@@ -2408,6 +2480,48 @@ describe("Storefront Service - Smoke Tests", () => {
       }
 
       expect([401, 403]).toContain(response.status);
+    });
+
+    it("GET /api/terminal/session geeft locked zonder operator", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/terminal/session?surface=pos&posTerminalId=1`,
+      );
+
+      if (skipIfNoTenant(response, "terminal-session-anonymous")) return;
+
+      if (response.status === 200) {
+        const json = (await response.json()) as {
+          success?: boolean;
+          data?: { locked?: boolean };
+        };
+        if (json.success === true && json.data?.locked === true) {
+          log(
+            "terminal-session-anonymous",
+            "PASS",
+            "Terminal session locked zonder operator",
+          );
+          expect(json.data.locked).toBe(true);
+          return;
+        }
+      }
+
+      if ([401, 403, 404].includes(response.status)) {
+        log(
+          "terminal-session-anonymous",
+          "WARN",
+          `Endpoint nog niet uitgerold (HTTP ${response.status})`,
+        );
+        return;
+      }
+
+      log(
+        "terminal-session-anonymous",
+        "FAIL",
+        `Onverwachte status: HTTP ${response.status}`,
+        "Check /api/terminal/session",
+        "HIGH",
+      );
+      expect(response.status).toBe(200);
     });
 
     it("GET /api/pos/operator-session vereist admin auth", async () => {
