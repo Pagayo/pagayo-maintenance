@@ -136,6 +136,34 @@ describe("Storefront Service - Smoke Tests", () => {
     expect(status).toBe(400);
   });
 
+  it("GET /pos/1 zonder auth lekt geen POS terminal shell", async () => {
+    await assertAnonymousTerminalRouteProtected(
+      "/pos/1",
+      "anonymous-pos-terminal-protected",
+    );
+  });
+
+  it("GET /pos/1/daily-close zonder auth lekt geen dagafsluiting shell", async () => {
+    await assertAnonymousTerminalRouteProtected(
+      "/pos/1/daily-close",
+      "anonymous-pos-daily-close-protected",
+    );
+  });
+
+  it("GET /balie zonder auth lekt geen balie terminal shell", async () => {
+    await assertAnonymousTerminalRouteProtected(
+      "/balie",
+      "anonymous-balie-terminal-protected",
+    );
+  });
+
+  it("GET /admin/check-in/1 zonder auth lekt geen check-in terminal shell", async () => {
+    await assertAnonymousTerminalRouteProtected(
+      "/admin/check-in/1",
+      "anonymous-check-in-terminal-protected",
+    );
+  });
+
   /**
    * Guard voor tenant-afhankelijke tests.
    * Als geen tenant actief en response = 404 → log WARNING en return true (skip assert).
@@ -149,6 +177,55 @@ describe("Storefront Service - Smoke Tests", () => {
       return true;
     }
     return false;
+  }
+
+  async function assertAnonymousTerminalRouteProtected(
+    path: string,
+    testName: string,
+  ): Promise<void> {
+    const response = await fetch(`${STOREFRONT_URL}${path}`, {
+      method: "GET",
+      redirect: "manual",
+    });
+
+    if (skipIfNoTenant(response, testName)) {
+      return;
+    }
+
+    const protectedStatus =
+      response.status >= 300 && response.status < 400
+        ? true
+        : response.status === 401 || response.status === 403;
+
+    const responseCache = response.headers.get("x-response-cache");
+
+    if (protectedStatus) {
+      log(
+        testName,
+        "PASS",
+        `Status: ${response.status}; x-response-cache=${responseCache ?? "n/a"}`,
+      );
+      expect(protectedStatus).toBe(true);
+      expect(responseCache).not.toBe("HIT");
+      return;
+    }
+
+    const body = await response.text();
+    const leakedTerminalShell =
+      body.includes('data-page-type="pos"') ||
+      body.includes('id="pos-app"') ||
+      body.includes('id="members-balie-app"') ||
+      body.includes('id="check-in-terminal-app"');
+
+    log(
+      testName,
+      "FAIL",
+      `Status: ${response.status}; terminal shell leaked=${leakedTerminalShell}; x-response-cache=${responseCache ?? "n/a"}`,
+      "Terminalroutes moeten zonder auth redirecten of 401/403 geven en nooit uit response cache komen",
+      "CRITICAL",
+    );
+    expect(response.status).not.toBe(200);
+    expect(leakedTerminalShell).toBe(false);
   }
 
   function hasValidPositiveInt(value: number): boolean {
