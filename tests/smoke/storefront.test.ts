@@ -2410,6 +2410,32 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([401, 403]).toContain(response.status);
     });
 
+    it("GET /api/pos/operator-session vereist admin auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/pos/operator-session?posTerminalId=1`,
+      );
+
+      if (skipIfNoTenant(response, "pos-operator-session-auth")) return;
+
+      if ([401, 403].includes(response.status)) {
+        log(
+          "pos-operator-session-auth",
+          "PASS",
+          `POS operator-session endpoint beschermd (HTTP ${response.status})`,
+        );
+      } else if (response.status >= 500) {
+        log(
+          "pos-operator-session-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check /api/pos/operator-session auth middleware",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+
     it("POST /api/pos/orders vereist admin auth", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/pos/orders`, {
         method: "POST",
