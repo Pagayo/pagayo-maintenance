@@ -34,6 +34,9 @@
     "local:dev:refresh": "./.github/scripts/local-dev-refresh.sh",
     "local:dev:stop": "./.github/scripts/local-dev-stop.sh",
     "local:dev:status": "./.github/scripts/local-dev-status.sh",
+    "regression:local": "./scripts/run-local-regression-suite.sh",
+    "regression:local:force": "./scripts/run-local-regression-suite.sh --force",
+    "regression:local:install-schedule": "./scripts/install-local-regression-schedule.sh",
     "cloudflare:token:check": "node scripts/cloudflare/token-expiry-check.mjs",
     "cloudflare:token:check:json": "node scripts/cloudflare/token-expiry-check.mjs --json",
     "cloudflare:token:check:dry": "node scripts/cloudflare/token-expiry-check.mjs --dry-run --json"
