@@ -5080,6 +5080,43 @@ describe("Storefront Service - Smoke Tests", () => {
     });
   });
 
+  describe("Checkout Shipping Methods", () => {
+    it("GET /api/checkout/shipping-methods is reachable", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/checkout/shipping-methods`,
+      );
+
+      if (skipIfNoTenant(response, "checkout-shipping-methods-reachable")) return;
+
+      if (response.status >= 500) {
+        log(
+          "checkout-shipping-methods-reachable",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check checkout.routes.ts shipping-methods handler",
+          "CRITICAL",
+        );
+      } else {
+        log(
+          "checkout-shipping-methods-reachable",
+          "PASS",
+          `Shipping methods endpoint bereikbaar: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+
+      if (response.status === 200) {
+        const json = (await response.json()) as {
+          success?: boolean;
+          data?: unknown;
+        };
+        expect(json.success).toBe(true);
+        expect(Array.isArray(json.data)).toBe(true);
+      }
+    });
+  });
+
   describe("Checkout Endpoint", () => {
     it("POST /api/checkout returns 400 without body (endpoint reachable)", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/checkout`, {
