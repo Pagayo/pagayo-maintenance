@@ -2160,6 +2160,16 @@ describe("Storefront Service - Smoke Tests", () => {
         action: "Check admin kv-sync route mount en requireAdmin guard",
       },
       {
+        testName: "admin-inventory-movements-route",
+        path: "/api/admin/inventory/movements?limit=1",
+        action: "Check admin inventory movements route mount",
+      },
+      {
+        testName: "admin-inventory-low-stock-route",
+        path: "/api/admin/inventory/low-stock?limit=1",
+        action: "Check admin inventory low-stock route mount",
+      },
+      {
         testName: "admin-print-context-route",
         path: "/api/admin/print-context/test-id",
         action: "Check admin print-context route mount en requireAdmin guard",
