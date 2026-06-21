@@ -111,6 +111,7 @@ run_scan() {
       --glob '!**/AGENTS.md' \
       --glob '!**/*.agent.md' \
       --glob '!**/check-stack-manifest.sh' \
+      --glob '!**/scripts/ai-memory/**' \
       --glob '!**/werkplannen/**' \
       --glob '!**/werkvoorbereiding-*.md' \
       -e "$PATTERN" "$ROOT" 2>/dev/null || true
@@ -155,6 +156,7 @@ run_scan() {
       --exclude=AGENTS.md \
       --exclude='*.agent.md' \
       --exclude=check-stack-manifest.sh \
+      --exclude-dir=ai-memory \
       --exclude-dir=werkplannen \
       --exclude='werkvoorbereiding-*.md' \
       -- "$PATTERN" "$ROOT" 2>/dev/null || true
