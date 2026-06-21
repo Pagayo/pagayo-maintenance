@@ -8,9 +8,11 @@ import {
   assertL1LineBudget,
   buildCursorRuleContent,
   buildMirrorContent,
+  normalizeL1Content,
   readL1OrThrow,
 } from "./lib/l1.mjs";
 import {
+  CI_FIXTURES_DELIVERY_DIR,
   CURSOR_RULE_PATH,
   CURSOR_RULE_RELATIVE,
   DELIVERY_DIR,
@@ -54,7 +56,7 @@ function main() {
 
   let l1Content;
   try {
-    l1Content = readL1OrThrow();
+    l1Content = normalizeL1Content(readL1OrThrow());
   } catch (error) {
     console.error(`ai-memory:generate: ${error.message}`);
     process.exit(1);
@@ -127,6 +129,22 @@ function main() {
 
   fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   console.log(`Wrote ${path.relative(process.cwd(), MANIFEST_PATH)}`);
+
+  // Public-repo CI fixtures (maintenance self-test cannot checkout private pagayo-docs).
+  fs.mkdirSync(CI_FIXTURES_DELIVERY_DIR, { recursive: true });
+  for (const fileName of MIRROR_FILES) {
+    fs.writeFileSync(
+      path.join(CI_FIXTURES_DELIVERY_DIR, fileName),
+      mirrorContent,
+      "utf8",
+    );
+  }
+  fs.writeFileSync(
+    path.join(CI_FIXTURES_DELIVERY_DIR, "MANIFEST.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8",
+  );
+  console.log(`Wrote CI fixtures under scripts/ai-memory/fixtures/delivery/`);
 
   const cursorRuleContent = buildCursorRuleContent(l1Content);
   const cursorDrift = detectManualDrift(CURSOR_RULE_PATH, cursorRuleContent, null);

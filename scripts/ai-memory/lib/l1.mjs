@@ -88,7 +88,10 @@ export function normalizeL1Content(content) {
  */
 export function resolveL1Content() {
   if (fs.existsSync(L1_PATH)) {
-    return { content: fs.readFileSync(L1_PATH, "utf8"), source: "vault" };
+    return {
+      content: normalizeL1Content(fs.readFileSync(L1_PATH, "utf8")),
+      source: "vault",
+    };
   }
   const cloudAgentPath = path.join(DELIVERY_DIR, "cloud-agent-l1-context.md");
   if (fs.existsSync(cloudAgentPath)) {

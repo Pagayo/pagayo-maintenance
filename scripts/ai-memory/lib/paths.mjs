@@ -19,6 +19,9 @@ export const L1_PATH = path.join(WORKSPACE_ROOT, L1_RELATIVE);
 export const DELIVERY_DIR_RELATIVE = "pagayo-docs/ai-memory/delivery";
 export const DELIVERY_DIR = path.join(WORKSPACE_ROOT, DELIVERY_DIR_RELATIVE);
 
+/** CI self-test fixtures (public maintenance repo; private pagayo-docs is not cross-checkoutable). */
+export const CI_FIXTURES_DELIVERY_DIR = path.resolve(SCRIPT_DIR, "../fixtures/delivery");
+
 export const MIRROR_FILES = [
   "cursor-l1-context.md",
   "copilot-l1-context.md",
