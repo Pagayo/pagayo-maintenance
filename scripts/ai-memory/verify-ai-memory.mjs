@@ -61,6 +61,10 @@ function runCheck(id, name, fn) {
 const CONFLICT_ORDER_SNIPPET =
   "Code + tests > STACK-MANIFEST.md > PAGAYO-WHY.md > ADR";
 
+const LOCAL_ONLY_BOUNDARY_SNIPPET = "## Local-Only Knowledge Boundary";
+const LOCAL_ONLY_PLANNING_RULE_SNIPPET =
+  "Planning rule: every plan that references local-only sources";
+
 function main() {
   const resolved = resolveL1Content();
   const l1Exists = resolved !== null;
@@ -209,6 +213,26 @@ function main() {
       ok,
       details: ok ? [] : ["Conflict-order snippet not found in L1"],
     };
+  });
+
+  runCheck("V14", "Local-only knowledge boundary present", () => {
+    if (!l1Exists) {
+      return { ok: false, details: ["L1 missing"] };
+    }
+    const hasSection = l1Content.includes(LOCAL_ONLY_BOUNDARY_SNIPPET);
+    const hasPlanningRule = l1Content.includes(LOCAL_ONLY_PLANNING_RULE_SNIPPET);
+    if (hasSection && hasPlanningRule) {
+      return { ok: true };
+    }
+    /** @type {string[]} */
+    const details = [];
+    if (!hasSection) {
+      details.push("Local-Only Knowledge Boundary section not found in L1");
+    }
+    if (!hasPlanningRule) {
+      details.push("Local-only planning rule not found in L1");
+    }
+    return { ok: false, details };
   });
 
   runCheck("V9", "Forbidden stack lint (L1 + delivery)", () => {

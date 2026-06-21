@@ -31,6 +31,14 @@ export const DELIVERY_PROBES = [
     label: "Order First",
     patterns: [/Order First/, /orderId/],
   },
+  {
+    id: "local-only-boundary",
+    label: "Local-Only Knowledge Boundary",
+    patterns: [
+      /## Local-Only Knowledge Boundary/,
+      /Planning rule: every plan that references local-only sources/,
+    ],
+  },
 ];
 
 /**

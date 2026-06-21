@@ -167,6 +167,14 @@ Versienummers leven in L2 (repo lockfiles) — niet in L1.
 
 <!-- source: pagayo-vault/AGENTS.md -->
 
+## Local-Only Knowledge Boundary
+
+`pagayo-vault` and local-only docs may inform local decisions, but online repos, CI, GitHub Actions, Copilot and Cloud Agent must never depend on reading them directly. Anything needed outside the local workspace must be provided as a secrets-free generated mirror, excerpt or delivery artifact.
+
+Planning rule: every plan that references local-only sources must state whether the target execution context can access them. If not, the plan must use a generated mirror or remove the dependency.
+
+<!-- source: pagayo-vault/STACK-MANIFEST.md#geheimenbeleid -->
+
 ## Stripe / payment safety
 
 Stripe MCP: **read-first** (`stripe_api_read`, search, docs) — test mode prefereren. Connect: platform vs connected account expliciet. **Geen writes** (`stripe_api_write`, refunds, cancel, payouts) zonder expliciete opdracht Sjoerd in dezelfde thread + human approval. Nooit live keys in config/chat.
@@ -180,6 +188,7 @@ Stripe MCP: **read-first** (`stripe_api_read`, search, docs) — test mode prefe
 - Eerste rollout: `workflow_dispatch` + `deploy_mode=staging-only`
 - Productie/main merge ALLEEN na expliciete goedkeuring Sjoerd in dezelfde thread
 - Playbooks **00–04**: `pagayo-vault/.github/release-playbooks/`
+- Pagayo skills (volgorde): `00-01-commit-push` → `02-staging` → `03-e2e-test-suites` → `04-production` → `05-founder-mode` → `06-red-team` → `07-operator-mode` → `08-steward-mode`
 - Staging URL SSoT: `https://demo.staging.pagayo.app`
 
 <!-- source: AGENTS.md -->
@@ -195,11 +204,12 @@ Stripe MCP: **read-first** (`stripe_api_read`, search, docs) — test mode prefe
 
 ## AI Decision modes
 
-Pre-build adversarial besluitvorming in **drie aparte chats**:
+Pre-build adversarial besluitvorming in **vier aparte chats** (+ optionele Steward-recurring):
 
 1. **Founder** (`05-founder-mode`) — intentie en opties
 2. **Red Team** (`06-red-team`) — adversarial review
 3. **Operator** (`07-operator-mode`) — uitvoeringspad
+4. **Steward** (`08-steward-mode`) — AI Memory, drift, promotion hygiene
 
 Output is geen deploy-toestemming. Docs: `pagayo-docs/ai-decision-process/README.md`.
 
