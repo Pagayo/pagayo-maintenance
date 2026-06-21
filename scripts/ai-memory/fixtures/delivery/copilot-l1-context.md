@@ -121,6 +121,17 @@ Elke tenant heeft een eigen D1-database (`tenant-{id}`): orders, products, custo
 
 <!-- source: pagayo-vault/docs/adr/0005-order-fulfillment-artifacts.md -->
 
+### Integration placement rule
+
+- Storefront owns commerce kernel, tenant/admin UI and Order truth.
+- API Stack owns external provider I/O on the Order → Fulfillment path.
+- Solutions owns adjacent capabilities outside Pagayo core.
+- Workflows orchestrate durable multi-step flows; they are not an integration home.
+- Never place provider HTTP in Storefront.
+- Never place adjacent ERP/CRM/BI/WMS/helpdesk logic in API Stack.
+
+<!-- source: pagayo-docs/ai-decision-process/reviews/founder/2026-06-21-storefront-api-stack-solutions-boundary.md -->
+
 ## Never Build boundaries (excerpt)
 
 Pagayo weigert core: ERP (procurement, WMS), logistics platform, accounting suite (GL, payroll), CRM/helpdesk suite, marketing automation platform, generic business platform. Wel toegestaan: order-afgeleide facturen, verzending, stockreservering, CSV/export naar externe systemen.
@@ -144,7 +155,7 @@ Versienummers leven in L2 (repo lockfiles) — niet in L1.
 | Repo | Primair doel |
 |------|--------------|
 | `pagayo-storefront` | Tenant storefront + platform admin |
-| `pagayo-api-stack` | Payments, webhooks, integraties |
+| `pagayo-api-stack` | External provider I/O on Order → Fulfillment path |
 | `pagayo-edge` | Edge cache/latency |
 | `pagayo-workflows` | Durable workflows/orchestratie |
 | `pagayo-marketing` | Marketing site (Astro) |

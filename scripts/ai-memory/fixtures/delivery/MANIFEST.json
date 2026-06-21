@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-06-21T07:31:25.101Z",
+  "generated_at": "2026-06-21T11:26:23.491Z",
   "source_file": "pagayo-vault/AI-OPERATING-CONTEXT.md",
-  "source_sha256": "4aa4ce8d70a96eef5f201f960272b81d5d50fccec7fbc9c3e0927c1ab672a703",
+  "source_sha256": "b9ae1d1e8dc37db431ca1f1d2782e08ca7c4fbe9a82557651fc3b3bedb58888c",
   "mirrors": [
     {
       "path": "pagayo-docs/ai-memory/delivery/cursor-l1-context.md",
-      "sha256": "27985d9770d0b534171e8e790e5b2d09beac2f9b978b60db2a52fd72e2254fcb"
+      "sha256": "043dd24409e5d3ac9aa3686faa041ce2e83e4ac7d4640c25a6ff95fe468db426"
     },
     {
       "path": "pagayo-docs/ai-memory/delivery/copilot-l1-context.md",
-      "sha256": "27985d9770d0b534171e8e790e5b2d09beac2f9b978b60db2a52fd72e2254fcb"
+      "sha256": "043dd24409e5d3ac9aa3686faa041ce2e83e4ac7d4640c25a6ff95fe468db426"
     },
     {
       "path": "pagayo-docs/ai-memory/delivery/cloud-agent-l1-context.md",
-      "sha256": "27985d9770d0b534171e8e790e5b2d09beac2f9b978b60db2a52fd72e2254fcb"
+      "sha256": "043dd24409e5d3ac9aa3686faa041ce2e83e4ac7d4640c25a6ff95fe468db426"
     }
   ],
   "generated_by": "pagayo-maintenance/scripts/ai-memory/generate-ai-memory-delivery.mjs",
