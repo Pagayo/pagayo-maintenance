@@ -39,7 +39,10 @@
     "regression:local:install-schedule": "./scripts/install-local-regression-schedule.sh",
     "cloudflare:token:check": "node scripts/cloudflare/token-expiry-check.mjs",
     "cloudflare:token:check:json": "node scripts/cloudflare/token-expiry-check.mjs --json",
-    "cloudflare:token:check:dry": "node scripts/cloudflare/token-expiry-check.mjs --dry-run --json"
+    "cloudflare:token:check:dry": "node scripts/cloudflare/token-expiry-check.mjs --dry-run --json",
+    "ai-memory:generate": "node scripts/ai-memory/generate-ai-memory-delivery.mjs",
+    "ai-memory:verify": "node scripts/ai-memory/verify-ai-memory.mjs",
+    "ai-memory:probe": "node scripts/ai-memory/probe-ai-memory-delivery.mjs"
   },
   "devDependencies": {
     "typescript": "^5.7.3",

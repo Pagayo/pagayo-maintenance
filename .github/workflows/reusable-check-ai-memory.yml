@@ -1,0 +1,68 @@
+# =============================================================================
+# Reusable: Pagayo AI Memory Drift Guard
+# =============================================================================
+# Verifies delivery mirrors, MANIFEST hashes, and agent probes.
+# Requires pagayo-maintenance (scripts) + pagayo-docs (delivery mirrors).
+#
+# Gebruik vanuit een consumer repo:
+#
+#   jobs:
+#     ai-memory-check:
+#       uses: Pagayo/pagayo-maintenance/.github/workflows/reusable-check-ai-memory.yml@main
+#
+# Referentie: pagayo-docs/ai-memory/README.md
+# =============================================================================
+
+name: Reusable AI Memory Check
+
+on:
+  workflow_call:
+
+jobs:
+  ai-memory-check:
+    name: AI Memory Drift Guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout caller repo
+        uses: actions/checkout@v6
+
+      - name: Checkout pagayo-maintenance (scripts)
+        uses: actions/checkout@v6
+        with:
+          repository: Pagayo/pagayo-maintenance
+          ref: main
+          path: .maintenance
+
+      - name: Checkout pagayo-docs (delivery mirrors)
+        uses: actions/checkout@v6
+        with:
+          repository: Pagayo/pagayo-docs
+          ref: main
+          path: .pagayo-docs
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Assemble workspace layout
+        run: |
+          set -euo pipefail
+          mkdir -p ai-memory-workspace/pagayo-maintenance ai-memory-workspace/pagayo-docs
+          cp -R .maintenance/. ai-memory-workspace/pagayo-maintenance/
+          cp -R .pagayo-docs/. ai-memory-workspace/pagayo-docs/
+
+      - name: Run AI memory verify (CI mode)
+        working-directory: ai-memory-workspace/pagayo-maintenance
+        env:
+          AI_MEMORY_CI: "1"
+          AI_MEMORY_WORKSPACE_ROOT: ${{ github.workspace }}/ai-memory-workspace
+        run: npm run ai-memory:verify
+
+      - name: Run AI memory delivery probes
+        working-directory: ai-memory-workspace/pagayo-maintenance
+        env:
+          AI_MEMORY_WORKSPACE_ROOT: ${{ github.workspace }}/ai-memory-workspace
+        run: npm run ai-memory:probe

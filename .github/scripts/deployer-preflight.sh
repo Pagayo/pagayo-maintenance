@@ -306,6 +306,31 @@ if [[ -d "$DESIGN_LOCAL" ]]; then
 fi
 
 # =============================================================================
+# CHECK: AI Memory agent probes (G9)
+# =============================================================================
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 CHECK: AI Memory Agent Probes"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+AI_MEMORY_FAIL=false
+GIT_TOPLEVEL="$(git rev-parse --show-toplevel)"
+WORKSPACE_ROOT="$(cd "$GIT_TOPLEVEL/.." && pwd)"
+MAINTENANCE_DIR="$WORKSPACE_ROOT/pagayo-maintenance"
+
+if [[ -f "$MAINTENANCE_DIR/package.json" ]] && grep -q '"ai-memory:probe"' "$MAINTENANCE_DIR/package.json" 2>/dev/null; then
+    if (cd "$MAINTENANCE_DIR" && npm run ai-memory:probe --silent 2>&1); then
+        echo "✅ AI Memory delivery probes OK"
+    else
+        echo "❌ AI Memory delivery probes FAILED"
+        echo "   FIX: cd pagayo-maintenance && npm run ai-memory:generate && npm run ai-memory:verify"
+        AI_MEMORY_FAIL=true
+    fi
+else
+    echo "⏭️  AI Memory probes overgeslagen (pagayo-maintenance niet gevonden)"
+fi
+echo ""
+
+# =============================================================================
 # SUMMARY
 # =============================================================================
 echo "╔════════════════════════════════════════════════════════════════════════╗"
@@ -313,7 +338,7 @@ echo "║                          📊 SAMENVATTING                            
 echo "╚════════════════════════════════════════════════════════════════════════╝"
 echo ""
 
-if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "true" || "$DESIGN_DRIFT" == "true" ]]; then
+if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "true" || "$DESIGN_DRIFT" == "true" || "$AI_MEMORY_FAIL" == "true" ]]; then
     echo "❌ PRE-FLIGHT CHECK GEFAALD"
     echo ""
     if [[ "$UNCOMMITTED" == "true" ]]; then
@@ -329,6 +354,9 @@ if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "tr
         echo "   • @pagayo/design lokaal ≠ npm — publiceer eerst!"
         echo "     FIX: cd pagayo-design && npm version patch && npm publish"
         echo "     DAN: cd pagayo-storefront && npm install @pagayo/design@<nieuwe-versie>"
+    fi
+    if [[ "$AI_MEMORY_FAIL" == "true" ]]; then
+        echo "   • AI Memory delivery probes gefaald — regenerate + verify"
     fi
     echo ""
     echo "🛑 STOP: Los bovenstaande issues op voordat je doorgaat!"
