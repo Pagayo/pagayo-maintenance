@@ -17,6 +17,12 @@ name: Reusable AI Memory Check
 
 on:
   workflow_call:
+    inputs:
+      maintenance_ref:
+        description: Ref for pagayo-maintenance scripts (default main; pin feature branch until ai-memory is merged)
+        required: false
+        type: string
+        default: main
 
 jobs:
   ai-memory-check:
@@ -32,7 +38,8 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: Pagayo/pagayo-maintenance
-          ref: main
+          # Self-test: same SHA as caller. Consumer repos: inputs.maintenance_ref (default main).
+          ref: ${{ github.repository == 'Pagayo/pagayo-maintenance' && github.sha || inputs.maintenance_ref }}
           path: .maintenance
 
       - name: Checkout pagayo-docs (delivery mirrors)
