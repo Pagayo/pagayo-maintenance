@@ -222,14 +222,18 @@ describe("API Stack Service - Smoke Tests", () => {
   });
 
   describe("Protected Endpoints", () => {
-    it("Shipping providers endpoint requires auth", async () => {
-      const response = await fetch(`${API_URL}/api/shipping/providers`);
+    it("Shipping labels endpoint requires auth", async () => {
+      const response = await fetch(`${API_URL}/api/shipping/labels`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantOrderId: "ORD-TEST", shipment: {} }),
+      });
 
       if (response.status === 401) {
-        log("shipping-providers-auth", "PASS", "Protected: HTTP 401");
+        log("shipping-labels-auth", "PASS", "Protected: HTTP 401");
       } else if (response.status >= 500) {
         log(
-          "shipping-providers-auth",
+          "shipping-labels-auth",
           "FAIL",
           `Server error: HTTP ${response.status}`,
           "Check shipping route auth middleware",
