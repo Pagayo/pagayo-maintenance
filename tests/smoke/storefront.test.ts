@@ -1916,7 +1916,7 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([400, 403]).toContain(response.status);
     });
 
-    it("Mollie payment validates missing orderId", async () => {
+    it("Mollie payment returns deprecated response", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/payments/mollie/payment`,
         {
@@ -1931,11 +1931,11 @@ describe("Storefront Service - Smoke Tests", () => {
 
       if (skipIfNoTenant(response, "mollie-payment-validation")) return;
 
-      if (response.status === 400) {
+      if (response.status === 410) {
         log(
           "mollie-payment-validation",
           "PASS",
-          "Mollie payment valideert ontbrekende orderId",
+          "Mollie payment endpoint returns deprecated 410",
         );
       } else if (response.status === 403) {
         log(
@@ -1948,13 +1948,12 @@ describe("Storefront Service - Smoke Tests", () => {
           "mollie-payment-validation",
           "FAIL",
           `HTTP ${response.status}`,
-          "Check Mollie payment validation",
+          "Check Mollie payment deprecation",
           "HIGH",
         );
       }
 
-      // 400 = validation error (expected), 403 = CSRF protection (expected for external POST)
-      expect([400, 403]).toContain(response.status);
+      expect([410, 403]).toContain(response.status);
     });
   });
 
