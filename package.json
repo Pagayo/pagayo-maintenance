@@ -34,6 +34,7 @@
     "local:dev:refresh": "./.github/scripts/local-dev-refresh.sh",
     "local:dev:stop": "./.github/scripts/local-dev-stop.sh",
     "local:dev:status": "./.github/scripts/local-dev-status.sh",
+    "setup:vaultguard-local": "./scripts/setup-vaultguard-local.sh",
     "cloudflare:token:check": "node scripts/cloudflare/token-expiry-check.mjs",
     "cloudflare:token:check:json": "node scripts/cloudflare/token-expiry-check.mjs --json",
     "cloudflare:token:check:dry": "node scripts/cloudflare/token-expiry-check.mjs --dry-run --json"

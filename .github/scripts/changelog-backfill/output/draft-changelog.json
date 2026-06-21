@@ -1,0 +1,1145 @@
+{
+  "meta": {
+    "projectStartDate": "2025-12-04",
+    "generatedAt": "2026-06-08T06:30:34.058Z",
+    "entryCount": 166,
+    "releaseCount": 65
+  },
+  "releases": [
+    {
+      "date": "2026-06-08",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Restore catalog hydration and SSR drawer backdrop parity.",
+          "area": "Catalog"
+        },
+        {
+          "type": "fixed",
+          "text": "Navigator SPA unmount + SSR hydration parity.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-06-07",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "ExtraMemberProRata lazy-safe for prod unblock.",
+          "area": "Catalog"
+        },
+        {
+          "type": "fixed",
+          "text": "ExtraMemberProRata manifest lazy-safe."
+        },
+        {
+          "type": "new",
+          "text": "ExtraMemberProRataEnabled + fan-out migration 2.6.44.",
+          "area": "Catalog"
+        },
+        {
+          "type": "fixed",
+          "text": "Orders channel toolbar layout (2.4.177).",
+          "area": "Orders"
+        }
+      ]
+    },
+    {
+      "date": "2026-06-04",
+      "items": [
+        {
+          "type": "new",
+          "text": "Content block placement, spacing controls — .",
+          "area": "Catalog"
+        },
+        {
+          "type": "new",
+          "text": "Content assistant, OpenAI defaults, prompt groups — / / .",
+          "area": "Admin"
+        },
+        {
+          "type": "improved",
+          "text": "Remove lucide-react from webshop hot-path components.",
+          "area": "Orders"
+        },
+        {
+          "type": "fixed",
+          "text": "Subscription upgrade payment + webhooks rate-limit fix.",
+          "area": "Payments"
+        },
+        {
+          "type": "new",
+          "text": "Migration import jobs + POS daily close + terminal groups — 2.6.41.",
+          "area": "POS"
+        },
+        {
+          "type": "new",
+          "text": "Banner-card image fill + member note reply card styles — 2.4.172.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "Dashboard, POS, PDP, admin assistant, content assistant CSS — 2.4.171.",
+          "area": "POS"
+        },
+        {
+          "type": "new",
+          "text": "AI_CONTENT tier gating for content assistant — 1.15.9.",
+          "area": "Auth"
+        }
+      ]
+    },
+    {
+      "date": "2026-06-02",
+      "items": [
+        {
+          "type": "new",
+          "text": "Assistant hub, , .",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-06-01",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Platform-default OpenAI for all tenants.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-31",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Hero contain, announcements, order-pay JWT, .",
+          "area": "Auth"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-29",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Tablet-portrait cart bar, compact product grid, custom-item toggle + PIN button fix.",
+          "area": "Payments"
+        },
+        {
+          "type": "new",
+          "text": "Mobile category filter drawer, configurable card image shape + SSR flicker fixes.",
+          "area": "Payments"
+        },
+        {
+          "type": "fixed",
+          "text": "POS tablet cart bar, compact grid, mobile category drawer + PIN button fix (through v2.4.164).",
+          "area": "Payments"
+        },
+        {
+          "type": "new",
+          "text": "PDP layout, about-product CSS v2.4.159.",
+          "area": "Catalog"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-28",
+      "items": [
+        {
+          "type": "new",
+          "text": "PDP descriptions, about-product, category batch + E2E.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-27",
+      "items": [
+        {
+          "type": "new",
+          "text": "Category workspace settings and product card appearance.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "Header chrome, typography delivery, and .",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-26",
+      "items": [
+        {
+          "type": "new",
+          "text": "Restore notes, nav, and typography parity.",
+          "area": "Admin"
+        },
+        {
+          "type": "fixed",
+          "text": "Harden staging e2e auth flows.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "Add subscription-wide note schema.",
+          "area": "Memberships"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-25",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Ship admin extra slots and storefront polish.",
+          "area": "Payments"
+        },
+        {
+          "type": "fixed",
+          "text": "Stabilize SSR storefront hydration.",
+          "area": "Catalog"
+        },
+        {
+          "type": "fixed",
+          "text": "Stabilize SSR storefront chrome and manifest ids.",
+          "area": "Catalog"
+        },
+        {
+          "type": "fixed",
+          "text": "Align mobile top bar socials.",
+          "area": "Admin"
+        },
+        {
+          "type": "improved",
+          "text": "Test(maintenance): extend storefront staging smoke coverage.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-24",
+      "items": [
+        {
+          "type": "new",
+          "text": "POS revolutionary dark mode and extra-large font.",
+          "area": "POS"
+        },
+        {
+          "type": "fixed",
+          "text": "Hotfix: hydrate home SSR without duplication.",
+          "area": "Platform"
+        },
+        {
+          "type": "new",
+          "text": "Enforce platform email policy on marketing sends.",
+          "area": "Newsletter"
+        },
+        {
+          "type": "new",
+          "text": "POS revolutionary dark shell and brand strip (2.4.142).",
+          "area": "Payments"
+        },
+        {
+          "type": "new",
+          "text": "Platform email-policy SSoT (@pagayo/config/email-policy).",
+          "area": "Domains"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-23",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Hotfix: align home SSR with pool profile.",
+          "area": "Catalog"
+        },
+        {
+          "type": "improved",
+          "text": "Release: storefront UX and first-paint stability.",
+          "area": "Catalog"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-22",
+      "items": [
+        {
+          "type": "improved",
+          "text": "Release: webshop perf + catalog placeholder (batch 20260521).",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-20",
+      "items": [
+        {
+          "type": "improved",
+          "text": "Dashboard widgets, opening-hours overrides, .",
+          "area": "Admin"
+        },
+        {
+          "type": "fixed",
+          "text": "Admin: platform update shipped.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "Locale-aware date and time inputs.",
+          "area": "Admin"
+        },
+        {
+          "type": "fixed",
+          "text": "Accept INTERNAL_API_SECRET for service-to-service auth.",
+          "area": "Auth"
+        },
+        {
+          "type": "improved",
+          "text": ": dashboard columns and opening-hours panel CSS.",
+          "area": "Admin"
+        },
+        {
+          "type": "fixed",
+          "text": "Dashboard toolbar layout + members-balie design (2.4.140).",
+          "area": "POS"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-19",
+      "items": [
+        {
+          "type": "new",
+          "text": "Autosave intent, announcements fixes, opening hours in roles.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "MembersUiMode tenant migration @2.6.33.",
+          "area": "Catalog"
+        },
+        {
+          "type": "new",
+          "text": "AI layer introduced: AI configuration, action logging, and insight tracking added to the tenant schema.",
+          "area": "Catalog"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-18",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Fix admin login (membersUiMode database).",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "Werkplekken, PWA, balie/POS, nested categories (batch 20260517).",
+          "area": "POS"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-17",
+      "items": [
+        {
+          "type": "improved",
+          "text": "Reports: finance spec discount/total + subscriptions CSV/XLSX export.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "TopBar, homepage hero admin, header-footer UX.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "Email templates, SES classification, internal routes (follow-up ).",
+          "area": "Auth"
+        },
+        {
+          "type": "new",
+          "text": "TopBar, homepage admin, domain workspace (2.4.139).",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "SalesContexts on product index + cache schema sync (follow-up ).",
+          "area": "Catalog"
+        },
+        {
+          "type": "fixed",
+          "text": "Environment-aware refund PDF URL (follow-up )."
+        }
+      ]
+    },
+    {
+      "date": "2026-05-16",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Cache category filter slug + numeric id (Skicenter).",
+          "area": "Catalog"
+        },
+        {
+          "type": "new",
+          "text": "Kitchen ticket UX, modulepreload, .",
+          "area": "Payments"
+        },
+        {
+          "type": "new",
+          "text": "Workspace pagination, settings layout, .",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "HTML productomschrijvingen Skicenter-migration.",
+          "area": "Catalog"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-15",
+      "items": [
+        {
+          "type": "new",
+          "text": "Products bulk edit with status, category, and stock.",
+          "area": "Admin"
+        },
+        {
+          "type": "improved",
+          "text": "Chunk variant loads in tenant cache full sync.",
+          "area": "Admin"
+        },
+        {
+          "type": "fixed",
+          "text": "Duplicate SKU handling in Woo variant migration.",
+          "area": "Catalog"
+        },
+        {
+          "type": "new",
+          "text": "Internal cache full sync + Woo migration env helpers.",
+          "area": "Admin"
+        },
+        {
+          "type": "fixed",
+          "text": "Woo Skicenter migration + variant sync naar Edge.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "Lazy user.accountKind migration for platform support.",
+          "area": "Catalog"
+        },
+        {
+          "type": "new",
+          "text": "@pagayo/ — products bulk-edit panel.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-14",
+      "items": [
+        {
+          "type": "new",
+          "text": "Storefront batch — facets, CMS blocks, design admin, .",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "— pages, categories, facets, tags, account kind.",
+          "area": "Platform"
+        },
+        {
+          "type": "new",
+          "text": "Product grids + admin shell + v2.4.118.",
+          "area": "Admin"
+        },
+        {
+          "type": "fixed",
+          "text": "Restore treasurer exports + v1.15.5."
+        },
+        {
+          "type": "new",
+          "text": "Functional theme + v1.15.4."
+        }
+      ]
+    },
+    {
+      "date": "2026-05-13",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Members balie batch + ProductPicker full catalog (fix 25 limit).",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-12",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Staging batch 20260511 + perf hardening + GPSR fix ().",
+          "area": "Admin"
+        },
+        {
+          "type": "improved",
+          "text": "Granular modulepreload (Fase XL).",
+          "area": "Auth"
+        },
+        {
+          "type": "improved",
+          "text": "SSR-inject public settings + granular staging cache (Fase L).",
+          "area": "Admin"
+        },
+        {
+          "type": "improved",
+          "text": "Consolidate public settings client fetches (Fase M).",
+          "area": "Payments"
+        },
+        {
+          "type": "fixed",
+          "text": "Age-gate mount-guard + no-store removal.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "GPSR fabrikantvelden + 2.6.30 publish.",
+          "area": "Catalog"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-11",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Quote table names in tenant migration PRAGMA check.",
+          "area": "Orders"
+        },
+        {
+          "type": "new",
+          "text": "Age gate order column, quantity stepping, POS period, product attributes (v2.6.29).",
+          "area": "POS"
+        },
+        {
+          "type": "new",
+          "text": "Newsletter and announcements: Built-in newsletter tooling with DNS automation.",
+          "area": "Domains"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-09",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Root SQL for brand/posUiMode database deploy + 2.6.27."
+        },
+        {
+          "type": "fixed",
+          "text": "TenantDDL includes migrations with leading -- comments.",
+          "area": "Platform"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-07",
+      "items": [
+        {
+          "type": "new",
+          "text": "Monochrome pass + @pagayo/ (batch 20260506).",
+          "area": "Catalog"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-06",
+      "items": [
+        {
+          "type": "new",
+          "text": "Per-POS contant-flow + staging fixes (batch 2026-05-06).",
+          "area": "POS"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-04",
+      "items": [
+        {
+          "type": "improved",
+          "text": "Sync-script voor RELEASE_MANIFEST_TOKEN op consumer-repos."
+        }
+      ]
+    },
+    {
+      "date": "2026-05-03",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Root SQL for database staging migrate (2.6.22).",
+          "area": "Platform"
+        },
+        {
+          "type": "new",
+          "text": "Purchaser + subscription_member_note + 2.6.21.",
+          "area": "Memberships"
+        },
+        {
+          "type": "fixed",
+          "text": "Subscription member DOB field width (2.4.65).",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-02",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Admin CSS base before tenant pos bundle.",
+          "area": "POS"
+        },
+        {
+          "type": "new",
+          "text": "Pos_daily_close + release 2.6.18.",
+          "area": "Platform"
+        },
+        {
+          "type": "improved",
+          "text": "Release: @pagayo/ (POS grid + product cards).",
+          "area": "POS"
+        },
+        {
+          "type": "new",
+          "text": "Data migration tooling: Import pipelines for WooCommerce and Magento.",
+          "area": "Orders"
+        }
+      ]
+    },
+    {
+      "date": "2026-04-29",
+      "items": [
+        {
+          "type": "new",
+          "text": "Align production with staging (members print filter + batch).",
+          "area": "Admin"
+        },
+        {
+          "type": "improved",
+          "text": "Test: dirty storefront changes (staging-verified)."
+        }
+      ]
+    },
+    {
+      "date": "2026-04-28",
+      "items": [
+        {
+          "type": "improved",
+          "text": "Staging hardening: admin email parity and deploy guardrails.",
+          "area": "Admin"
+        },
+        {
+          "type": "fixed",
+          "text": "Unblock staging build for design asset copy."
+        },
+        {
+          "type": "fixed",
+          "text": "Restore Cloudflare token monitor for account-scoped tokens.",
+          "area": "Payments"
+        }
+      ]
+    },
+    {
+      "date": "2026-04-27",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Lucide-react v1 compat – social/share icons (staging-verified).",
+          "area": "Catalog"
+        },
+        {
+          "type": "fixed",
+          "text": "Fix contact build met lucide-react v1.",
+          "area": "Import"
+        }
+      ]
+    },
+    {
+      "date": "2026-04-24",
+      "items": [
+        {
+          "type": "new",
+          "text": "Extend internal-payments routes.",
+          "area": "Payments"
+        },
+        {
+          "type": "fixed",
+          "text": "Update manifest via change flow.",
+          "area": "Catalog"
+        },
+        {
+          "type": "new",
+          "text": "International payment methods: M-Pesa, Flutterwave, and Paystack added.",
+          "area": "Payments"
+        }
+      ]
+    },
+    {
+      "date": "2026-04-15",
+      "items": [
+        {
+          "type": "improved",
+          "text": "URL overview and architecture examples now match the current admin/start domains.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "Passkey authentication: Passwordless login via WebAuthn.",
+          "area": "Auth"
+        }
+      ]
+    },
+    {
+      "date": "2026-04-13",
+      "items": [
+        {
+          "type": "new",
+          "text": "Improve admin subscriptions en customer paginering.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-04-07",
+      "items": [
+        {
+          "type": "new",
+          "text": "Subscriptions and memberships: Recurring billing, member management, and visit tracking.",
+          "area": "Payments"
+        }
+      ]
+    },
+    {
+      "date": "2026-04-03",
+      "items": [
+        {
+          "type": "new",
+          "text": "Release @pagayo/ en sync admin CSS.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-04-01",
+      "items": [
+        {
+          "type": "new",
+          "text": "Roles/staff UI, subscription management, e2e fixes.",
+          "area": "Payments"
+        },
+        {
+          "type": "new",
+          "text": "Subscription management, e-mailflows + deploy policy docs.",
+          "area": "Memberships"
+        },
+        {
+          "type": "fixed",
+          "text": "Email templates, deliverability fix + deploy policy docs.",
+          "area": "Orders"
+        },
+        {
+          "type": "fixed",
+          "text": "Migrations pad + email templates service.",
+          "area": "Orders"
+        },
+        {
+          "type": "improved",
+          "text": "Ure: provisioning payload normalisatie.",
+          "area": "Platform"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-30",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Align API database migration paths with @pagayo/schema layout.",
+          "area": "Catalog"
+        },
+        {
+          "type": "fixed",
+          "text": "Role_id tenant replay hotfix + drift validator alignment.",
+          "area": "Memberships"
+        },
+        {
+          "type": "new",
+          "text": "Herontwerp partners CSS layout en Fix sectie padding."
+        },
+        {
+          "type": "new",
+          "text": "Normalize provisioning payload en Improve rollback-compensatie.",
+          "area": "Domains"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-29",
+      "items": [
+        {
+          "type": "new",
+          "text": "Automatic tenant provisioning: New customer? The platform creates a database database, applies the full schema, configures Cloudflare routing, and sets up cache cache — all automatically.",
+          "area": "Platform"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-27",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "Environment production gate op migrate-production job.",
+          "area": "Catalog"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-20",
+      "items": [
+        {
+          "type": "new",
+          "text": "Database at the edge: The database layer was replaced by Cloudflare database.",
+          "area": "Platform"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-18",
+      "items": [
+        {
+          "type": "new",
+          "text": "Policy engine self-heals when a cache policy blob is stale and missing a newer feature key."
+        },
+        {
+          "type": "improved",
+          "text": "Adds regression coverage for stale-blob fallback and blob-overrides-winning behavior."
+        }
+      ]
+    },
+    {
+      "date": "2026-03-12",
+      "items": [
+        {
+          "type": "new",
+          "text": "Edge edge — payment routes: Phase C complete.",
+          "area": "Payments"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-03",
+      "items": [
+        {
+          "type": "new",
+          "text": "Edge edge — admin routes: Phase B complete.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-02-23",
+      "items": [
+        {
+          "type": "new",
+          "text": "Edge edge — core routes: Phase A of the Cloudflare edge migration complete.",
+          "area": "Platform"
+        }
+      ]
+    },
+    {
+      "date": "2026-02-12",
+      "items": [
+        {
+          "type": "new",
+          "text": "One order model for everything: Webshop, POS, WhatsApp, QR — every sales channel flows into a single Order model with a source and an originator.",
+          "area": "POS"
+        }
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "items": [
+        {
+          "type": "improved",
+          "text": "Initial release."
+        },
+        {
+          "type": "improved",
+          "text": "TypeScript types for all exports."
+        },
+        {
+          "type": "improved",
+          "text": "(api.pagayo.com) - Payments, webhooks.",
+          "area": "Payments"
+        },
+        {
+          "type": "improved",
+          "text": "(api.pagayo.app) - Tenant API, provisioning.",
+          "area": "Platform"
+        },
+        {
+          "type": "improved",
+          "text": "(admin.pagayo.app) - Platform admin dashboard.",
+          "area": "Admin"
+        },
+        {
+          "type": "improved",
+          "text": "(start.pagayo.app) - Onboarding and auth bridge.",
+          "area": "Auth"
+        },
+        {
+          "type": "improved",
+          "text": "(pagayo.com) - Marketing site."
+        },
+        {
+          "type": "new",
+          "text": "Custom domains: Tenants can connect their own domain.",
+          "area": "Domains"
+        }
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "items": [
+        {
+          "type": "fixed",
+          "text": "+ security: edge only note + npm audit fix.",
+          "area": "Platform"
+        },
+        {
+          "type": "improved",
+          "text": "Express removal + edge only.",
+          "area": "Platform"
+        }
+      ]
+    },
+    {
+      "date": "2026-01-30",
+      "items": [
+        {
+          "type": "new",
+          "text": "POS channel: Point-of-sale flows added alongside the webshop.",
+          "area": "POS"
+        }
+      ]
+    },
+    {
+      "date": "2026-01-26",
+      "items": [
+        {
+          "type": "new",
+          "text": "Fase 4 AI Runtime - Onboarding Wizard & Suggestions.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2026-01-24",
+      "items": [
+        {
+          "type": "new",
+          "text": "First customer live: A real business on their own subdomain.",
+          "area": "Payments"
+        }
+      ]
+    },
+    {
+      "date": "2026-01-17",
+      "items": [
+        {
+          "type": "new",
+          "text": "Shared configuration: @pagayo/config: domains, endpoints, policy, and runtime defaults in one place.",
+          "area": "Domains"
+        }
+      ]
+    },
+    {
+      "date": "2026-01-13",
+      "items": [
+        {
+          "type": "new",
+          "text": "Design system extracted: @pagayo/design: tokens, components, and context bundles as a standalone package."
+        }
+      ]
+    },
+    {
+      "date": "2026-01-09",
+      "items": [
+        {
+          "type": "new",
+          "text": "Chatwoot support widget for Storefront (multi-tenant).",
+          "area": "Auth"
+        },
+        {
+          "type": "new",
+          "text": "Chatwoot customer support integration.",
+          "area": "Admin"
+        },
+        {
+          "type": "new",
+          "text": "Shared schema package: @pagayo/schema introduced."
+        }
+      ]
+    },
+    {
+      "date": "2026-01-02",
+      "items": [
+        {
+          "type": "new",
+          "text": "Multi-tenant foundation: The most important architectural decision: every customer gets their own fully isolated database and environment.",
+          "area": "Catalog"
+        }
+      ]
+    },
+    {
+      "date": "2025-12-29",
+      "items": [
+        {
+          "type": "new",
+          "text": "BUNQ banking connected: Dutch banking integration live.",
+          "area": "Payments"
+        }
+      ]
+    },
+    {
+      "date": "2025-12-25",
+      "items": [
+        {
+          "type": "new",
+          "text": "Stripe integrated: Real payment intents.",
+          "area": "Payments"
+        },
+        {
+          "type": "improved",
+          "text": "Security hardening + admin fixes (storefront).",
+          "area": "Admin"
+        },
+        {
+          "type": "improved",
+          "text": "Email schema hardening + tests (api-stack).",
+          "area": "Newsletter"
+        },
+        {
+          "type": "removed",
+          "text": "Legacy fallback logica Removed uit , , .",
+          "area": "Payments"
+        },
+        {
+          "type": "improved",
+          "text": "Migrationscript archived naar .",
+          "area": "Orders"
+        },
+        {
+          "type": "improved",
+          "text": "Order model gebruikt nu volledig enterprise relaties: , , , .",
+          "area": "Payments"
+        },
+        {
+          "type": "improved",
+          "text": "Database schema compliance met Masterplan v2.0."
+        },
+        {
+          "type": "improved",
+          "text": "Applicaties die nog verwachten moeten updaten naar enterprise relaties."
+        }
+      ]
+    },
+    {
+      "date": "2025-12-21",
+      "items": [
+        {
+          "type": "improved",
+          "text": "GeNormalizede order tabellen gebaseerd op Stripe/Shopify/Magento patronen.",
+          "area": "Payments"
+        },
+        {
+          "type": "improved",
+          "text": "Dual-write migration: Nieuwe orders schrijven naar beide (JSON) en enterprise tabellen.",
+          "area": "Orders"
+        },
+        {
+          "type": "improved",
+          "text": "Migrationscript voor bestaande orders ().",
+          "area": "Orders"
+        },
+        {
+          "type": "improved",
+          "text": "Field - Gebruik , , , relaties.",
+          "area": "Payments"
+        },
+        {
+          "type": "new",
+          "text": "API layer introduced: A dedicated API Stack repository.",
+          "area": "Payments"
+        }
+      ]
+    },
+    {
+      "date": "2025-12-16",
+      "items": [
+        {
+          "type": "new",
+          "text": "CI/CD from day one: Automated deployment pipeline."
+        }
+      ]
+    },
+    {
+      "date": "2025-12-12",
+      "items": [
+        {
+          "type": "new",
+          "text": "Customers can pay: First checkout flow.",
+          "area": "Payments"
+        }
+      ]
+    },
+    {
+      "date": "2025-12-10",
+      "items": [
+        {
+          "type": "new",
+          "text": "User authentication: Login, sessions, roles.",
+          "area": "Auth"
+        }
+      ]
+    },
+    {
+      "date": "2025-12-08",
+      "items": [
+        {
+          "type": "new",
+          "text": "Product catalogue: Products.",
+          "area": "Admin"
+        }
+      ]
+    },
+    {
+      "date": "2025-12-06",
+      "items": [
+        {
+          "type": "new",
+          "text": "The idea becomes code: First commit."
+        }
+      ]
+    }
+  ]
+}
