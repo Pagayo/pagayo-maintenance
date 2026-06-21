@@ -144,7 +144,7 @@ else
             HEALTH_URL="https://demo.staging.pagayo.app/health" ;;
 
         pagayo-api-stack)
-            HEALTH_URL="https://staging-api.pagayo.com/health" ;;
+            HEALTH_URL="https://staging-api.pagayo.com/api/health" ;;
         *)
             HEALTH_URL="" ;;
     esac
