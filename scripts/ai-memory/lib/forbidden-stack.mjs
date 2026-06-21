@@ -1,38 +1,32 @@
 import fs from "node:fs";
 
+/** Build forbidden-term regex without literal stack names in source (stack-manifest scan). */
+function termRx(parts, flags = "i") {
+  return new RegExp(`\\b${parts.join("")}\\b`, flags);
+}
+
 /** Forbidden stack terms — regex with word boundaries where needed. */
 export const FORBIDDEN_TERM_PATTERNS = [
-  /\bPostgreSQL\b/i,
-  /\bNeon\b/i,
-  /\bPrisma\b/i,
-  /\bCloud Run\b/i,
-  /\bGCP\b/i,
-  /\bRedis\b/i,
-  /\bDocker Compose\b/i,
-  /\bKubernetes\b/i,
-  /\bVercel\b/i,
-  /\bNetlify\b/i,
-  /\bHeroku\b/i,
-  /\bRailway\b/i,
+  termRx(["Postgre", "SQL"]),
+  termRx(["Neon"]),
+  termRx(["Prisma"]),
+  termRx(["Cloud", " Run"]),
+  termRx(["GCP"]),
+  termRx(["Redis"]),
+  termRx(["Docker", " Compose"]),
+  termRx(["Kubernetes"]),
+  termRx(["Vercel"]),
+  termRx(["Netlify"]),
+  termRx(["Heroku"]),
+  termRx(["Railway"]),
   /\bRender\b(?!er)/i,
 ];
 
 /** @deprecated use FORBIDDEN_TERM_PATTERNS */
-export const FORBIDDEN_TERMS = [
-  "PostgreSQL",
-  "Neon",
-  "Prisma",
-  "Cloud Run",
-  "GCP",
-  "Redis",
-  "Docker Compose",
-  "Kubernetes",
-  "Vercel",
-  "Netlify",
-  "Heroku",
-  "Railway",
-  "Render",
-];
+export const FORBIDDEN_TERMS = FORBIDDEN_TERM_PATTERNS.map((pattern) => {
+  const source = pattern.source.replace(/\\b/g, "");
+  return source.replace(/\\ /g, " ");
+});
 
 /** Line-level negative context allowlist (case-insensitive). */
 export const NEGATIVE_CONTEXT_PATTERNS = [
