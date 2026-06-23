@@ -4079,6 +4079,33 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([401, 403]).toContain(response.status);
     });
 
+    it("GET /api/admin/integrations/magento-migration/rest-connect requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/magento-migration/rest-connect`,
+      );
+      if (skipIfNoTenant(response, "magento-rest-connect-status-no-auth")) return;
+      log(
+        "magento-rest-connect-status-no-auth",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("POST /api/admin/integrations/magento-migration/rest-connect/test requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/magento-migration/rest-connect/test`,
+        { method: "POST" },
+      );
+      if (skipIfNoTenant(response, "magento-rest-connect-test-no-auth")) return;
+      log(
+        "magento-rest-connect-test-no-auth",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+
     it("GET /api/stripe/connect/callback without params returns 400", async () => {
       // Callback route op connect.pagayo.app is publiek (Stripe redirect)
       // maar vereist code en state parameters
