@@ -8,8 +8,8 @@
       "verified_at": "2026-06-24T02:31:36Z"
     },
     "pagayo-api-stack": {
-      "staging_sha": "9270e983c679c735118dedcc4d005bf72b6fef2f",
-      "verified_at": "2026-06-23T15:35:52Z"
+      "staging_sha": "caca0f2bb259a44553304357b609e952c54ad4e3",
+      "verified_at": "2026-06-24T02:14:01Z"
     },
     "pagayo-edge": {
       "staging_sha": "40e5f9a0ee3863fa678dd1ec8f9d6368c5f086cc",
