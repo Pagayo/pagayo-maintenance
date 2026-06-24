@@ -257,6 +257,15 @@ run_check() {
   local fail=false
   local warn=false
 
+  # Repository placement — Revenue mock routes belong in pagayo-solutions only
+  if [[ "$repo_name" == "pagayo-storefront" ]]; then
+    local legacy_routes="$repo_root/src/features/revenue-today/routes.ts"
+    if [[ -f "$legacy_routes" ]]; then
+      echo "❌ Revenue placement: verwijder $legacy_routes (gebruik proxy.routes.ts → pagayo-solutions)"
+      fail=true
+    fi
+  fi
+
   if [[ ${#admin_files[@]} -gt 0 && ${#revenue_files[@]} -gt 0 ]]; then
     echo "❌ Cross-thread mix gedetecteerd (admin-capability × revenue-today)"
     echo ""
