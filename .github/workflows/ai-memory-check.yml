@@ -1,0 +1,28 @@
+# =============================================================================
+# Pagayo Maintenance - AI Memory Drift Guard (zelf-test)
+# =============================================================================
+# Draait verify + probe via reusable workflow (maintenance + docs checkout).
+# =============================================================================
+
+name: AI Memory Check
+
+on:
+  push:
+    branches: [main, "feature/**"]
+    paths:
+      - "scripts/ai-memory/**"
+      - ".github/workflows/reusable-check-ai-memory.yml"
+      - ".github/workflows/ai-memory-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/ai-memory/**"
+      - ".github/workflows/reusable-check-ai-memory.yml"
+      - ".github/workflows/ai-memory-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ai-memory-check:
+    uses: ./.github/workflows/reusable-check-ai-memory.yml

@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-06-22T10:34:17.696Z",
+  "source_file": "pagayo-vault/AI-OPERATING-CONTEXT.md",
+  "source_sha256": "b9ae1d1e8dc37db431ca1f1d2782e08ca7c4fbe9a82557651fc3b3bedb58888c",
+  "mirrors": [
+    {
+      "path": "pagayo-docs/ai-memory/delivery/cursor-l1-context.md",
+      "sha256": "043dd24409e5d3ac9aa3686faa041ce2e83e4ac7d4640c25a6ff95fe468db426"
+    },
+    {
+      "path": "pagayo-docs/ai-memory/delivery/copilot-l1-context.md",
+      "sha256": "043dd24409e5d3ac9aa3686faa041ce2e83e4ac7d4640c25a6ff95fe468db426"
+    },
+    {
+      "path": "pagayo-docs/ai-memory/delivery/cloud-agent-l1-context.md",
+      "sha256": "043dd24409e5d3ac9aa3686faa041ce2e83e4ac7d4640c25a6ff95fe468db426"
+    }
+  ],
+  "generated_by": "pagayo-maintenance/scripts/ai-memory/generate-ai-memory-delivery.mjs",
+  "manual_edit_policy": "forbidden — regenerate via npm run ai-memory:generate"
+}

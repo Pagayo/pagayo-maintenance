@@ -1,0 +1,86 @@
+# =============================================================================
+# Reusable: Pagayo AI Memory Drift Guard
+# =============================================================================
+# Verifies delivery mirrors, MANIFEST hashes, and agent probes.
+# Requires pagayo-maintenance (scripts) + pagayo-docs (delivery mirrors).
+#
+# Gebruik vanuit een consumer repo:
+#
+#   jobs:
+#     ai-memory-check:
+#       uses: Pagayo/pagayo-maintenance/.github/workflows/reusable-check-ai-memory.yml@main
+#       with:
+#         maintenance_ref: main
+#
+# Referentie: pagayo-docs/ai-memory/README.md
+# =============================================================================
+
+name: Reusable AI Memory Check
+
+on:
+  workflow_call:
+    inputs:
+      maintenance_ref:
+        description: Ref for pagayo-maintenance scripts (default main; pin feature branch until ai-memory is merged)
+        required: false
+        type: string
+        default: main
+
+jobs:
+  ai-memory-check:
+    name: AI Memory Drift Guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout caller repo
+        uses: actions/checkout@v6
+
+      - name: Checkout pagayo-maintenance (scripts)
+        uses: actions/checkout@v6
+        with:
+          repository: Pagayo/pagayo-maintenance
+          # Self-test: same SHA as caller. Consumer repos: inputs.maintenance_ref (default main).
+          ref: ${{ github.repository == 'Pagayo/pagayo-maintenance' && github.sha || inputs.maintenance_ref }}
+          path: .maintenance
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Assemble workspace layout
+        env:
+          CALLER_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p ai-memory-workspace/pagayo-maintenance ai-memory-workspace/pagayo-docs/ai-memory/delivery
+          cp -R .maintenance/. ai-memory-workspace/pagayo-maintenance/
+
+          if [[ "$CALLER_REPO" == "Pagayo/pagayo-docs" ]]; then
+            # Caller already is pagayo-docs — no cross-private-repo checkout needed.
+            rsync -a --exclude='.maintenance' --exclude='ai-memory-workspace' ./ ai-memory-workspace/pagayo-docs/
+          elif [[ "$CALLER_REPO" == "Pagayo/pagayo-maintenance" ]]; then
+            # Public maintenance cannot checkout private pagayo-docs; use committed CI fixtures.
+            cp -R .maintenance/scripts/ai-memory/fixtures/delivery/. \
+              ai-memory-workspace/pagayo-docs/ai-memory/delivery/
+            mkdir -p ai-memory-workspace/pagayo-docs/ai-memory/promotion-candidates
+            cp .maintenance/scripts/ai-memory/fixtures/promotion-candidates/README.md \
+              ai-memory-workspace/pagayo-docs/ai-memory/promotion-candidates/ 2>/dev/null || true
+          else
+            echo "Unsupported caller repo for AI memory check: $CALLER_REPO" >&2
+            exit 1
+          fi
+
+      - name: Run AI memory verify (CI mode)
+        working-directory: ai-memory-workspace/pagayo-maintenance
+        env:
+          AI_MEMORY_CI: "1"
+          AI_MEMORY_WORKSPACE_ROOT: ${{ github.workspace }}/ai-memory-workspace
+        run: npm run ai-memory:verify
+
+      - name: Run AI memory delivery probes
+        working-directory: ai-memory-workspace/pagayo-maintenance
+        env:
+          AI_MEMORY_WORKSPACE_ROOT: ${{ github.workspace }}/ai-memory-workspace
+        run: npm run ai-memory:probe

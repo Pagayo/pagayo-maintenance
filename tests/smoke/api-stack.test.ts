@@ -222,14 +222,18 @@ describe("API Stack Service - Smoke Tests", () => {
   });
 
   describe("Protected Endpoints", () => {
-    it("Shipping providers endpoint requires auth", async () => {
-      const response = await fetch(`${API_URL}/api/shipping/providers`);
+    it("Shipping labels endpoint requires auth", async () => {
+      const response = await fetch(`${API_URL}/api/shipping/labels`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantOrderId: "ORD-TEST", shipment: {} }),
+      });
 
       if (response.status === 401) {
-        log("shipping-providers-auth", "PASS", "Protected: HTTP 401");
+        log("shipping-labels-auth", "PASS", "Protected: HTTP 401");
       } else if (response.status >= 500) {
         log(
-          "shipping-providers-auth",
+          "shipping-labels-auth",
           "FAIL",
           `Server error: HTTP ${response.status}`,
           "Check shipping route auth middleware",
@@ -437,14 +441,16 @@ describe("API Stack Service - Smoke Tests", () => {
       expect([200, 400, 401, 404]).toContain(response.status);
     });
 
-    it("Mollie webhook handles test payload", async () => {
+    it("Mollie webhook returns deprecated response", async () => {
       const response = await fetch(`${API_URL}/webhooks/mollie`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "test_payment_id" }),
+        body: JSON.stringify({ id: "tr_test123" }),
       });
 
-      if ([200, 400, 401, 404].includes(response.status)) {
+      if (response.status === 410) {
+        log("mollie-webhook", "PASS", "Mollie webhook returns deprecated 410");
+      } else if ([200, 400, 401, 404].includes(response.status)) {
         log("mollie-webhook", "PASS", `HTTP ${response.status}`);
       } else if (response.status >= 500) {
         log(
@@ -456,7 +462,7 @@ describe("API Stack Service - Smoke Tests", () => {
         );
       }
 
-      expect([200, 400, 401, 404]).toContain(response.status);
+      expect([200, 400, 401, 404, 410]).toContain(response.status);
     });
   });
 

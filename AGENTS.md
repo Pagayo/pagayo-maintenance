@@ -5,9 +5,13 @@
 Wijzigingen in andere repos moeten hier vaak worden gevalideerd.
 
 ## Leesvolgorde (verplicht)
+Volgt workspace-hiërarchie: WHY → repo-regels (dit bestand) → NIVEAU → taakdocs.
+
 1. `../AGENTS.md`
-2. `../pagayo-vault/PAGAYO-NIVEAU.md`
-3. `./README.md`
+2. `../pagayo-vault/PAGAYO-WHY.md`
+3. Dit bestand — smoke/contract suite grenzen
+4. `../pagayo-vault/PAGAYO-NIVEAU.md`
+5. `./README.md`
 
 ## Deploy Policy (Hard)
 - NOOIT direct naar `main` pushen.
