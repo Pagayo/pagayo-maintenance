@@ -306,6 +306,25 @@ if [[ -d "$DESIGN_LOCAL" ]]; then
 fi
 
 # =============================================================================
+# CHECK 8: Decision thread scope (cross-thread mix blokkerend)
+# =============================================================================
+THREAD_FAIL=false
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 CHECK 8: Decision Thread Scope"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+THREAD_SCRIPT="$WORKSPACE_ROOT/pagayo-maintenance/.github/scripts/decision-thread-preflight.sh"
+if [[ -x "$THREAD_SCRIPT" ]]; then
+    if ! "$THREAD_SCRIPT" "$REPO_PATH"; then
+        THREAD_FAIL=true
+    fi
+else
+    echo "⚠️  decision-thread-preflight.sh niet gevonden — check overgeslagen"
+fi
+echo ""
+
+# =============================================================================
 # SUMMARY
 # =============================================================================
 echo "╔════════════════════════════════════════════════════════════════════════╗"
@@ -313,7 +332,7 @@ echo "║                          📊 SAMENVATTING                            
 echo "╚════════════════════════════════════════════════════════════════════════╝"
 echo ""
 
-if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "true" || "$DESIGN_DRIFT" == "true" ]]; then
+if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "true" || "$DESIGN_DRIFT" == "true" || "$THREAD_FAIL" == "true" ]]; then
     echo "❌ PRE-FLIGHT CHECK GEFAALD"
     echo ""
     if [[ "$UNCOMMITTED" == "true" ]]; then
@@ -329,6 +348,10 @@ if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "tr
         echo "   • @pagayo/design lokaal ≠ npm — publiceer eerst!"
         echo "     FIX: cd pagayo-design && npm version patch && npm publish"
         echo "     DAN: cd pagayo-storefront && npm install @pagayo/design@<nieuwe-versie>"
+    fi
+    if [[ "$THREAD_FAIL" == "true" ]]; then
+        echo "   • Decision thread scope — split branch/commit of zet .pagayo/decision-thread.json"
+        echo "     Zie pagayo-docs/ai-decision-process/playbooks/THREAD-ENFORCEMENT.md"
     fi
     echo ""
     echo "🛑 STOP: Los bovenstaande issues op voordat je doorgaat!"
