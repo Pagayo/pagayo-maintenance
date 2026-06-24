@@ -186,6 +186,37 @@ if [[ -d "$WORKTREE_BASE" ]]; then
 fi
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 Decision threads (actieve manifesten)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+MANIFEST_COUNT=0
+for repo in "${REPOS[@]}"; do
+  repo_path="$WORKSPACE_ROOT/$repo"
+  manifest="$repo_path/.pagayo/decision-thread.json"
+  if [[ -f "$manifest" ]]; then
+    MANIFEST_COUNT=$((MANIFEST_COUNT + 1))
+    thread_id=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).thread_id)" "$manifest" 2>/dev/null || echo "?")
+    slug=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).slug)" "$manifest" 2>/dev/null || echo "?")
+    branch=$(git -C "$repo_path" branch --show-current 2>/dev/null || echo "?")
+    echo "  📌 $repo — thread=$thread_id slug=$slug branch=$branch"
+  fi
+done
+
+WS_MANIFEST="$WORKSPACE_ROOT/.pagayo/decision-thread.json"
+if [[ -f "$WS_MANIFEST" ]]; then
+  MANIFEST_COUNT=$((MANIFEST_COUNT + 1))
+  thread_id=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).thread_id)" "$WS_MANIFEST" 2>/dev/null || echo "?")
+  slug=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).slug)" "$WS_MANIFEST" 2>/dev/null || echo "?")
+  echo "  📌 workspace-root — thread=$thread_id slug=$slug"
+fi
+
+if [[ "$MANIFEST_COUNT" -eq 0 ]]; then
+  echo "  ℹ️  Geen .pagayo/decision-thread.json — bij thread-werk: skill 09 + --init vóór implementatie"
+fi
+
+echo ""
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📋 Advies"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
