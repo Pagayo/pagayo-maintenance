@@ -4107,6 +4107,41 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([401, 403]).toContain(response.status);
     });
 
+    it("POST /api/admin/integrations/commerce-import/detect requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/commerce-import/detect`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: "products.csv",
+            content: "SKU,Name\nA,Product",
+            encoding: "utf8",
+          }),
+        },
+      );
+      if (skipIfNoTenant(response, "commerce-import-detect-no-auth")) return;
+      log(
+        "commerce-import-detect-no-auth",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("GET /api/admin/integrations/commerce-import/jobs requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/integrations/commerce-import/jobs`,
+      );
+      if (skipIfNoTenant(response, "commerce-import-jobs-no-auth")) return;
+      log(
+        "commerce-import-jobs-no-auth",
+        [401, 403].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+      );
+      expect([401, 403]).toContain(response.status);
+    });
+
     it("GET /api/stripe/connect/callback without params returns 400", async () => {
       // Callback route op connect.pagayo.app is publiek (Stripe redirect)
       // maar vereist code en state parameters
