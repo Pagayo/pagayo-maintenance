@@ -1,14 +1,17 @@
 {
   "version": 1,
-  "thread_id": "thread-revenue-today",
-  "slug": "revenue-solutions-placement",
-  "excludes": ["thread-admin-capability"],
-  "repos": [
-    "pagayo-docs",
-    "pagayo-solutions",
-    "pagayo-storefront",
-    "pagayo-maintenance"
+  "thread_id": "thread-commerce-import",
+  "slug": "smart-commerce-import-wizard",
+  "excludes": [
+    "thread-orderchamp-dropship",
+    "thread-admin-capability",
+    "thread-revenue-today"
   ],
-  "created": "2026-06-24",
-  "branch_hint": "feature/batch-staging-20260624-revenue-solutions-placement"
+  "repos": [
+    "pagayo-storefront",
+    "pagayo-maintenance",
+    "pagayo-api-stack"
+  ],
+  "created": "2026-06-25",
+  "branch_hint": "feature/batch-staging-20260625-smart-commerce-import-wizard"
 }
