@@ -34,7 +34,7 @@ pgrep -fl "wrangler dev|serve public|/vite|astro dev" 2>/dev/null | head -10 || 
 echo ""
 
 echo "Poorten:"
-for PORT in 3000 5173 5500 8787 4321; do
+for PORT in 3000 5173 5500 8787 8789 4321; do
   pid="$(lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | head -1)" || true
   echo "  $PORT: ${pid:-vrij}"
 done

@@ -35,7 +35,7 @@ local_dev_stop_wrangler_and_ports() {
     fi
   fi
 
-  for PORT in 3000 5173 5500 8787 4321 9229 9230; do
+  for PORT in 3000 5173 5500 8787 8789 4321 9229 9230; do
     local pid=""
     pid="$(lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | head -1)" || true
     if [[ -n "$pid" ]]; then
@@ -203,6 +203,7 @@ local_dev_start_background_services() {
   local_dev_spawn_background "vite" "$ws/pagayo-storefront" npm run dev:client
   sleep 1
   local_dev_spawn_background "api-stack" "$ws/pagayo-api-stack" npm run dev
+  local_dev_spawn_background "solutions" "$ws/pagayo-solutions" npm run dev
   local_dev_spawn_background "marketing" "$ws/pagayo-marketing" npm run dev
 }
 
@@ -246,6 +247,12 @@ end tell"
     do script \"cd '$ws/pagayo-api-stack' && npm run dev\"
 end tell"
 
+  sleep 2
+
+  osascript -e "tell application \"Terminal\"
+    do script \"cd '$ws/pagayo-solutions' && npm run dev\"
+end tell"
+
   osascript -e "tell application \"Terminal\"
     do script \"cd '$ws/pagayo-marketing' && npm run dev\"
 end tell"
@@ -268,6 +275,7 @@ local_dev_print_urls() {
   echo "   Vite:             http://localhost:5173/assets/"
   echo "   Design CSS:       http://localhost:5500/design/dist/fresh/webshop.css"
   echo "   API Stack:        http://localhost:8787"
+  echo "   Solutions:        http://localhost:8789"
   echo "   Marketing:        http://localhost:4321"
   echo ""
   echo "👤 Admin: dev@pagayo.com / admin123"
@@ -292,7 +300,8 @@ local_dev_wait_for_health() {
     if curl -sf --max-time 2 http://demo.localhost:3000/ >/dev/null 2>&1 \
       && curl -sf --max-time 2 http://localhost:5173/assets/ >/dev/null 2>&1 \
       && curl -sf --max-time 2 http://localhost:5500/design/dist/fresh/webshop.css >/dev/null 2>&1 \
-      && curl -sf --max-time 2 http://localhost:8787/ >/dev/null 2>&1; then
+      && curl -sf --max-time 2 http://localhost:8787/ >/dev/null 2>&1 \
+      && curl -sf --max-time 2 http://localhost:8789/ >/dev/null 2>&1; then
       echo "✅ Health check OK"
       return 0
     fi
