@@ -36,6 +36,10 @@ npm run test:contracts
 npm run test:quality
 ```
 
+## Workflow v2 — ochtend-status (Fase 0)
+
+`workspace-status.sh` bevat onderaan **Manager dashboard** — vijf regels proza voor Sjoerd. Geen schema-wijziging aan `releases/current.json`. Details: `pagayo-vault/.github/release-playbooks/05-daily-workflow-v2.md`.
+
 Volledige suite:
 ```bash
 npm run test:all
