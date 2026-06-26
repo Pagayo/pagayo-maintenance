@@ -40,6 +40,19 @@ npm run test:quality
 
 `workspace-status.sh` bevat onderaan **Manager dashboard** — vijf regels proza voor Sjoerd. Geen schema-wijziging aan `releases/current.json`. Details: `pagayo-vault/.github/release-playbooks/05-daily-workflow-v2.md`.
 
+## Local Staging v1 (Fase 1 — core)
+
+Scripts in `.github/scripts/` (npm-only design, geen edge/workflows/queues):
+
+| Script | Doel |
+|--------|------|
+| `local-staging-start.sh` | Core stack starten |
+| `local-staging-stop.sh` | Alleen staging-processen stoppen |
+| `local-staging-status.sh` | Vijf regels status voor Sjoerd |
+| `local-staging-smoke.sh` | Core smoke; eindigt met `LOCAL_STAGING_TIER=core` |
+
+Gedeelde state: `../.wrangler-shared`. Playbook: `pagayo-vault/.github/local-dev-playbooks/LOCAL-STAGING-v1.md`.
+
 Volledige suite:
 ```bash
 npm run test:all

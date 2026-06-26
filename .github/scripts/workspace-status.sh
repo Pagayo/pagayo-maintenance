@@ -255,10 +255,13 @@ fi
 
 # Local Staging (Fase 1 tooling; dev-stack detectie alleen informatief)
 DEV_PORT_PID="$(lsof -nP -iTCP:3000 -sTCP:LISTEN -t 2>/dev/null | head -1)" || true
-if [[ -n "$DEV_PORT_PID" ]]; then
-  DASH_LOCAL="lokaal dev-stack draait — Local Staging integratie nog Fase 1"
+LS_STATUS_SCRIPT="$WORKSPACE_ROOT/pagayo-maintenance/.github/scripts/local-staging-status.sh"
+if [[ -x "$LS_STATUS_SCRIPT" ]] && "$LS_STATUS_SCRIPT" 2>/dev/null | head -1 | grep -q "aan"; then
+  DASH_LOCAL="actief (core) — zie local-staging-status.sh"
+elif [[ -n "$DEV_PORT_PID" ]]; then
+  DASH_LOCAL="lokaal dev-stack draait — Local Staging integratie via local-staging-start.sh"
 else
-  DASH_LOCAL="niet actief (Fase 1) — geen geïntegreerde local smoke"
+  DASH_LOCAL="niet actief — start met local-staging-start.sh (Fase 1)"
 fi
 
 # RC + Production uit current.json v1 (read-only)
