@@ -240,6 +240,42 @@ describe("API Stack Service - Smoke Tests", () => {
       expect(response.status).toBe(401);
     });
 
+    it("Shipping options endpoint requires auth", async () => {
+      const response = await fetch(`${API_URL}/api/shipping/options`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      log(
+        "shipping-options-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+        "Check shipping options auth middleware",
+        "HIGH",
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it("Shipping return labels endpoint requires auth", async () => {
+      const response = await fetch(`${API_URL}/api/shipping/returns/labels`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      log(
+        "shipping-return-labels-auth",
+        response.status === 401 ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+        "Check return label auth middleware",
+        "HIGH",
+      );
+
+      expect(response.status).toBe(401);
+    });
+
     it("Bunq accounts endpoint requires auth", async () => {
       const response = await fetch(`${API_URL}/api/bunq/accounts`);
 
@@ -593,6 +629,50 @@ describe("API Stack Service - Smoke Tests", () => {
       }
 
       expect([401, 403]).toContain(response.status);
+    });
+  });
+
+  describe("Orderchamp Webhook", () => {
+    it("Orderchamp webhook fails closed without signature and does not 500", async () => {
+      const response = await fetch(`${API_URL}/webhooks/orderchamp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          event: "publication.updated",
+          publicationId: "smoke-publication",
+        }),
+      });
+
+      const data =
+        response.status !== 500
+          ? ((await response.json()) as { error?: { code?: string } })
+          : null;
+      const code = data?.error?.code;
+      const isExpectedFailClosed =
+        response.status === 401 ||
+        (response.status === 503 &&
+          code === "ORDERCHAMP_WEBHOOK_SIGNATURE_UNCONFIGURED");
+
+      if (isExpectedFailClosed) {
+        log(
+          "orderchamp-webhook-fail-closed",
+          "PASS",
+          `Fail-closed: HTTP ${response.status}, code=${code ?? "none"}`,
+        );
+      } else {
+        log(
+          "orderchamp-webhook-fail-closed",
+          "FAIL",
+          `Unexpected response: HTTP ${response.status}, code=${code ?? "none"}`,
+          "Check Orderchamp webhook ingress fail-closed behavior",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).not.toBe(500);
+      expect(isExpectedFailClosed).toBe(true);
     });
   });
 });

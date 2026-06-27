@@ -4293,6 +4293,50 @@ describe("Storefront Service - Smoke Tests", () => {
     });
   });
 
+  describe("Admin Fulfillment API", () => {
+    it("POST /api/admin/orders/:orderId/shipping/options requires admin auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/orders/ORD-SMOKE/shipping/options`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        },
+      );
+
+      if (skipIfNoTenant(response, "admin-shipping-options-auth")) return;
+      log(
+        "admin-shipping-options-auth",
+        [401, 403, 302].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+        "Check admin shipping auth middleware",
+        "HIGH",
+      );
+      expect([401, 403, 302]).toContain(response.status);
+    });
+
+    it("POST /api/admin/returns/:id/label requires admin auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/returns/RET-SMOKE/label`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ weight: 1 }),
+        },
+      );
+
+      if (skipIfNoTenant(response, "admin-return-label-auth")) return;
+      log(
+        "admin-return-label-auth",
+        [401, 403, 302].includes(response.status) ? "PASS" : "FAIL",
+        `Status: ${response.status}`,
+        "Check admin returns auth middleware",
+        "HIGH",
+      );
+      expect([401, 403, 302]).toContain(response.status);
+    });
+  });
+
   describe("Auth Routes (Phone Support)", () => {
     it("POST /auth/register with email returns 200 or 400", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/auth/register`, {
