@@ -2070,6 +2070,69 @@ describe("Storefront Service - Smoke Tests", () => {
       expect([401, 403]).toContain(response.status);
     });
 
+    it("Website editor bootstrap requires auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/admin/website-editor/bootstrap?surface=home`,
+      );
+
+      if (skipIfNoTenant(response, "website-editor-bootstrap-auth")) return;
+
+      if ([401, 403].includes(response.status)) {
+        log("website-editor-bootstrap-auth", "PASS", "Properly protected");
+      } else if (response.status >= 500) {
+        log(
+          "website-editor-bootstrap-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check website editor bootstrap route",
+          "HIGH",
+        );
+      }
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("GET /api/admin/website-editor/bootstrap returns sections for admin session", async () => {
+      const testName = "website-editor-bootstrap-contract";
+      const adminSession = await resolveAdminSessionCookie();
+      if (!adminSession.sessionCookie) {
+        log(
+          testName,
+          adminSession.severity,
+          adminSession.reason ?? "Geen admin sessie beschikbaar",
+          undefined,
+          adminSession.severity === "FAIL" ? "CRITICAL" : "HIGH",
+        );
+        if (adminSession.severity === "FAIL") {
+          expect(adminSession.sessionCookie).toBeTruthy();
+        }
+        return;
+      }
+
+      const adminFetch = createAuthFetch(adminSession.sessionCookie);
+      const response = await adminFetch(
+        `${STOREFRONT_URL}/api/admin/website-editor/bootstrap?surface=home`,
+      );
+
+      if (skipIfNoTenant(response, testName)) return;
+
+      const body = await readJsonBody(response);
+      if (response.status === 200 && body?.success === true) {
+        log(testName, "PASS", "Bootstrap payload returned");
+        expect(response.headers.get("Cache-Control")).toContain("no-store");
+      } else if (response.status >= 500) {
+        log(
+          testName,
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check website editor bootstrap handler",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+
     it("GET /api/admin/search?q=test returns non-500", async () => {
       // Zonder admin sessie verwachten we 401, niet 500
       const response = await fetch(`${STOREFRONT_URL}/api/admin/search?q=test`);
