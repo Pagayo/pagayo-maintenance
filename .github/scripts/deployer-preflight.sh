@@ -19,6 +19,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=branch-guard-lib.sh
 source "$SCRIPT_DIR/branch-guard-lib.sh"
 
+# CI: workflow_dispatch production-only/full op main = expliciet prod-pad (deploy_token gate in caller).
+if [[ "${GITHUB_ACTIONS:-}" == "true" && "${GITHUB_EVENT_NAME:-}" == "workflow_dispatch" && -n "${GITHUB_EVENT_PATH:-}" && -f "$GITHUB_EVENT_PATH" ]]; then
+    _deploy_mode="$(jq -r '.inputs.deploy_mode // "staging-only"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo staging-only)"
+    if [[ "$_deploy_mode" == "production-only" || "$_deploy_mode" == "full" ]]; then
+        export PAGAYO_ALLOW_MAIN=1
+    fi
+fi
+
 echo "╔════════════════════════════════════════════════════════════════════════╗"
 echo "║              🚀 DEPLOYER PRE-FLIGHT CHECK                              ║"
 echo "╚════════════════════════════════════════════════════════════════════════╝"
