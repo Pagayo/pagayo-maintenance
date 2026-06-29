@@ -207,4 +207,154 @@ else
 fi
 
 echo ""
+<<<<<<< Updated upstream
+=======
+
+# =============================================================================
+# Manager dashboard (ochtend-status) — Fase 0 workflow v2
+# Vijf regels proza voor Sjoerd; geen branchnamen.
+# =============================================================================
+
+MANIFEST_FILE="$WORKSPACE_ROOT/pagayo-maintenance/releases/current.json"
+
+# Workspace
+if [[ "$WARNINGS" -gt 0 || ${#DIRTY_LIST[@]} -gt 0 ]]; then
+  DASH_WORKSPACE="rood — eerst opruimen vóór nieuwe lane"
+else
+  DASH_WORKSPACE="groen — veilig om een nieuwe lane te starten"
+fi
+
+# Open lanes (geen registry in Fase 0)
+LANE_HINT_COUNT=0
+MANIFEST_COUNT=0
+if [[ -d "$WORKTREE_BASE" ]]; then
+  for session_dir in "$WORKTREE_BASE"/*/; do
+    [[ -d "$session_dir" ]] || continue
+    for repo in "${REPOS[@]}"; do
+      wt_path="$session_dir$repo"
+      if [[ -e "$wt_path/.git" ]]; then
+        dirty_count=$(git -C "$wt_path" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ')
+        ahead=0
+        if git -C "$wt_path" rev-parse --abbrev-ref '@{u}' &>/dev/null; then
+          ahead=$(git -C "$wt_path" rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)
+        fi
+        if [[ "$dirty_count" -gt 0 || "$ahead" -gt 0 ]]; then
+          LANE_HINT_COUNT=$((LANE_HINT_COUNT + 1))
+        fi
+      fi
+    done
+  done
+fi
+if [[ "$MANIFEST_COUNT" -gt 0 ]]; then
+  LANE_HINT_COUNT=$((LANE_HINT_COUNT + MANIFEST_COUNT))
+fi
+if [[ "$LANE_HINT_COUNT" -gt 3 ]]; then
+  DASH_LANES="te veel parallel werk ($LANE_HINT_COUNT signalen) — herprioriteer (max 3 lanes)"
+elif [[ "$LANE_HINT_COUNT" -gt 0 ]]; then
+  DASH_LANES="$LANE_HINT_COUNT actief signaal — zie lane-chats (geen registry, Fase 0)"
+else
+  DASH_LANES="geen actieve lane-chats gesignaleerd — max 3 toegestaan"
+fi
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 local/staging branches"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+INTEGRATE_REPOS=(pagayo-storefront pagayo-api-stack pagayo-config pagayo-schema pagayo-design pagayo-maintenance)
+for repo in "${INTEGRATE_REPOS[@]}"; do
+  repo_path="$WORKSPACE_ROOT/$repo"
+  [[ -d "$repo_path/.git" ]] || continue
+  if git -C "$repo_path" show-ref --verify --quiet refs/heads/local/staging 2>/dev/null; then
+    ish="$(git -C "$repo_path" rev-parse --short local/staging 2>/dev/null || echo "?")"
+    echo "  🟢 $repo — local/staging @ $ish"
+  else
+    echo "  ⊘  $repo — geen local/staging"
+  fi
+done
+echo ""
+
+LS_SMOKE_FILE="/tmp/pagayo-local-staging/smoke-last.env"
+if [[ -f "$LS_SMOKE_FILE" ]]; then
+  LS_SMOKE_STATUS="$(grep '^status=' "$LS_SMOKE_FILE" | head -1 | cut -d= -f2- || true)"
+  if [[ "$LS_SMOKE_STATUS" == "rood" ]]; then
+    echo "🚨 ACTION_REQUIRED: Local Staging niet groen"
+    WARNINGS=$((WARNINGS + 1))
+  elif [[ "$LS_SMOKE_STATUS" == "groen" ]]; then
+    echo "✅ Local Staging smoke: groen"
+  fi
+  echo ""
+fi
+
+# Local Staging (Fase 1 tooling; dev-stack detectie alleen informatief)
+DEV_PORT_PID="$(lsof -nP -iTCP:3000 -sTCP:LISTEN -t 2>/dev/null | head -1)" || true
+LS_STATUS_SCRIPT="$WORKSPACE_ROOT/pagayo-maintenance/.github/scripts/local-staging-status.sh"
+if [[ -x "$LS_STATUS_SCRIPT" ]] && "$LS_STATUS_SCRIPT" 2>/dev/null | head -1 | grep -q "aan"; then
+  DASH_LOCAL="actief (core) — zie local-staging-status.sh"
+  if [[ "${LS_SMOKE_STATUS:-}" == "rood" ]]; then
+    DASH_LOCAL="ACTION_REQUIRED — stack draait maar smoke rood"
+  elif [[ "${LS_SMOKE_STATUS:-}" == "groen" ]]; then
+    DASH_LOCAL="groen (core) — klaar voor RC-beslissing"
+  fi
+elif [[ -n "$DEV_PORT_PID" ]]; then
+  DASH_LOCAL="lokaal dev-stack draait — Local Staging integratie via local-staging-start.sh"
+else
+  DASH_LOCAL="niet actief — start met local-staging-start.sh (Fase 1)"
+fi
+
+# RC + Production uit current.json v1 (read-only)
+DASH_RC="geen manifest gevonden"
+DASH_PROD="onbekend — manifest v1 heeft geen prod SHA"
+
+if [[ -f "$MANIFEST_FILE" ]]; then
+  MANIFEST_SUMMARY=$(node -e "
+    const fs = require('fs');
+    const p = process.argv[1];
+    const m = JSON.parse(fs.readFileSync(p, 'utf8'));
+    const repos = m.repos || {};
+    const withStaging = Object.entries(repos).filter(([, v]) => v && v.staging_sha);
+    const storefront = repos['pagayo-storefront'];
+    const updated = m.updated_at ? m.updated_at.slice(0, 10) : 'onbekend';
+    const rcId = m.rc_id || null;
+    const prodSha = m.prod_deployed_sha || null;
+    console.log(JSON.stringify({
+      rcId,
+      updated,
+      stagingCount: withStaging.length,
+      storefrontShort: storefront && storefront.staging_sha ? storefront.staging_sha.slice(0, 7) : null,
+      prodSha: prodSha ? prodSha.slice(0, 7) : null,
+    }));
+  " "$MANIFEST_FILE" 2>/dev/null || echo '{}')
+
+  RC_ID=$(node -e "const o=JSON.parse(process.argv[1]); console.log(o.rcId||'')" "$MANIFEST_SUMMARY" 2>/dev/null || true)
+  STAGING_COUNT=$(node -e "const o=JSON.parse(process.argv[1]); console.log(o.stagingCount||0)" "$MANIFEST_SUMMARY" 2>/dev/null || echo "0")
+  MANIFEST_DATE=$(node -e "const o=JSON.parse(process.argv[1]); console.log(o.updated||'onbekend')" "$MANIFEST_SUMMARY" 2>/dev/null || echo "onbekend")
+  STOREFRONT_SHORT=$(node -e "const o=JSON.parse(process.argv[1]); console.log(o.storefrontShort||'')" "$MANIFEST_SUMMARY" 2>/dev/null || true)
+  PROD_SHORT=$(node -e "const o=JSON.parse(process.argv[1]); console.log(o.prodSha||'')" "$MANIFEST_SUMMARY" 2>/dev/null || true)
+
+  if [[ -n "$RC_ID" ]]; then
+    DASH_RC="RC $RC_ID op staging — klaar voor review of akkoord"
+  elif [[ "$STAGING_COUNT" -gt 0 ]]; then
+    DASH_RC="staging vastgelegd ($STAGING_COUNT repo's, bijgewerkt $MANIFEST_DATE) — geen RC-nummer (Fase 3)"
+  else
+    DASH_RC="geen staging vastgelegd in manifest"
+  fi
+
+  if [[ -n "$PROD_SHORT" ]]; then
+    DASH_PROD="live versie vastgelegd — prod-actie alleen na expliciete go"
+  else
+    DASH_PROD="geen prod SHA in manifest v1 — productie alleen na expliciete go (playbook 04)"
+  fi
+fi
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 Manager dashboard (ochtend-status)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Workspace: $DASH_WORKSPACE"
+echo "Open lanes: $DASH_LANES"
+echo "Local Staging: $DASH_LOCAL"
+echo "RC: $DASH_RC"
+echo "Production: $DASH_PROD"
+echo ""
+
+>>>>>>> Stashed changes
 exit 0

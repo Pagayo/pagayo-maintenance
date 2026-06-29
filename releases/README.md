@@ -4,7 +4,7 @@
 
 Productie-deploys valideren de deploy-SHA tegen dit manifest via de `reusable-preprod-guard.yml` workflow. Zonder match wordt de deploy geweigerd.
 
-## Structuur
+## Structuur (v1 + v2 velden)
 
 ```json
 {
@@ -14,14 +14,16 @@ Productie-deploys valideren de deploy-SHA tegen dit manifest via de `reusable-pr
   "repos": {
     "<repo-name>": {
       "staging_sha": "<full git sha of null>",
-      "verified_at": "<ISO-8601 UTC of null>"
+      "verified_at": "<ISO-8601 UTC of null>",
+      "development_staging_sha": "<full git sha of null — v2, optioneel>"
     }
   }
 }
 ```
 
 - `version`: bump bij elke breaking structuurwijziging.
-- `staging_sha`: full 40-char git SHA die groen door staging-smoke kwam.
+- `staging_sha`: full 40-char git SHA die groen door **RC** staging-smoke kwam (`staging_lane=rc`).
+- `development_staging_sha` (v2, optioneel): laatste geslaagde **development-staging** deploy; geen preprod-guard input.
 - `verified_at`: tijdstip van de succesvolle staging-smoke.
 
 ## Update-flow (alleen via automation)
