@@ -15,6 +15,10 @@ set -e
 REPO_PATH="${1:-.}"
 cd "$REPO_PATH"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=branch-guard-lib.sh
+source "$SCRIPT_DIR/branch-guard-lib.sh"
+
 echo "╔════════════════════════════════════════════════════════════════════════╗"
 echo "║              🚀 DEPLOYER PRE-FLIGHT CHECK                              ║"
 echo "╚════════════════════════════════════════════════════════════════════════╝"
@@ -44,6 +48,37 @@ if [[ -n $(git status --porcelain --untracked-files=no) ]]; then
 else
     echo "✅ Working directory is clean"
     UNCOMMITTED=false
+fi
+echo ""
+
+# =============================================================================
+# CHECK 1.5: Branch policy (Release Workflow v2)
+# =============================================================================
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 CHECK 1.5: Branch Policy"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+BRANCH_POLICY_FAIL=false
+CURRENT_BRANCH_EARLY=$(git branch --show-current)
+
+if [[ "$CURRENT_BRANCH_EARLY" == "main" && "${PAGAYO_ALLOW_MAIN:-}" != "1" ]]; then
+    echo "❌ Push/merge vanaf main geblokkeerd zonder expliciete toestemming Sjoerd."
+    echo "   Zet PAGAYO_ALLOW_MAIN=1 alleen bij expliciete opdracht in dezelfde thread."
+    BRANCH_POLICY_FAIL=true
+elif [[ "$CURRENT_BRANCH_EARLY" == "main" ]]; then
+    echo "✅ main — PAGAYO_ALLOW_MAIN=1 actief"
+elif [[ "$CURRENT_BRANCH_EARLY" == "$INTEGRATE_BRANCH" ]]; then
+    if [[ "${PAGAYO_ALLOW_LOCAL_STAGING_PUSH:-}" == "1" ]]; then
+        echo "✅ $INTEGRATE_BRANCH — PAGAYO_ALLOW_LOCAL_STAGING_PUSH=1 actief"
+    else
+        echo "❌ Push van $INTEGRATE_BRANCH is standaard geblokkeerd (lokale integratie)."
+        echo "   Push je kandidaat-lane (feature/*, hotfix/*) voor RC."
+        BRANCH_POLICY_FAIL=true
+    fi
+elif branch_guard_is_lane_branch "$CURRENT_BRANCH_EARLY"; then
+    echo "✅ Lane-branch: $CURRENT_BRANCH_EARLY"
+else
+    echo "⚠️  Branch '$CURRENT_BRANCH_EARLY' is geen standaard lane — push alleen met reden (RC/hotfix/package)."
 fi
 echo ""
 
@@ -306,6 +341,23 @@ if [[ -d "$DESIGN_LOCAL" ]]; then
 fi
 
 # =============================================================================
+# CHECK 8: Decision thread scope (cross-thread mix)
+# =============================================================================
+THREAD_CHECK_FAIL=false
+THREAD_SCRIPT="$SCRIPT_DIR/decision-thread-preflight.sh"
+if [[ -x "$THREAD_SCRIPT" ]]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📋 CHECK 8: Decision Thread Scope"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    if "$THREAD_SCRIPT" "$REPO_PATH"; then
+        :
+    else
+        THREAD_CHECK_FAIL=true
+    fi
+    echo ""
+fi
+
+# =============================================================================
 # SUMMARY
 # =============================================================================
 echo "╔════════════════════════════════════════════════════════════════════════╗"
@@ -313,7 +365,7 @@ echo "║                          📊 SAMENVATTING                            
 echo "╚════════════════════════════════════════════════════════════════════════╝"
 echo ""
 
-if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "true" || "$DESIGN_DRIFT" == "true" ]]; then
+if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "true" || "$DESIGN_DRIFT" == "true" || "$BRANCH_POLICY_FAIL" == "true" || "$THREAD_CHECK_FAIL" == "true" ]]; then
     echo "❌ PRE-FLIGHT CHECK GEFAALD"
     echo ""
     if [[ "$UNCOMMITTED" == "true" ]]; then
@@ -329,6 +381,12 @@ if [[ "$UNCOMMITTED" == "true" || "$DIVERGED" == "true" || "$MAIN_BEHIND" == "tr
         echo "   • @pagayo/design lokaal ≠ npm — publiceer eerst!"
         echo "     FIX: cd pagayo-design && npm version patch && npm publish"
         echo "     DAN: cd pagayo-storefront && npm install @pagayo/design@<nieuwe-versie>"
+    fi
+    if [[ "$BRANCH_POLICY_FAIL" == "true" ]]; then
+        echo "   • Branch policy — geen push van main of local/staging zonder expliciete flags"
+    fi
+    if [[ "$THREAD_CHECK_FAIL" == "true" ]]; then
+        echo "   • Decision thread scope — split cross-thread wijzigingen (CHECK 8)"
     fi
     echo ""
     echo "🛑 STOP: Los bovenstaande issues op voordat je doorgaat!"
