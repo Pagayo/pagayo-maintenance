@@ -207,8 +207,6 @@ else
 fi
 
 echo ""
-<<<<<<< Updated upstream
-=======
 
 # =============================================================================
 # Manager dashboard (ochtend-status) — Fase 0 workflow v2
@@ -356,5 +354,4 @@ echo "RC: $DASH_RC"
 echo "Production: $DASH_PROD"
 echo ""
 
->>>>>>> Stashed changes
 exit 0
