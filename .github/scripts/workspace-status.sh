@@ -224,6 +224,7 @@ fi
 
 # Open lanes (geen registry in Fase 0)
 LANE_HINT_COUNT=0
+MANIFEST_COUNT=0
 if [[ -d "$WORKTREE_BASE" ]]; then
   for session_dir in "$WORKTREE_BASE"/*/; do
     [[ -d "$session_dir" ]] || continue
