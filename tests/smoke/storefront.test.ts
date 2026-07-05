@@ -5112,6 +5112,34 @@ describe("Storefront Service - Smoke Tests", () => {
     });
   });
 
+  describe("Booking Endpoint", () => {
+    it("GET /api/bookings/offers/:offerId/availability is reachable without 500", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/bookings/offers/1/availability?from=2026-07-05&to=2026-07-05`,
+      );
+
+      if (skipIfNoTenant(response, "booking-availability-reachable")) return;
+
+      if (response.status < 500) {
+        log(
+          "booking-availability-reachable",
+          "PASS",
+          `Booking availability endpoint bereikbaar: HTTP ${response.status}`,
+        );
+      } else {
+        log(
+          "booking-availability-reachable",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check booking routes, tenant migration and Booking V1 schema",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
+  });
+
   describe("Checkout Endpoint", () => {
     it("POST /api/checkout returns 400 without body (endpoint reachable)", async () => {
       const response = await fetch(`${STOREFRONT_URL}/api/checkout`, {
