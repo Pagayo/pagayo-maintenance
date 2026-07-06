@@ -393,6 +393,68 @@ Mitigaties:
 - Gebruik `dry_run: true` bij eerste tests.
 - Review notificatieruis na de pilot voordat er brede rollout komt.
 
+## V2 — Storefront Development Pilot
+
+V2 maakt Slack expliciet **development-only**. Slack is in deze fase geen operations hub.
+
+### Development-loop
+
+```text
+Cursor/GitHub -> Slack -> ChatGPT review -> Cursor
+```
+
+### Wat V2 wel doet
+
+- PR opened / updated / merged signalen vanuit `pagayo-storefront`.
+- Release/deploy started / succeeded / failed signalen vanuit de bestaande deploy workflow.
+- Verplicht AI Review Package in de storefront PR-template.
+- Centrale formatting blijft in `pagayo-maintenance` via `reusable-slack-notify.yml`.
+
+### Wat V2 niet doet
+
+- Geen tenant-feedback.
+- Geen Stripe-integratie.
+- Geen Cloudflare errors of runtime observability.
+- Geen production monitoring.
+- Geen supportmeldingen.
+- Geen business events.
+- Geen AI Control Center.
+- Geen echte Slack-post zolang callers `dry_run: true` gebruiken.
+
+### Storefront caller workflows
+
+| Workflow | Repo | Events | Webhook secret |
+| --- | --- | --- | --- |
+| `slack-pr-notify.yml` | `pagayo-storefront` | PR opened, updated, merged | `SLACK_WEBHOOK_PAGAYO_GITHUB` |
+| `deploy-cloudflare.yml` jobs | `pagayo-storefront` | deployment started/succeeded/failed | `SLACK_WEBHOOK_PAGAYO_DEPLOYMENTS` |
+
+Alle callers:
+
+- gebruiken `Pagayo/pagayo-maintenance/.github/workflows/reusable-slack-notify.yml@main`;
+- leveren expliciete inputs (`domains: unknown`, `risk: unknown` tenzij later handmatig verrijkt);
+- hebben `dry_run: true` hardcoded in de eerste pilot.
+
+### Benodigde secrets in `pagayo-storefront`
+
+- `SLACK_WEBHOOK_PAGAYO_GITHUB`
+- `SLACK_WEBHOOK_PAGAYO_DEPLOYMENTS`
+
+### Activatie naar echte posts
+
+1. Secrets aanmaken in GitHub voor `pagayo-storefront`.
+2. Eén caller tegelijk van `dry_run: true` naar `dry_run: false` zetten.
+3. Eén PR-cycle en één deploy-cycle observeren.
+4. Pas daarna overwegen om een tweede repo toe te voegen.
+
+### Rollout-criteria
+
+De pilot is pas veilig breder uit te rollen als:
+
+- payloads in dry-run bruikbaar en niet te ruisachtig zijn;
+- AI Review Package consequent in PR's staat;
+- geen CI-regressie is geïntroduceerd;
+- expliciet akkoord is gegeven voor echte Slack-posts.
+
 ## Groeipad Naar AI Operations
 
 Fase 1 levert alleen het message contract en een generieke transportstap. Dat kan later doorgroeien zonder nu een groot systeem te bouwen.
