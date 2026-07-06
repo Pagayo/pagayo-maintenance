@@ -1,0 +1,174 @@
+# =============================================================================
+# Reusable Slack Notification
+# -----------------------------------------------------------------------------
+# Generic formatter/poster for Slack Incoming Webhooks.
+#
+# This workflow intentionally contains no Pagayo business logic, tenant logic,
+# AI decisions, domain inference, or risk inference. Callers must pass all
+# message fields explicitly.
+# =============================================================================
+
+name: Reusable Slack Notify
+
+on:
+  workflow_call:
+    inputs:
+      event_type:
+        description: "Event type to display, for example: PR opened"
+        required: true
+        type: string
+      repo:
+        description: "Repository name"
+        required: true
+        type: string
+      branch:
+        description: "Branch or ref name"
+        required: true
+        type: string
+      link:
+        description: "Source-of-truth link, for example a PR or workflow run"
+        required: true
+        type: string
+      summary:
+        description: "Short event summary"
+        required: true
+        type: string
+      domains:
+        description: "Changed domains, explicitly supplied by caller"
+        required: true
+        type: string
+      test_status:
+        description: "Test status, explicitly supplied by caller"
+        required: true
+        type: string
+      risk:
+        description: "Risk indication, explicitly supplied by caller"
+        required: true
+        type: string
+      next_action:
+        description: "Recommended next action, explicitly supplied by caller"
+        required: true
+        type: string
+      dry_run:
+        description: "Print payload without posting to Slack"
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      slack_webhook_url:
+        description: "Slack Incoming Webhook URL selected by the caller"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: Format and post Slack notification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Build Slack payload
+        env:
+          EVENT_TYPE: ${{ inputs.event_type }}
+          REPO: ${{ inputs.repo }}
+          BRANCH: ${{ inputs.branch }}
+          LINK: ${{ inputs.link }}
+          SUMMARY: ${{ inputs.summary }}
+          DOMAINS: ${{ inputs.domains }}
+          TEST_STATUS: ${{ inputs.test_status }}
+          RISK: ${{ inputs.risk }}
+          NEXT_ACTION: ${{ inputs.next_action }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const fields = {
+            eventType: process.env.EVENT_TYPE,
+            repo: process.env.REPO,
+            branch: process.env.BRANCH,
+            link: process.env.LINK,
+            summary: process.env.SUMMARY,
+            domains: process.env.DOMAINS,
+            testStatus: process.env.TEST_STATUS,
+            risk: process.env.RISK,
+            nextAction: process.env.NEXT_ACTION,
+          };
+
+          const missing = Object.entries(fields)
+            .filter(([, value]) => !value || value.trim().length === 0)
+            .map(([key]) => key);
+
+          if (missing.length > 0) {
+            throw new Error(`Missing required Slack notification fields: ${missing.join(", ")}`);
+          }
+
+          const text = `[${fields.eventType}] ${fields.repo} - ${fields.summary}`;
+          const payload = {
+            text,
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: `*[${fields.eventType}] ${fields.repo}*\n${fields.summary}`,
+                },
+              },
+              {
+                type: "section",
+                fields: [
+                  { type: "mrkdwn", text: `*Branch:*\n${fields.branch}` },
+                  { type: "mrkdwn", text: `*Risk:*\n${fields.risk}` },
+                  { type: "mrkdwn", text: `*Domains:*\n${fields.domains}` },
+                  { type: "mrkdwn", text: `*Tests:*\n${fields.testStatus}` },
+                ],
+              },
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: `*Next:*\n${fields.nextAction}`,
+                },
+              },
+              {
+                type: "actions",
+                elements: [
+                  {
+                    type: "button",
+                    text: { type: "plain_text", text: "Open source" },
+                    url: fields.link,
+                  },
+                ],
+              },
+            ],
+          };
+
+          fs.writeFileSync("slack-payload.json", `${JSON.stringify(payload, null, 2)}\n`);
+          NODE
+
+      - name: Show dry-run payload
+        if: ${{ inputs.dry_run }}
+        run: |
+          node -e 'console.log(JSON.stringify(JSON.parse(require("node:fs").readFileSync("slack-payload.json", "utf8")), null, 2))'
+
+      - name: Require Slack webhook
+        if: ${{ !inputs.dry_run }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::error::Missing slack_webhook_url secret for non-dry-run Slack notification."
+            exit 1
+          fi
+
+      - name: Post to Slack
+        if: ${{ !inputs.dry_run }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --data @slack-payload.json \
+            "$SLACK_WEBHOOK_URL"
