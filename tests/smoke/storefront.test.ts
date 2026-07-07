@@ -5138,6 +5138,30 @@ describe("Storefront Service - Smoke Tests", () => {
 
       expect(response.status).toBeLessThan(500);
     });
+
+    it("GET /api/admin/bookings/setup is reachable without 500", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/bookings/setup`);
+
+      if (skipIfNoTenant(response, "admin-booking-setup-reachable")) return;
+
+      if (response.status < 500) {
+        log(
+          "admin-booking-setup-reachable",
+          "PASS",
+          `Booking setup endpoint bereikbaar: HTTP ${response.status}`,
+        );
+      } else {
+        log(
+          "admin-booking-setup-reachable",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check booking admin routes and tenant migration status",
+          "HIGH",
+        );
+      }
+
+      expect(response.status).toBeLessThan(500);
+    });
   });
 
   describe("Checkout Endpoint", () => {
