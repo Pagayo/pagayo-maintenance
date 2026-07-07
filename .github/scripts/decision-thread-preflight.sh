@@ -99,7 +99,7 @@ if [[ "$INIT_MODE" == "1" ]]; then
   exit 0
 fi
 
-if [[ ! -d "$REPO_PATH/.git" ]]; then
+if ! git -C "$REPO_PATH" rev-parse --git-dir >/dev/null 2>&1; then
   echo "❌ Geen git repo: $REPO_PATH"
   exit 1
 fi
