@@ -97,7 +97,6 @@ topics:
     references:
       - REF-DOC-ROUTER-SF-0001
     adrs:
-      - ADR-0005
       - ADR-0010
     playbooks: []
     historical: []
@@ -127,8 +126,7 @@ topics:
       - REF-PRODUCTS-OVERVIEW-0001
       - REF-DOC-ROUTER-SF-0001
       - REF-ADMIN-MATRIX-0001
-    adrs:
-      - ADR-0005
+    adrs: []
     playbooks: []
     historical: []
 
