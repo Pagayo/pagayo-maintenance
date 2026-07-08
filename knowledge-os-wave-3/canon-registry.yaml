@@ -1,0 +1,601 @@
+# Pagayo Knowledge OS — Canon Registry
+# Machine-readable index. Authoritative human rules: KNOWLEDGE-REGISTRY.md
+
+version: 3
+wave: 3
+
+entries:
+  - id: KNOW-START-0001
+    title: START HERE — Pagayo Knowledge OS
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/00-start-here/START-HERE.md
+    supersedes: []
+    references:
+      - KNOW-CANON-0001
+      - CANON-AGENTS-0001
+
+  - id: KNOW-CANON-0001
+    title: Knowledge Constitution
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/01-canon/KNOWLEDGE-CONSTITUTION.md
+    supersedes: []
+    references:
+      - KNOW-START-0001
+
+  - id: KNOW-GRAMMAR-0001
+    title: Knowledge Grammar
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/02-grammar/KNOWLEDGE-GRAMMAR.md
+    supersedes: []
+    references:
+      - KNOW-CANON-0001
+      - KNOW-TAXONOMY-0001
+
+  - id: KNOW-TAXONOMY-0001
+    title: Knowledge Taxonomy
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/02-grammar/KNOWLEDGE-TAXONOMY.md
+    supersedes: []
+    references:
+      - KNOW-CANON-0001
+      - KNOW-GRAMMAR-0001
+
+  - id: KNOW-REGISTRY-0001
+    title: Knowledge Registry
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/03-registry/KNOWLEDGE-REGISTRY.md
+    supersedes: []
+    references:
+      - KNOW-CANON-0001
+
+  - id: KNOW-LIFECYCLE-0001
+    title: Knowledge Lifecycle
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/04-lifecycle/KNOWLEDGE-LIFECYCLE.md
+    supersedes: []
+    references:
+      - KNOW-CANON-0001
+      - KNOW-REGISTRY-0001
+
+  - id: KNOW-MIGRATION-0001
+    title: Document Migration
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/05-migration/DOCUMENT-MIGRATION.md
+    supersedes: []
+    references:
+      - KNOW-MIGRATION-ENGINE-0001
+      - KNOW-REGISTRY-0001
+
+  - id: KNOW-MIGRATION-ENGINE-0001
+    title: Migration Engine
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/05-migration/MIGRATION-ENGINE.md
+    supersedes: []
+    references:
+      - KNOW-MIGRATION-0001
+
+  - id: KNOW-AI-BOOT-0001
+    title: AI Bootloader
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/06-ai/AI-BOOTLOADER.md
+    supersedes: []
+    references:
+      - KNOW-START-0001
+      - CANON-AI-L1-0001
+
+  - id: KNOW-CLEANUP-0001
+    title: Cleanup Plan V1
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/07-cleanup/CLEANUP-PLAN-V1.md
+    supersedes: []
+    references:
+      - KNOW-MIGRATION-ENGINE-0001
+
+  - id: KNOW-METADATA-0001
+    title: Document Metadata
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/08-templates/DOCUMENT-METADATA.md
+    supersedes: []
+    references:
+      - KNOW-REGISTRY-0001
+      - KNOW-LIFECYCLE-0001
+
+  - id: KNOW-MIGRATION-STATUS-0001
+    title: Knowledge Migration Status
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/MIGRATION-STATUS.md
+    supersedes: []
+    references:
+      - KNOW-MIGRATION-0001
+
+  - id: CANON-WHY-0001
+    title: PAGAYO-WHY
+    type: mission-canon
+    owner: platform
+    status: active
+    path: pagayo-vault/PAGAYO-WHY.md
+    supersedes: []
+    references:
+      - CANON-NIVEAU-0001
+
+  - id: CANON-NIVEAU-0001
+    title: Pagayo Platform — Architectuur & Referentiedocument
+    type: platform-canon
+    owner: platform
+    status: active
+    path: pagayo-vault/PAGAYO-NIVEAU.md
+    supersedes: []
+    references:
+      - CANON-WHY-0001
+      - CANON-STACK-0001
+      - CANON-AGENTS-0001
+
+  - id: CANON-STACK-0001
+    title: PAGAYO STACK MANIFEST
+    type: stack-canon
+    owner: platform
+    status: active
+    path: pagayo-vault/STACK-MANIFEST.md
+    supersedes: []
+    references:
+      - CANON-NIVEAU-0001
+
+  - id: CANON-AI-L1-0001
+    title: AI Operating Context (L1)
+    type: ai-canon
+    owner: ai-system
+    status: active
+    path: pagayo-vault/AI-OPERATING-CONTEXT.md
+    supersedes: []
+    references:
+      - CANON-NIVEAU-0001
+      - CANON-STACK-0001
+      - CANON-AGENTS-0001
+
+  - id: CANON-AGENTS-0001
+    title: Pagayo Workspace - Agent Router
+    type: platform-canon
+    owner: platform
+    status: active
+    path: AGENTS.md
+    supersedes: []
+    references:
+      - KNOW-START-0001
+      - KNOW-CANON-0001
+      - CANON-WHY-0001
+      - CANON-NIVEAU-0001
+      - CANON-STACK-0001
+      - CANON-AI-L1-0001
+
+  - id: ADR-INDEX-VAULT-0001
+    title: Pagayo Platform ADRs
+    type: adr
+    owner: platform
+    status: active
+    path: pagayo-vault/docs/adr/README.md
+    supersedes: []
+    references:
+      - CANON-NIVEAU-0001
+
+  - id: ADR-0005
+    title: Order → Fulfillment Artifacts
+    type: adr
+    owner: platform
+    status: active
+    path: pagayo-vault/docs/adr/0005-order-fulfillment-artifacts.md
+    supersedes: []
+    references:
+      - ADR-INDEX-VAULT-0001
+      - CANON-WHY-0001
+      - CANON-NIVEAU-0001
+
+  - id: ADR-0006
+    title: Canonical Provisioning Model
+    type: adr
+    owner: platform
+    status: active
+    path: pagayo-vault/docs/adr/0006-canonical-provisioning-model.md
+    supersedes: []
+    references:
+      - ADR-INDEX-VAULT-0001
+
+  - id: ADR-0007
+    title: Tenant Feature Set
+    type: adr
+    owner: platform
+    status: active
+    path: pagayo-vault/docs/adr/0007-tenant-capability-set.md
+    supersedes: []
+    references:
+      - ADR-INDEX-VAULT-0001
+
+  - id: ADR-0009
+    title: Orderchamp Dropshipping Boundary
+    type: adr
+    owner: platform
+    status: active
+    path: pagayo-vault/docs/adr/0009-orderchamp-dropshipping-boundary.md
+    supersedes: []
+    references:
+      - ADR-INDEX-VAULT-0001
+
+  - id: ADR-0010
+    title: Commerce Import First
+    type: adr
+    owner: platform
+    status: active
+    path: pagayo-vault/docs/adr/0010-commerce-import-first.md
+    supersedes: []
+    references:
+      - ADR-INDEX-VAULT-0001
+
+  - id: ADR-0011
+    title: Admin V2 Constitution Amendment v1
+    type: adr
+    owner: platform
+    status: proposed
+    path: pagayo-vault/docs/adr/0011-admin-v2-constitution-amendment-v1.md
+    supersedes: []
+    references:
+      - ADR-INDEX-VAULT-0001
+
+  - id: ADR-SF-0001
+    title: Functional Theme vs Skin Settings
+    type: adr
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/adr/0001-functional-theme-vs-skin-settings.md
+    supersedes: []
+    references:
+      - REF-DOC-ROUTER-SF-0001
+
+  - id: ADR-SF-0002
+    title: Case vs functionalTheme and Legacy Sunset
+    type: adr
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/adr/0002-case-vs-functional-theme-and-legacy-sunset.md
+    supersedes: []
+    references:
+      - REF-DOC-ROUTER-SF-0001
+      - ADR-SF-0001
+
+  - id: ADR-SF-0003
+    title: Admin Composition and Design Contract
+    type: adr
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/adr/0003-admin-composition-and-design-contract.md
+    supersedes: []
+    references:
+      - REF-DOC-ROUTER-SF-0001
+
+  - id: ADR-SF-0004
+    title: Surface Platform v1
+    type: adr
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/adr/0004-surface-platform-v1.md
+    supersedes: []
+    references:
+      - REF-DOC-ROUTER-SF-0001
+
+  - id: REF-DOC-ROUTER-SF-0001
+    title: Documentation Router — Agent-ingang
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/DOCUMENTATION-ROUTER.md
+    supersedes: []
+    references:
+      - CANON-AGENTS-0001
+      - ADR-SF-0003
+
+  - id: KNOW-TOPIC-REGISTRY-0001
+    title: Topic Registry
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/03-registry/topic-registry.yaml
+    supersedes: []
+    references:
+      - KNOW-REGISTRY-0001
+      - KNOW-RESOLUTION-RULES-0001
+
+  - id: KNOW-RESOLUTION-RULES-0001
+    title: Knowledge Resolution Rules
+    type: knowledge-canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/03-registry/RESOLUTION-RULES.md
+    supersedes: []
+    references:
+      - KNOW-TOPIC-REGISTRY-0001
+      - KNOW-REGISTRY-0001
+
+  - id: REF-ADMIN-MATRIX-0001
+    title: Admin Interface Matrix
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/ADMIN-INTERFACE-MATRIX.md
+    supersedes: []
+    references:
+      - REF-DOC-ROUTER-SF-0001
+      - ADR-SF-0003
+
+  - id: REF-FRONTEND-MATRIX-0001
+    title: Frontend Interface Matrix
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/FRONTEND-INTERFACE-MATRIX.md
+    supersedes: []
+    references:
+      - REF-DOC-ROUTER-SF-0001
+
+  - id: REF-SF-DESIGN-0001
+    title: Storefront Client Design SSoT
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/src/client/DESIGN.md
+    supersedes: []
+    references:
+      - ADR-SF-0003
+
+  - id: REF-MCP-STRATEGY-0001
+    title: MCP Strategy
+    type: reference
+    owner: platform
+    status: active
+    path: pagayo-docs/docs/MCP-STRATEGY.md
+    supersedes: []
+    references:
+      - CANON-AI-L1-0001
+
+  - id: REF-WEBSITE-CAPABILITY-0001
+    title: Website Capability Map
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/WEBSITE-CAPABILITY-MAP.md
+    supersedes: []
+    references:
+      - REF-ADMIN-MATRIX-0001
+      - REF-DOC-ROUTER-SF-0001
+
+  - id: REF-BASIC-BLOCKS-0001
+    title: Basic Blocks Architecture
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/basic-blocks-architecture.md
+    supersedes: []
+    references:
+      - REF-DOC-ROUTER-SF-0001
+
+  - id: REF-BLOCK-CAPABILITY-0001
+    title: Block Capability Matrix
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/BLOCK-CAPABILITY-MATRIX.md
+    supersedes: []
+    references:
+      - REF-BASIC-BLOCKS-0001
+
+  - id: REF-SHOPBLOCKS-UX-0001
+    title: Shopblocks UX Metadata
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/SHOPBLOCKS-UX-METADATA.md
+    supersedes: []
+    references:
+      - REF-DOC-ROUTER-SF-0001
+
+  - id: REF-API-BOUNDARY-0001
+    title: API Stack Boundary
+    type: reference
+    owner: pagayo-api-stack
+    status: active
+    path: pagayo-api-stack/docs/BOUNDARY.md
+    supersedes: []
+    references:
+      - CANON-NIVEAU-0001
+      - ADR-0005
+
+  - id: REF-STRIPE-0001
+    title: Stripe Integration
+    type: reference
+    owner: pagayo-api-stack
+    status: active
+    path: pagayo-api-stack/STRIPE-INTEGRATION.md
+    supersedes: []
+    references:
+      - REF-API-BOUNDARY-0001
+
+  - id: REF-API-CREDENTIAL-ENC-0001
+    title: Credential Encryption Implementation
+    type: reference
+    owner: pagayo-api-stack
+    status: active
+    path: pagayo-api-stack/docs/CREDENTIAL-ENCRYPTION-IMPLEMENTATION.md
+    supersedes: []
+    references:
+      - REF-API-BOUNDARY-0001
+
+  - id: REF-SECURITY-MAINT-0001
+    title: Security & Maintenance Status
+    type: reference
+    owner: pagayo-maintenance
+    status: active
+    path: pagayo-maintenance/SECURITY-MAINTENANCE.md
+    supersedes: []
+    references:
+      - CANON-STACK-0001
+
+  - id: REF-INFRA-MAINT-0001
+    title: Infrastructure Maintenance
+    type: reference
+    owner: pagayo-maintenance
+    status: active
+    path: pagayo-maintenance/INFRASTRUCTURE-MAINTENANCE.md
+    supersedes: []
+    references:
+      - CANON-STACK-0001
+
+  - id: REF-MAINT-AGENTS-0001
+    title: Maintenance AGENTS — Smoke & Quality
+    type: reference
+    owner: pagayo-maintenance
+    status: active
+    path: pagayo-maintenance/AGENTS.md
+    supersedes: []
+    references:
+      - CANON-AGENTS-0001
+
+  - id: REF-MAINT-README-0001
+    title: Maintenance README
+    type: reference
+    owner: pagayo-maintenance
+    status: active
+    path: pagayo-maintenance/README.md
+    supersedes: []
+    references:
+      - REF-MAINT-AGENTS-0001
+
+  - id: REF-INTEGRATIONS-OVERVIEW-0001
+    title: Integrations Overview
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/product-help/en/organization/integrations/overview.en.md
+    supersedes: []
+    references:
+      - REF-API-BOUNDARY-0001
+
+  - id: REF-MEMBERS-OVERVIEW-0001
+    title: Members Overview
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/product-help/en/subscriptions/members/overview.en.md
+    supersedes: []
+    references:
+      - ADR-SF-0004
+
+  - id: REF-POS-OVERVIEW-0001
+    title: POS Overview
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/product-help/en/organization/pos/overview.en.md
+    supersedes: []
+    references:
+      - ADR-SF-0004
+
+  - id: REF-ORDERS-OVERVIEW-0001
+    title: Orders Overview
+    type: reference
+    owner: pagayo-storefront
+    status: active
+    path: pagayo-storefront/docs/product-help/en/sales/orders/overview.en.md
+    supersedes: []
+    references:
+      - ADR-0005
+
+  - id: OPS-PB-README-0001
+    title: Release Playbooks Index
+    type: playbook
+    owner: platform
+    status: active
+    path: pagayo-vault/.github/release-playbooks/README.md
+    supersedes: []
+    references:
+      - CANON-AGENTS-0001
+
+  - id: OPS-PB-00-0001
+    title: Pre-commit Playbook
+    type: playbook
+    owner: platform
+    status: active
+    path: pagayo-vault/.github/release-playbooks/00-pre-commit.md
+    supersedes: []
+    references:
+      - OPS-PB-README-0001
+
+  - id: OPS-PB-01-0001
+    title: Commit & Push Playbook
+    type: playbook
+    owner: platform
+    status: active
+    path: pagayo-vault/.github/release-playbooks/01-commit-push.md
+    supersedes: []
+    references:
+      - OPS-PB-00-0001
+
+  - id: OPS-PB-02-0001
+    title: Staging Deploy Playbook
+    type: playbook
+    owner: platform
+    status: active
+    path: pagayo-vault/.github/release-playbooks/02-staging.md
+    supersedes: []
+    references:
+      - OPS-PB-01-0001
+
+  - id: OPS-PB-03-0001
+    title: Main Parity Playbook
+    type: playbook
+    owner: platform
+    status: active
+    path: pagayo-vault/.github/release-playbooks/03-main-parity.md
+    supersedes: []
+    references:
+      - OPS-PB-02-0001
+
+  - id: OPS-PB-04-0001
+    title: Production Deploy Playbook
+    type: playbook
+    owner: platform
+    status: active
+    path: pagayo-vault/.github/release-playbooks/04-production.md
+    supersedes: []
+    references:
+      - OPS-PB-03-0001
+
+  - id: OPS-PB-05-0001
+    title: Daily Workflow v2 Playbook
+    type: playbook
+    owner: platform
+    status: active
+    path: pagayo-vault/.github/release-playbooks/05-daily-workflow-v2.md
+    supersedes: []
+    references:
+      - OPS-PB-README-0001
