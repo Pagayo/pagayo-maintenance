@@ -1,0 +1,74 @@
+# Pagayo Knowledge OS — Canon Registry (Wave 1 seed)
+# Machine-readable index. Authoritative human rules: KNOWLEDGE-REGISTRY.md
+
+version: 1
+wave: 1
+
+entries:
+  - id: KNOW-START-0001
+    title: START HERE — Pagayo Knowledge OS
+    type: canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/00-start-here/START-HERE.md
+    supersedes: []
+    references:
+      - KNOW-CANON-0001
+      - CANON-AGENTS-0001
+
+  - id: KNOW-CANON-0001
+    title: Knowledge Constitution
+    type: canon
+    owner: knowledge-os
+    status: active
+    path: pagayo-vault/knowledge-os/01-canon/KNOWLEDGE-CONSTITUTION.md
+    supersedes: []
+    references:
+      - KNOW-START-0001
+
+  - id: CANON-NIVEAU-0001
+    title: Pagayo Platform — Architectuur & Referentiedocument
+    type: canon
+    owner: platform
+    status: active
+    path: pagayo-vault/PAGAYO-NIVEAU.md
+    supersedes: []
+    references:
+      - CANON-STACK-0001
+      - CANON-AGENTS-0001
+
+  - id: CANON-STACK-0001
+    title: PAGAYO STACK MANIFEST
+    type: canon
+    owner: platform
+    status: active
+    path: pagayo-vault/STACK-MANIFEST.md
+    supersedes: []
+    references:
+      - CANON-NIVEAU-0001
+
+  - id: CANON-AI-L1-0001
+    title: AI Operating Context (L1)
+    type: canon
+    owner: ai-system
+    status: active
+    path: pagayo-vault/AI-OPERATING-CONTEXT.md
+    supersedes: []
+    references:
+      - CANON-NIVEAU-0001
+      - CANON-STACK-0001
+      - CANON-AGENTS-0001
+
+  - id: CANON-AGENTS-0001
+    title: Pagayo Workspace - Agent Router
+    type: canon
+    owner: platform
+    status: active
+    path: AGENTS.md
+    supersedes: []
+    references:
+      - KNOW-START-0001
+      - KNOW-CANON-0001
+      - CANON-NIVEAU-0001
+      - CANON-STACK-0001
+      - CANON-AI-L1-0001
