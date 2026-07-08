@@ -1,0 +1,27 @@
+{
+  "name": "@pagayo/knowledge-resolver",
+  "version": "1.0.0",
+  "description": "Pagayo Knowledge OS runtime resolver",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "validate:yaml": "node scripts/validate-yaml.mjs"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^22.19.3",
+    "eslint": "^9.39.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.52.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}
