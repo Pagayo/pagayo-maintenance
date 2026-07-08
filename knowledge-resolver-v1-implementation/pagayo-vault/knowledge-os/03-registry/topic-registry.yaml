@@ -1,0 +1,359 @@
+# Pagayo Knowledge OS — Topic Registry
+# Topics map tasks to registry IDs. Resolve paths via canon-registry.yaml only.
+
+version: 2
+wave: 4
+
+resolve-order:
+  - canonical
+  - references
+  - adrs
+  - playbooks
+  - historical
+
+capabilities:
+  - id: CAP-COMMERCE
+    capability: commerce
+    topics:
+      - TOPIC-ORDERS
+      - TOPIC-PRODUCTS
+      - TOPIC-CUSTOMERS
+      - TOPIC-RETURNS
+
+  - id: CAP-WEBSITE
+    capability: website
+    topics:
+      - TOPIC-WEBSITE
+
+  - id: CAP-BOOKINGS
+    capability: bookings
+    topics:
+      - TOPIC-BOOKINGS
+
+  - id: CAP-MEMBERS
+    capability: members
+    topics:
+      - TOPIC-MEMBERS
+
+  - id: CAP-AI
+    capability: ai
+    topics:
+      - TOPIC-AI
+
+  - id: CAP-UI-FRAMEWORK
+    capability: ui-framework
+    topics:
+      - TOPIC-UI-FRAMEWORK
+
+  - id: CAP-KNOWLEDGE-OS
+    capability: knowledge-os
+    topics:
+      - TOPIC-KNOWLEDGE-OS
+
+topics:
+  - id: TOPIC-UI-FRAMEWORK
+    topic: UI Framework
+    owner: pagayo-storefront
+    type: framework
+    canonical:
+      - ADR-SF-0003
+      - REF-SF-DESIGN-0001
+    references:
+      - REF-ADMIN-MATRIX-0001
+      - REF-DOC-ROUTER-SF-0001
+    adrs:
+      - ADR-0011
+      - ADR-SF-0004
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-KNOWLEDGE-OS
+    topic: Knowledge OS
+    owner: knowledge-os
+    type: framework
+    canonical:
+      - KNOW-START-0001
+      - KNOW-CANON-0001
+      - KNOW-REGISTRY-0001
+      - KNOW-TOPIC-REGISTRY-0001
+      - KNOW-RESOLUTION-RULES-0001
+    references:
+      - KNOW-GRAMMAR-0001
+      - KNOW-TAXONOMY-0001
+      - KNOW-LIFECYCLE-0001
+      - KNOW-MIGRATION-0001
+      - KNOW-MIGRATION-STATUS-0001
+    adrs: []
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-COMMERCE
+    topic: Commerce
+    owner: platform
+    type: domain
+    canonical:
+      - CANON-WHY-0001
+      - CANON-NIVEAU-0001
+    references:
+      - REF-DOC-ROUTER-SF-0001
+    adrs:
+      - ADR-0005
+      - ADR-0010
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-ORDERS
+    topic: Orders
+    owner: pagayo-storefront
+    type: domain
+    canonical:
+      - ADR-0005
+    references:
+      - REF-DOC-ROUTER-SF-0001
+      - REF-ADMIN-MATRIX-0001
+      - REF-ORDERS-OVERVIEW-0001
+    adrs:
+      - ADR-0010
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-PRODUCTS
+    topic: Products
+    owner: pagayo-storefront
+    type: domain
+    canonical:
+      - CANON-NIVEAU-0001
+    references:
+      - REF-PRODUCTS-OVERVIEW-0001
+      - REF-DOC-ROUTER-SF-0001
+      - REF-ADMIN-MATRIX-0001
+    adrs:
+      - ADR-0005
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-CUSTOMERS
+    topic: Customers
+    owner: pagayo-storefront
+    type: domain
+    canonical:
+      - ADR-0005
+    references:
+      - REF-CUSTOMERS-OVERVIEW-0001
+      - REF-ADMIN-MATRIX-0001
+      - REF-DOC-ROUTER-SF-0001
+    adrs: []
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-RETURNS
+    topic: Returns
+    owner: pagayo-storefront
+    type: domain
+    canonical:
+      - ADR-0005
+    references:
+      - REF-DOC-ROUTER-SF-0001
+      - REF-ADMIN-MATRIX-0001
+    adrs: []
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-WEBSITE
+    topic: Website
+    owner: pagayo-storefront
+    type: domain
+    canonical:
+      - REF-WEBSITE-CAPABILITY-0001
+    references:
+      - REF-FRONTEND-MATRIX-0001
+      - REF-DOC-ROUTER-SF-0001
+      - REF-SHOPBLOCKS-UX-0001
+    adrs:
+      - ADR-SF-0001
+      - ADR-SF-0002
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-BOOKINGS
+    topic: Bookings
+    owner: pagayo-storefront
+    type: domain
+    canonical:
+      - ADR-0005
+    references:
+      - REF-ADMIN-MATRIX-0001
+      - ADR-SF-0003
+    adrs:
+      - ADR-0007
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-MEMBERS
+    topic: Members
+    owner: pagayo-storefront
+    type: domain
+    canonical:
+      - ADR-SF-0004
+    references:
+      - REF-MEMBERS-OVERVIEW-0001
+      - REF-ADMIN-MATRIX-0001
+    adrs:
+      - ADR-0007
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-AI
+    topic: AI
+    owner: ai-system
+    type: platform
+    canonical:
+      - CANON-AI-L1-0001
+      - KNOW-AI-BOOT-0001
+    references:
+      - REF-MCP-STRATEGY-0001
+      - CANON-AGENTS-0001
+    adrs: []
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-CLOUDFLARE
+    topic: Cloudflare
+    owner: platform
+    type: platform
+    canonical:
+      - CANON-STACK-0001
+    references:
+      - REF-INFRA-MAINT-0001
+    adrs:
+      - ADR-0006
+    playbooks:
+      - OPS-PB-02-0001
+    historical: []
+
+  - id: TOPIC-STRIPE
+    topic: Stripe
+    owner: pagayo-api-stack
+    type: integration
+    canonical:
+      - REF-STRIPE-0001
+    references:
+      - REF-API-BOUNDARY-0001
+    adrs:
+      - ADR-0005
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-SENDCLOUD
+    topic: Sendcloud
+    owner: pagayo-api-stack
+    type: integration
+    canonical:
+      - REF-API-BOUNDARY-0001
+    references:
+      - REF-API-CREDENTIAL-ENC-0001
+    adrs:
+      - ADR-0005
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-POS
+    topic: POS
+    owner: pagayo-storefront
+    type: domain
+    canonical:
+      - ADR-SF-0004
+    references:
+      - REF-POS-OVERVIEW-0001
+      - REF-ADMIN-MATRIX-0001
+    adrs:
+      - ADR-0007
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-CMS
+    topic: CMS
+    owner: pagayo-storefront
+    type: domain
+    canonical:
+      - REF-BASIC-BLOCKS-0001
+    references:
+      - REF-BLOCK-CAPABILITY-0001
+      - REF-SHOPBLOCKS-UX-0001
+      - REF-DOC-ROUTER-SF-0001
+    adrs:
+      - ADR-SF-0001
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-INTEGRATIONS
+    topic: Integrations
+    owner: pagayo-api-stack
+    type: integration
+    canonical:
+      - REF-API-BOUNDARY-0001
+    references:
+      - REF-INTEGRATIONS-OVERVIEW-0001
+    adrs:
+      - ADR-0009
+      - ADR-0010
+    playbooks: []
+    historical: []
+
+  - id: TOPIC-SECURITY
+    topic: Security
+    owner: platform
+    type: operations
+    canonical:
+      - CANON-STACK-0001
+    references:
+      - REF-SECURITY-MAINT-0001
+      - REF-API-CREDENTIAL-ENC-0001
+    adrs: []
+    playbooks:
+      - OPS-PB-00-0001
+    historical: []
+
+  - id: TOPIC-DEPLOYMENT
+    topic: Deployment
+    owner: platform
+    type: operations
+    canonical:
+      - CANON-AGENTS-0001
+    references:
+      - OPS-PB-README-0001
+    adrs: []
+    playbooks:
+      - OPS-PB-00-0001
+      - OPS-PB-01-0001
+      - OPS-PB-02-0001
+      - OPS-PB-04-0001
+      - OPS-PB-05-0001
+    historical: []
+
+  - id: TOPIC-TESTING
+    topic: Testing
+    owner: pagayo-maintenance
+    type: operations
+    canonical:
+      - REF-MAINT-AGENTS-0001
+    references:
+      - REF-MAINT-README-0001
+    adrs: []
+    playbooks:
+      - OPS-PB-03-0001
+    historical: []
+
+  - id: TOPIC-CAPABILITIES
+    topic: Capabilities
+    owner: platform
+    type: domain
+    canonical:
+      - ADR-0007
+    references:
+      - REF-WEBSITE-CAPABILITY-0001
+      - REF-BLOCK-CAPABILITY-0001
+    adrs:
+      - ADR-0011
+    playbooks: []
+    historical: []

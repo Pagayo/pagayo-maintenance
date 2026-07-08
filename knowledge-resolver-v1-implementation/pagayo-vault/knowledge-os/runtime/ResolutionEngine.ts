@@ -3,6 +3,7 @@ import { TopicResolver } from './TopicResolver.js';
 import type {
   AiResolutionLayer,
   AiTopicResolution,
+  CapabilityResolution,
   RegistryEntry,
   ResolveForAiOptions,
   ResolvedDocument,
@@ -36,6 +37,33 @@ function resolveBucket(
   ids: string[],
 ): ResolvedDocument[] {
   return ids.map((id) => toResolvedDocument(registry.resolveDocument(id)));
+}
+
+function mergeDedupe(
+  target: ResolvedDocument[],
+  incoming: ResolvedDocument[],
+): void {
+  for (const document of incoming) {
+    if (target.some((existing) => existing.id === document.id)) {
+      continue;
+    }
+    target.push(document);
+  }
+}
+
+function dedupeDocuments(documents: ResolvedDocument[]): ResolvedDocument[] {
+  const seen = new Set<string>();
+  const result: ResolvedDocument[] = [];
+
+  for (const document of documents) {
+    if (seen.has(document.id)) {
+      continue;
+    }
+    seen.add(document.id);
+    result.push(document);
+  }
+
+  return result;
 }
 
 export class ResolutionEngine {
@@ -84,6 +112,34 @@ export class ResolutionEngine {
       topic: resolution.topic,
       layers,
       documents,
+    };
+  }
+
+  resolveCapability(capability: string): CapabilityResolution {
+    const capabilityEntry = this.topicResolver.resolveCapabilityKey(capability);
+    const canonical: ResolvedDocument[] = [];
+    const references: ResolvedDocument[] = [];
+    const adrs: ResolvedDocument[] = [];
+
+    for (const topicId of capabilityEntry.topics) {
+      const topicEntry = this.topicResolver.getTopicById(topicId);
+      const resolution = this.resolveTopic(topicEntry.topic);
+      mergeDedupe(canonical, resolution.canonical);
+      mergeDedupe(references, resolution.references);
+      mergeDedupe(adrs, resolution.adrs);
+    }
+
+    const layers: AiResolutionLayer[] = [...AI_LAYERS];
+
+    return {
+      capability: capabilityEntry.capability,
+      capabilityId: capabilityEntry.id,
+      topics: [...capabilityEntry.topics],
+      layers,
+      canonical,
+      references,
+      adrs,
+      documents: dedupeDocuments([...canonical, ...references, ...adrs]),
     };
   }
 

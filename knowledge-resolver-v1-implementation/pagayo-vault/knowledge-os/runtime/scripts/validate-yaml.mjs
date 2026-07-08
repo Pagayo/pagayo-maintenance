@@ -28,6 +28,24 @@ for (const topic of topics.topics) {
   }
 }
 
+const topicIdSet = new Set(topicIds);
+const capabilityIds = (topics.capabilities ?? []).map((capability) => capability.id);
+const duplicateCapabilityIds = capabilityIds.filter(
+  (id, index) => capabilityIds.indexOf(id) !== index,
+);
+
+if (duplicateCapabilityIds.length > 0) {
+  throw new Error(`Duplicate capability ids: ${[...new Set(duplicateCapabilityIds)].join(', ')}`);
+}
+
+for (const capability of topics.capabilities ?? []) {
+  for (const topicId of capability.topics) {
+    if (!topicIdSet.has(topicId)) {
+      missing.add(`capability:${capability.capability}->${topicId}`);
+    }
+  }
+}
+
 if (missing.size > 0) {
   throw new Error(`Missing registry ids: ${[...missing].join(', ')}`);
 }
@@ -35,3 +53,4 @@ if (missing.size > 0) {
 console.log('YAML parse: OK');
 console.log(`canon entries: ${canonIds.size}`);
 console.log(`topics: ${topicIds.length}`);
+console.log(`capabilities: ${capabilityIds.length}`);

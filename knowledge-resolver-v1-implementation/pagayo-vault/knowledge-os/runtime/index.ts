@@ -5,6 +5,8 @@ export { ResolutionEngine, AI_LAYERS, TOPIC_BUCKETS } from './ResolutionEngine.j
 export type {
   AiResolutionLayer,
   AiTopicResolution,
+  CapabilityEntry,
+  CapabilityResolution,
   CanonRegistryFile,
   KnowledgeResolverOptions,
   RegistryEntry,
@@ -16,4 +18,4 @@ export type {
   TopicRegistryFile,
   TopicResolution,
 } from './types.js';
-export { DocumentNotFoundError, TopicNotFoundError } from './types.js';
+export { CapabilityNotFoundError, DocumentNotFoundError, TopicNotFoundError } from './types.js';

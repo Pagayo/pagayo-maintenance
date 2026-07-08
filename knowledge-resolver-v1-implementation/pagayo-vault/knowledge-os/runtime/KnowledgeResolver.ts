@@ -3,6 +3,7 @@ import { ResolutionEngine } from './ResolutionEngine.js';
 import { TopicResolver } from './TopicResolver.js';
 import type {
   AiTopicResolution,
+  CapabilityResolution,
   KnowledgeResolverOptions,
   RegistryEntry,
   ResolveForAiOptions,
@@ -30,6 +31,10 @@ export class KnowledgeResolver {
 
   resolveForAI(topic: string, options?: ResolveForAiOptions): AiTopicResolution {
     return this.engine.resolveForAI(topic, options);
+  }
+
+  resolveCapability(capability: string): CapabilityResolution {
+    return this.engine.resolveCapability(capability);
   }
 
   getResolveOrder(): string[] {

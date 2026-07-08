@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { KnowledgeRegistry } from '../KnowledgeRegistry.js';
 import { KnowledgeResolver } from '../KnowledgeResolver.js';
 import { TopicResolver } from '../TopicResolver.js';
-import { DocumentNotFoundError, TopicNotFoundError } from '../types.js';
+import { DocumentNotFoundError, CapabilityNotFoundError, TopicNotFoundError } from '../types.js';
 
 describe('KnowledgeResolver', () => {
   afterEach(() => {
@@ -114,5 +114,55 @@ describe('KnowledgeResolver', () => {
       'playbooks',
       'historical',
     ]);
+  });
+
+  it('resolves commerce capability across topics with deduplication', () => {
+    const resolver = new KnowledgeResolver();
+    const result = resolver.resolveCapability('commerce');
+
+    expect(result.capabilityId).toBe('CAP-COMMERCE');
+    expect(result.topics).toEqual([
+      'TOPIC-ORDERS',
+      'TOPIC-PRODUCTS',
+      'TOPIC-CUSTOMERS',
+      'TOPIC-RETURNS',
+    ]);
+    expect(result.layers).toEqual(['canonical', 'references', 'adrs']);
+    expect(result.canonical.map((doc) => doc.id)).toEqual(['ADR-0005', 'CANON-NIVEAU-0001']);
+    expect(result.documents.map((doc) => doc.id)).toEqual([
+      'ADR-0005',
+      'CANON-NIVEAU-0001',
+      'REF-DOC-ROUTER-SF-0001',
+      'REF-ADMIN-MATRIX-0001',
+      'REF-ORDERS-OVERVIEW-0001',
+      'REF-PRODUCTS-OVERVIEW-0001',
+      'REF-CUSTOMERS-OVERVIEW-0001',
+      'ADR-0010',
+    ]);
+    expect(result.documents).toHaveLength(8);
+  });
+
+  it('resolves website capability from a single topic', () => {
+    const resolver = new KnowledgeResolver();
+    const result = resolver.resolveCapability('website');
+
+    expect(result.capabilityId).toBe('CAP-WEBSITE');
+    expect(result.topics).toEqual(['TOPIC-WEBSITE']);
+    expect(result.documents.map((doc) => doc.id)).toEqual([
+      'REF-WEBSITE-CAPABILITY-0001',
+      'REF-FRONTEND-MATRIX-0001',
+      'REF-DOC-ROUTER-SF-0001',
+      'REF-SHOPBLOCKS-UX-0001',
+      'ADR-SF-0001',
+      'ADR-SF-0002',
+    ]);
+  });
+
+  it('throws for an unknown capability', () => {
+    const resolver = new KnowledgeResolver();
+
+    expect(() => resolver.resolveCapability('NOT-A-CAPABILITY')).toThrow(
+      CapabilityNotFoundError,
+    );
   });
 });

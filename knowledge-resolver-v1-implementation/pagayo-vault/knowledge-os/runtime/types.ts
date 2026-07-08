@@ -46,7 +46,25 @@ export interface TopicRegistryFile {
   version: number;
   wave: number;
   'resolve-order': TopicBucket[];
+  capabilities?: CapabilityEntry[];
   topics: TopicEntry[];
+}
+
+export interface CapabilityEntry {
+  id: string;
+  capability: string;
+  topics: string[];
+}
+
+export interface CapabilityResolution {
+  capability: string;
+  capabilityId: string;
+  topics: string[];
+  layers: AiResolutionLayer[];
+  canonical: ResolvedDocument[];
+  references: ResolvedDocument[];
+  adrs: ResolvedDocument[];
+  documents: ResolvedDocument[];
 }
 
 export interface ResolvedDocument {
@@ -91,6 +109,13 @@ export class TopicNotFoundError extends Error {
   constructor(topic: string) {
     super(`Unknown topic: ${topic}`);
     this.name = 'TopicNotFoundError';
+  }
+}
+
+export class CapabilityNotFoundError extends Error {
+  constructor(capability: string) {
+    super(`Unknown capability: ${capability}`);
+    this.name = 'CapabilityNotFoundError';
   }
 }
 
