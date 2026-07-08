@@ -9,6 +9,7 @@ source "$SCRIPT_DIR/local-dev-lib.sh"
 
 echo "🛑 Pagayo Local Dev — stoppen"
 local_dev_stop_background_pids
+sleep 1
 local_dev_stop_wrangler_and_ports
 
 pkill -f "serve public" 2>/dev/null || true

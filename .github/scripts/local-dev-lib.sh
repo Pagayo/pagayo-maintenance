@@ -195,15 +195,20 @@ local_dev_start_background_services() {
   echo "🚀 Services starten op achtergrond (geen Terminal-vensters)..."
   echo "   Logs: $(local_dev_runtime_dir)/"
 
+  # --restart-tries: wrangler/vite hiccups (design sync, hot reload) auto-recover.
+  # Daemon supervisor (local-dev-daemon.py) restarts the whole service on crash.
   local_dev_spawn_background "storefront" "$ws/pagayo-storefront" \
-    bash -lc "npm run copy-design && exec npx concurrently --names wrangler,static -c cyan,magenta 'wrangler dev --persist-to ../.wrangler-shared' 'npm run serve:public'"
+    bash -lc "npm run copy-design && exec npx concurrently --restart-tries 999999 --restart-after 3000 --names wrangler,static -c cyan,magenta 'wrangler dev --persist-to ../.wrangler-shared' 'npm run serve:public'"
 
   sleep 2
 
-  local_dev_spawn_background "vite" "$ws/pagayo-storefront" npm run dev:client
+  local_dev_spawn_background "vite" "$ws/pagayo-storefront" \
+    bash -lc "npm run copy-design && exec npx vite"
   sleep 1
-  local_dev_spawn_background "api-stack" "$ws/pagayo-api-stack" npm run dev
-  local_dev_spawn_background "marketing" "$ws/pagayo-marketing" npm run dev
+  local_dev_spawn_background "api-stack" "$ws/pagayo-api-stack" \
+    bash -lc "exec npm run dev"
+  local_dev_spawn_background "marketing" "$ws/pagayo-marketing" \
+    bash -lc "exec npm run dev"
 }
 
 local_dev_stop_background_pids() {
