@@ -1,0 +1,53 @@
+/**
+ * Workspace-style form controls (admin Products editor SSoT).
+ *
+ * Bundled in all contexts (admin + webshop). Admin markup may still use
+ * `.products-workspace-field`; storefront facet filters use `.form-field-workspace`.
+ */
+
+.form-field-workspace.form-input,
+.form-field-workspace.form-select,
+.form-input.products-workspace-field,
+.form-select.products-workspace-field {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--admin-control-field, 40px) !important;
+  height: var(--admin-control-field, 40px);
+  padding: 0 12px !important;
+  border: 1px solid var(--admin-border-strong, var(--border)) !important;
+  border-radius: var(--admin-radius-md, var(--radius-md)) !important;
+  background-color: var(--bg-surface) !important;
+  font-size: var(--admin-workspace-detail-font, var(--text-sm)) !important;
+  box-shadow: none;
+  color: var(--text-primary);
+}
+
+.form-field-workspace.form-select,
+.form-select.products-workspace-field {
+  appearance: none;
+  background-color: #fff !important;
+  padding-right: calc(var(--control-padding-md) + var(--space-6)) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239090a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--control-padding-md) center;
+  cursor: pointer;
+}
+
+.form-field-workspace.form-select:hover:not(:disabled):not(:focus),
+.form-field-workspace.form-select:focus,
+.form-select.products-workspace-field:hover:not(:disabled):not(:focus),
+.form-select.products-workspace-field:focus {
+  border-color: var(--tenant-accent, var(--accent)) !important;
+  background-color: #fff !important;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.form-field-workspace-label,
+.products-editor-label {
+  display: block;
+  font-size: var(--admin-font-size-label, var(--text-xs));
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin: 0 0 var(--products-editor-label-gap, max(0px, calc(var(--space-2) - 5px)));
+}

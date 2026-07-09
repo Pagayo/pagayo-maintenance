@@ -1,0 +1,215 @@
+/**
+ * CONTEXT: Admin
+ * Base styling voor het admin/beheer panel
+ * 
+ * AI-NOTE: Admin context is voor tenant beheerders.
+ * Kenmerken:
+ * - Sidebar navigatie
+ * - Data-heavy layouts (tabellen, forms)
+ * - Dark theme optimized
+ * - AI assistant panel
+ * 
+ * LAYOUTS:
+ * - Dashboard (metrics, charts, quick actions)
+ * - Sidebar layout (nav + content)
+ * - Full-width (tables, detail views)
+ */
+
+/* ===== ADMIN-SPECIFIC TOKENS ===== */
+:root {
+  /* Sidebar dimensions */
+  --admin-sidebar-width: 260px;
+  --admin-sidebar-collapsed: 64px;
+  
+  /* Header height */
+  --admin-header-height: 64px;
+  
+  /* Content padding */
+  --admin-content-padding: var(--space-6);
+  
+  /* Table row height — afgeleid van control sizing */
+  --admin-table-row-height: var(--control-height-lg);
+
+  /* ===== ADMIN CONTROL HEIGHTS ===== */
+  --admin-control-compact: 28px;           /* toolbar actions, pills, compact buttons */
+  /* Lucide (stroke icons) in icon-only workspace toolbar pills — align with toolbar label scale */
+  --admin-toolbar-inline-icon-size: 16px;
+  --admin-control-search: 34px;            /* search input wrapper */
+  --admin-control-filter: 30px;            /* filter dropdown buttons */
+  --admin-control-field: 32px;             /* form inputs, selects, textareas */
+  --admin-control-lg: 44px;               /* sidebar nav items, large actions */
+  /* Horizontal padding inside inline workspace controls (inputs, tabs, chips) */
+  --admin-control-inline-padding: 12px;
+
+  /* ===== ADMIN SPACING ===== */
+  --admin-card-padding-x: var(--space-5);  /* 20px — horizontal card padding */
+  --admin-card-padding-y: var(--space-4);  /* 16px — vertical card padding */
+  --admin-section-gap: var(--space-4);     /* 16px — gap between sections */
+  --admin-form-field-gap: var(--space-3);  /* 12px — gap between form fields */
+  --admin-toolbar-gap: 14px;              /* gap between toolbar items */
+  --admin-list-row-padding-y: 12px;       /* vertical padding in list rows */
+  --admin-list-row-padding-x: 14px;       /* horizontal padding in list rows */
+
+  /* Workspace master-detail: linker lijstkolom (alle admin list/workspace-pagina's) */
+  --admin-workspace-list-col-width: 300px;
+
+  /*
+   * Admin workspace modal shell (SSoT) — Assistent (#69), BlockEditModal, Pagayo ideas.
+   * Class: .modal--admin-workspace in account-navigation.css.
+   */
+  --admin-workspace-modal-width: min(96vw, 1280px);
+  --admin-workspace-modal-max-width: 1280px;
+  --admin-workspace-modal-height: min(720px, calc(100vh - var(--space-8)));
+
+  /* ===== ADMIN BORDERS & DIVIDERS ===== */
+  --admin-border-subtle: rgba(15, 23, 42, 0.06);   /* lightest divider */
+  --admin-border-light: rgba(15, 23, 42, 0.08);    /* standard light border */
+  --admin-border-medium: rgba(15, 23, 42, 0.1);    /* medium border */
+  --admin-border-strong: rgba(15, 23, 42, 0.14);   /* emphasis border */
+  --admin-border-hover: rgba(15, 23, 42, 0.12);    /* hover/active state borders */
+  --admin-border-accent: rgba(15, 23, 42, 0.15);   /* accent/emphasis borders */
+  --admin-bg-wash: rgba(15, 23, 42, 0.02);          /* ultra-subtle background wash */
+
+  /* ===== ADMIN BORDER RADIUS ===== */
+  --admin-radius-control: 10px;           /* buttons, inputs, toolbar actions */
+  --admin-radius-card: 14px;              /* cards, panels, modals */
+  --admin-radius-pill: 999px;             /* pill-shaped elements */
+  --admin-radius-sm: 6px;                /* compact elements, badges, small controls */
+  --admin-radius-md: 12px;               /* medium panels, dropdowns, modals */
+}
+
+html:has(body[data-page-type="admin"]),
+html:has(body[data-page-type^="admin-"]),
+html:has(body[data-page-type="members-desk"]),
+html:has(body[data-page-type="members-balie"]),
+body[data-page-type="admin"],
+body[data-page-type^="admin-"],
+body[data-page-type="members-desk"],
+body[data-page-type="members-balie"],
+.admin-layout,
+.admin-shell,
+.admin-main {
+  --admin-products-list-font: var(--admin-font-size-base);
+  --admin-workspace-detail-font: var(--admin-font-size-base);
+  --admin-list-toolbar-control-font: var(--admin-font-size-base);
+  --admin-list-detail-control-font: var(--admin-font-size-base);
+  --page-title-size: var(--admin-font-size-base);
+  --section-title-size: var(--admin-font-size-base);
+  --card-title-size: var(--admin-font-size-base);
+  --text-2xs-plus: var(--admin-font-size-base);
+  --text-xs: var(--admin-font-size-base);
+  --text-xs-plus: var(--admin-font-size-base);
+  --text-sm: var(--admin-font-size-base);
+  --text-sm-plus: var(--admin-font-size-base);
+  --text-base: var(--admin-font-size-base);
+  --text-lg: var(--admin-font-size-base);
+  --text-xl: var(--admin-font-size-base);
+  --text-2xl: var(--admin-font-size-base);
+  --text-3xl: var(--admin-font-size-base);
+  --font-size-xs: var(--admin-font-size-base);
+  --font-size-sm: var(--admin-font-size-base);
+  --font-size-base: var(--admin-font-size-base);
+  --font-size-lg: var(--admin-font-size-base);
+  --font-size-xl: var(--admin-font-size-base);
+  --font-size-2xl: var(--admin-font-size-base);
+  --font-size-3xl: var(--admin-font-size-base);
+  --control-font-sm: var(--admin-font-size-base);
+  --control-font-md: var(--admin-font-size-base);
+  --control-font-lg: var(--admin-font-size-base);
+  font-size: var(--admin-font-size-base);
+}
+
+body[data-page-type="admin"] :not(svg, path, circle, rect, line, polyline, polygon, g),
+body[data-page-type^="admin-"] :not(svg, path, circle, rect, line, polyline, polygon, g),
+body[data-page-type="members-desk"] :not(svg, path, circle, rect, line, polyline, polygon, g),
+body[data-page-type="members-balie"] :not(svg, path, circle, rect, line, polyline, polygon, g),
+.admin-layout :not(svg, path, circle, rect, line, polyline, polygon, g) {
+  font-size: var(--admin-font-size-base) !important;
+}
+
+/* ===== ADMIN BODY — VIEWPORT LOCK ===== */
+/* Voorkomt horizontaal scrollen en iOS rubber-band bounce.
+ * overflow-x: clip voorkomt horizontale scroll ZONDER een scroll container
+ * te creëren (zoals overflow-x: hidden dat wel doet). Dit lost het Chrome-bug
+ * op waarbij overflow-x: hidden op html+body dubbele scroll containers maakt
+ * en verticaal scrollen blokkeert.
+ * position:relative creëert een containing block die overflow respecteert. */
+html:has(body[data-page-type="admin"]),
+html:has(body[data-page-type^="admin-"]) {
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  /* Reserveer altijd ruimte voor scrollbar — voorkomt layout shift
+     in fixed navbar wanneer content van spinner → tabel wisselt */
+  scrollbar-gutter: stable;
+}
+
+body[data-page-type="admin"],
+body[data-page-type^="admin-"] {
+  overflow-x: clip;
+  overscroll-behavior: none;
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
+  /* iOS Safari: blokkeer horizontale touch-scroll fysiek op browser-niveau */
+  touch-action: pan-y pinch-zoom;
+}
+
+/* ===== ADMIN BODY DEFAULTS ===== */
+.admin-layout {
+  font-family: var(--tenant-font-main, var(--font-sans));
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: clip;
+  width: 100%;
+}
+
+/* ===== ADMIN SHELL — Flexbox wrapper (sidebar + main) ===== */
+/* Dit is de runtime layout die AdminLayout.tsx gebruikt.
+ * De sidebar is een vast element, main vult de rest. */
+.admin-shell {
+  --admin-shell-sidebar-width: 272px;
+  display: flex;
+  align-items: flex-start;
+  margin-top: 0;
+  min-height: 100dvh;
+  background:
+    linear-gradient(
+      to right,
+      var(--bg-surface) 0,
+      var(--bg-surface) var(--admin-shell-sidebar-width),
+      var(--border) var(--admin-shell-sidebar-width),
+      var(--border) calc(var(--admin-shell-sidebar-width) + 1px),
+      transparent calc(var(--admin-shell-sidebar-width) + 1px)
+    );
+}
+
+@media (max-width: 959px) {
+  .admin-shell {
+    background: none;
+  }
+}
+
+/* Binnen admin-shell wordt admin-main niet absoluut gepositioneerd
+ * maar als flex-child dat de resterende breedte pakt. */
+.admin-shell .admin-main {
+  margin-top: 0;
+  margin-left: 0;
+  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ===== ADMIN CONTENT AREA ===== */
+.admin-content {
+  padding: var(--admin-content-padding);
+  max-width: var(--content-7xl);
+  margin: 0 auto;
+}
+
+/* ===== ADMIN METRIC CARDS ===== */
+.admin-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+}

@@ -1,0 +1,200 @@
+/**
+ * CONTEXT: Admin — Workspace Shared
+ * Gedeelde workspace componenten voor admin list/detail pagina's:
+ * status badges, type chips, filter chips, sort, selectie-indicator.
+ *
+ * AI-NOTE: Deze classes zijn herbruikbaar op alle admin workspace pagina's.
+ * Tokens komen uit _base.css (admin-specifiek) en tokens/_base.css (globaal).
+ */
+
+/* -- WORKSPACE STATUS BADGES -- */
+
+.workspace-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--admin-radius-pill);
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.workspace-badge--active {
+  background: color-mix(in srgb, #16a34a 12%, transparent);
+  color: #15803d;
+}
+
+.workspace-badge--expired {
+  background: color-mix(in srgb, #dc2626 12%, transparent);
+  color: #b91c1c;
+}
+
+.workspace-badge--paused {
+  background: color-mix(in srgb, #eab308 12%, transparent);
+  color: #a16207;
+}
+
+.workspace-badge--expiring {
+  background: color-mix(in srgb, #f97316 12%, transparent);
+  color: #c2410c;
+}
+
+/* -- WORKSPACE TYPE CHIPS -- */
+
+.workspace-type-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: var(--admin-radius-sm);
+  font-size: 11px;
+  font-weight: var(--font-medium);
+  line-height: 1.4;
+  white-space: nowrap;
+  background: var(--admin-bg-wash);
+  color: var(--text-secondary);
+}
+
+.workspace-type-chip--individual {
+  /* standaard stijl, geen override nodig */
+}
+
+.workspace-type-chip--family {
+  background: color-mix(in srgb, #8b5cf6 10%, transparent);
+  color: #6d28d9;
+}
+
+/* -- WORKSPACE FILTER CHIPS -- */
+
+.products-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.products-filter-chips-label {
+  flex: 0 0 100%;
+  width: 100%;
+  margin: 0;
+  font-family: var(--tenant-font-main, var(--font-sans));
+  font-size: var(--text-2xs);
+  font-weight: var(--font-semibold);
+  line-height: 1.35;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.products-filter-chips--panel {
+  margin-top: var(--space-3);
+  padding: 0;
+  border-bottom: none;
+}
+
+.products-filter-chips--panel:first-child {
+  margin-top: 0;
+}
+
+.products-filter-chips--panel + .products-filter-chips--panel {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--admin-border-light);
+}
+
+.products-filter-chips--panel .products-filter-chips-label {
+  margin-bottom: 2px;
+}
+
+.workspace-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: var(--admin-card-padding-y) var(--admin-card-padding-x);
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.workspace-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px var(--admin-form-field-gap);
+  border-radius: var(--admin-radius-pill);
+  font-family: var(--tenant-font-main, var(--font-sans));
+  font-size: var(--admin-font-size-base);
+  font-weight: var(--font-medium);
+  line-height: 1.35;
+  cursor: pointer;
+  border: 1px solid var(--admin-border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.workspace-filter-chip:hover {
+  border-color: var(--admin-border-medium);
+  color: var(--text-primary);
+}
+
+.workspace-filter-chip--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* -- WORKSPACE SORT ROW -- */
+
+.workspace-sort-row {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-toolbar-gap);
+  padding: 6px var(--admin-card-padding-x);
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.workspace-sort-select {
+  appearance: none;
+  background: transparent;
+  border: none;
+  font-size: var(--admin-font-size-base);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.workspace-sort-select:focus {
+  outline: none;
+  color: var(--text-primary);
+}
+
+/* -- WORKSPACE SELECTION INDICATOR -- */
+
+.workspace-selection-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--admin-font-size-base);
+  font-weight: var(--font-medium);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.workspace-selection-count button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--admin-radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.workspace-selection-count button:hover {
+  background: var(--admin-bg-wash);
+  color: var(--text-primary);
+}
