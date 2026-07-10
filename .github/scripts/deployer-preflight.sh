@@ -19,11 +19,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=branch-guard-lib.sh
 source "$SCRIPT_DIR/branch-guard-lib.sh"
 
-# CI: workflow_dispatch production-only/full op main = expliciet prod-pad (deploy_token gate in caller).
-if [[ "${GITHUB_ACTIONS:-}" == "true" && "${GITHUB_EVENT_NAME:-}" == "workflow_dispatch" && -n "${GITHUB_EVENT_PATH:-}" && -f "$GITHUB_EVENT_PATH" ]]; then
-    _deploy_mode="$(jq -r '.inputs.deploy_mode // "staging-only"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo staging-only)"
-    if [[ "$_deploy_mode" == "production-only" || "$_deploy_mode" == "full" ]]; then
+# CI deploy preflight: checkout op main is verwacht — geen lokale push.
+# - workflow_run: automatisch staging-only na groene CI op main
+# - workflow_dispatch: staging/production modes (prod blijft achter deploy_token in caller)
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    if [[ "${GITHUB_EVENT_NAME:-}" == "workflow_run" ]]; then
         export PAGAYO_ALLOW_MAIN=1
+    elif [[ "${GITHUB_EVENT_NAME:-}" == "workflow_dispatch" && -n "${GITHUB_EVENT_PATH:-}" && -f "$GITHUB_EVENT_PATH" ]]; then
+        _deploy_mode="$(jq -r '.inputs.deploy_mode // "staging-only"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo staging-only)"
+        if [[ "$_deploy_mode" == "production-only" || "$_deploy_mode" == "full" || "$_deploy_mode" == "staging-only" ]]; then
+            export PAGAYO_ALLOW_MAIN=1
+        fi
     fi
 fi
 
