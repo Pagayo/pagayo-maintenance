@@ -36,7 +36,8 @@
     "local:dev:status": "./.github/scripts/local-dev-status.sh",
     "cloudflare:token:check": "node scripts/cloudflare/token-expiry-check.mjs",
     "cloudflare:token:check:json": "node scripts/cloudflare/token-expiry-check.mjs --json",
-    "cloudflare:token:check:dry": "node scripts/cloudflare/token-expiry-check.mjs --dry-run --json"
+    "cloudflare:token:check:dry": "node scripts/cloudflare/token-expiry-check.mjs --dry-run --json",
+    "smoke:fulfillment-maturity-v2": "bash scripts/smoke/fulfillment-maturity-v2.sh"
   },
   "devDependencies": {
     "typescript": "^5.7.3",
