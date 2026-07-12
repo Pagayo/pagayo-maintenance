@@ -11,6 +11,7 @@ import {
   resolveCandidateTarball,
 } from "./lib/tarball.mjs";
 import { loadProfile, compareExportMaps, compareFileSets, compareSchemaSnapshots } from "./lib/compare-contract.mjs";
+import { verifyConfigNamedExportParity } from "./lib/named-exports.mjs";
 import { listMigrationFiles, normalizeExpectedSchemaSnapshot } from "./lib/schema-snapshot.mjs";
 import {
   inventoryDistFiles,
@@ -77,6 +78,8 @@ async function verifyConfigProfile(previousRoot, candidateRoot, profile, allowBr
       }
     }
   }
+
+  await verifyConfigNamedExportParity(previousRoot, candidateRoot, allowBreaking);
 }
 
 async function verifySchemaProfile(previousRoot, candidateRoot, profile, allowBreaking) {

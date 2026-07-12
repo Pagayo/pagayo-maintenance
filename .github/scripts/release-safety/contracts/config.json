@@ -4,7 +4,8 @@
     "export-map",
     "published-files",
     "policy-features",
-    "policy-exports"
+    "policy-exports",
+    "named-export-parity"
   ],
   "requiredPolicyFeatures": ["BOOKINGS"],
   "requiredPolicyExports": [
