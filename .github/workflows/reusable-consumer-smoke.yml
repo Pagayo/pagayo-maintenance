@@ -1,0 +1,110 @@
+# =============================================================================
+# Reusable: Shared package consumer smoke (pre-publish)
+# =============================================================================
+# Self-contained: checkout package SHA → npm pack → disposable consumer dir → smoke.
+# =============================================================================
+
+name: Reusable Consumer Smoke
+
+on:
+  workflow_call:
+    inputs:
+      package_profile:
+        description: "Release-safety profile: config | schema | design"
+        required: true
+        type: string
+      package_repo:
+        description: "Package repository (owner/name)"
+        required: true
+        type: string
+      package_sha:
+        description: "Exact commit SHA to pack"
+        required: true
+        type: string
+      consumer_repo:
+        description: "Consumer repository (owner/name)"
+        required: true
+        type: string
+      consumer_ref:
+        description: "Consumer git ref"
+        required: false
+        type: string
+        default: main
+      maintenance_ref:
+        description: "Pinned pagayo-maintenance ref for scripts"
+        required: false
+        type: string
+        default: release-safety-v1
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  consumer-smoke:
+    name: Consumer smoke (${{ inputs.package_profile }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout package at publish SHA
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.package_repo }}
+          ref: ${{ inputs.package_sha }}
+          path: package-src
+
+      - name: Checkout maintenance scripts
+        uses: actions/checkout@v6
+        with:
+          repository: Pagayo/pagayo-maintenance
+          ref: ${{ inputs.maintenance_ref }}
+          path: .maintenance
+
+      - name: Setup Node.js (package)
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: package-src/.nvmrc
+          registry-url: https://npm.pkg.github.com
+          scope: "@pagayo"
+
+      - name: Build and pack candidate tarball
+        working-directory: package-src
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build
+          TARBALL="$(npm pack --pack-destination "$RUNNER_TEMP" | tail -1)"
+          echo "CANDIDATE_TARBALL=$RUNNER_TEMP/$TARBALL" >> "$GITHUB_ENV"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Consumer smoke in disposable directory
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          CONSUMER_DIR="$(mktemp -d)"
+          git clone --depth 1 --branch "${{ inputs.consumer_ref }}" \
+            "https://github.com/${{ inputs.consumer_repo }}.git" "$CONSUMER_DIR"
+          cd "$CONSUMER_DIR"
+          npm ci
+          npm install "$CANDIDATE_TARBALL"
+          case "${{ inputs.package_profile }}" in
+            config)
+              npm run typecheck
+              ;;
+            schema)
+              bash "${{ github.workspace }}/.maintenance/.github/scripts/copilot-migration-check.sh"
+              ;;
+            design)
+              npm run copy-design
+              npm run design:verify-asset-version
+              test -d public/design/dist/fresh
+              ;;
+            *)
+              echo "Unknown package_profile: ${{ inputs.package_profile }}"
+              exit 1
+              ;;
+          esac
+          rm -rf "$CONSUMER_DIR"

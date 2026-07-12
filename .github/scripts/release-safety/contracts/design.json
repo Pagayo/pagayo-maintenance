@@ -1,0 +1,12 @@
+{
+  "package": "@pagayo/design",
+  "checks": [
+    "export-map",
+    "dist-inventory",
+    "required-css-bundles",
+    "font-count",
+    "illustration-count"
+  ],
+  "minFontCount": 7,
+  "minIllustrationCount": 23
+}

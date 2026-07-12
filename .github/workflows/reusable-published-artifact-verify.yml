@@ -1,0 +1,62 @@
+# =============================================================================
+# Reusable: Post-publish artifact verification (detectie, geen rollback)
+# =============================================================================
+
+name: Reusable Published Artifact Verify
+
+on:
+  workflow_call:
+    inputs:
+      package_profile:
+        description: "Release-safety profile: config | schema | design"
+        required: true
+        type: string
+      package_version:
+        description: "Published semver"
+        required: true
+        type: string
+      maintenance_ref:
+        description: "Pinned pagayo-maintenance ref for scripts"
+        required: false
+        type: string
+        default: release-safety-v1
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  post-publish-verify:
+    name: Post-publish verify (${{ inputs.package_profile }}@${{ inputs.package_version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout maintenance scripts
+        uses: actions/checkout@v6
+        with:
+          repository: Pagayo/pagayo-maintenance
+          ref: ${{ inputs.maintenance_ref }}
+          path: .maintenance
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://npm.pkg.github.com
+          scope: "@pagayo"
+
+      - name: Wait for registry propagation
+        run: sleep 15
+
+      - name: Verify published artifact from registry
+        run: |
+          set -euo pipefail
+          if ! node .maintenance/.github/scripts/release-safety/verify-published-artifact.mjs \
+            --profile "${{ inputs.package_profile }}" \
+            --version "${{ inputs.package_version }}"; then
+            echo "::error::RELEASE INCIDENT — post-publish verify failed for ${{ inputs.package_profile }}@${{ inputs.package_version }}. Do not consume; investigate packaging/registry drift."
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

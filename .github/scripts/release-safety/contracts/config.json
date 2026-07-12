@@ -1,0 +1,23 @@
+{
+  "package": "@pagayo/config",
+  "checks": [
+    "export-map",
+    "published-files",
+    "policy-features",
+    "policy-exports"
+  ],
+  "requiredPolicyFeatures": ["BOOKINGS"],
+  "requiredPolicyExports": [
+    "derivePrimaryQueue",
+    "resolveCapabilitiesFromLegacy",
+    "resolveCapabilityFirstRead",
+    "resolvePolicyLandingPath",
+    "resolveNavigationFromCapabilities",
+    "getCapabilityDiffReport",
+    "isCapabilityShadowDiagnosticsEnabled"
+  ],
+  "requiredPolicyTypeExports": [
+    "TenantCapabilitySet",
+    "PrimaryQueue"
+  ]
+}

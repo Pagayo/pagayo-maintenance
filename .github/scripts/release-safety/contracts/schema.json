@@ -1,0 +1,9 @@
+{
+  "package": "@pagayo/schema",
+  "checks": [
+    "export-map",
+    "migration-files",
+    "expected-schema-snapshot"
+  ],
+  "migrationDomains": ["platform", "tenant", "api"]
+}

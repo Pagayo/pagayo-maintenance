@@ -1,0 +1,78 @@
+# =============================================================================
+# Reusable: Contract regression vs @latest (pre-publish, tarball-tot-tarball)
+# =============================================================================
+
+name: Reusable Release Safety Contract
+
+on:
+  workflow_call:
+    inputs:
+      package_profile:
+        description: "Release-safety profile: config | schema | design"
+        required: true
+        type: string
+      package_repo:
+        description: "Package repository (owner/name)"
+        required: true
+        type: string
+      package_sha:
+        description: "Exact commit SHA to pack"
+        required: true
+        type: string
+      allow_breaking_contract:
+        description: "Allow intentional contract breaking changes"
+        required: false
+        type: boolean
+        default: false
+      maintenance_ref:
+        description: "Pinned pagayo-maintenance ref for scripts"
+        required: false
+        type: string
+        default: release-safety-v1
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  contract-guard:
+    name: Contract vs @latest (${{ inputs.package_profile }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout package at publish SHA
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.package_repo }}
+          ref: ${{ inputs.package_sha }}
+          path: package-src
+
+      - name: Checkout maintenance scripts
+        uses: actions/checkout@v6
+        with:
+          repository: Pagayo/pagayo-maintenance
+          ref: ${{ inputs.maintenance_ref }}
+          path: .maintenance
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: package-src/.nvmrc
+          registry-url: https://npm.pkg.github.com
+          scope: "@pagayo"
+
+      - name: Build candidate and verify contract vs @latest
+        working-directory: package-src
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build
+          TARBALL="$(npm pack --pack-destination "$RUNNER_TEMP" | tail -1)"
+          ARGS="--profile ${{ inputs.package_profile }} --candidate-tarball $RUNNER_TEMP/$TARBALL"
+          if [ "${{ inputs.allow_breaking_contract }}" = "true" ]; then
+            ARGS="$ARGS --allow-breaking"
+          fi
+          node "${{ github.workspace }}/.maintenance/.github/scripts/release-safety/verify-contract-vs-latest.mjs" $ARGS
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
