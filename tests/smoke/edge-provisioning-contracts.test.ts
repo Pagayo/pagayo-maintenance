@@ -242,6 +242,34 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
       );
     });
 
+    it("workflow provisioning controls reject spoofed internal headers", async () => {
+      const routes = [
+        { path: "/api/provisioning/workflow/health", method: "GET" },
+        {
+          path: "/api/provisioning/workflow/tenant-provisioning-0000000000000000000000000000000000000000",
+          method: "GET",
+        },
+      ] as const;
+
+      for (const route of routes) {
+        const response = await fetch(`${STOREFRONT_URL}${route.path}`, {
+          method: route.method,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Pagayo-Internal": "true",
+          },
+        });
+
+        expect([401, 403]).toContain(response.status);
+      }
+
+      log(
+        "provisioning-workflow-control-spoofed-internal-header",
+        "PASS",
+        "Caller-supplied internal headers do not bypass trusted auth",
+      );
+    });
+
     it("POST /api/platform/tenants/provision remains protected by platform auth", async () => {
       const response = await fetch(
         `${PLATFORM_ADMIN_URL}/api/platform/tenants/provision`,
