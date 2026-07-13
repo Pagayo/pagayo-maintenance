@@ -243,5 +243,17 @@ Als tests falen:
 
 ---
 
+## VaultGuard lokaal
+
+`pagayo-vault` blijft **LOCAL ONLY** (nooit GitHub, ook niet private). Installer:
+
+```bash
+npm run setup:vaultguard-local
+```
+
+Zie [`RUNBOOK-vaultguard-local.md`](./RUNBOOK-vaultguard-local.md).
+
+---
+
 *Aangemaakt: 31 januari 2026*  
-*Laatst bijgewerkt: 30 maart 2026*
+*Laatst bijgewerkt: 11 juni 2026*
