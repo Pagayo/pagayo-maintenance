@@ -204,6 +204,44 @@ describe("Edge + Provisioning Contracts - Smoke Tests", () => {
       expect([401, 403]).toContain(response.status);
     });
 
+    it("workflow provisioning control routes fail closed without trusted auth", async () => {
+      const routes = [
+        { path: "/api/provisioning/workflow/health", method: "GET" },
+        { path: "/api/provisioning/workflow/tenants", method: "POST" },
+        { path: "/api/provisioning/workflow/not-a-real-id", method: "GET" },
+        {
+          path: "/api/provisioning/workflow/not-a-real-id/cancel",
+          method: "POST",
+        },
+      ] as const;
+
+      for (const route of routes) {
+        const response = await fetch(`${STOREFRONT_URL}${route.path}`, {
+          method: route.method,
+          headers: { "Content-Type": "application/json" },
+          body:
+            route.method === "POST" && route.path.endsWith("/tenants")
+              ? JSON.stringify({
+                  organizationId: "org_smoke_contract",
+                  tenantSlug: "smoke-contract",
+                  tenantName: "Smoke Contract",
+                  contact: { email: "smoke@example.com" },
+                  requestId: "smoke-request-123",
+                  idempotencyKey: "smoke:tenant-contract",
+                })
+              : undefined,
+        });
+
+        expect([401, 403]).toContain(response.status);
+      }
+
+      log(
+        "provisioning-workflow-control-unauthorized",
+        "PASS",
+        "Alle workflow-control routes zijn fail-closed",
+      );
+    });
+
     it("POST /api/platform/tenants/provision remains protected by platform auth", async () => {
       const response = await fetch(
         `${PLATFORM_ADMIN_URL}/api/platform/tenants/provision`,
