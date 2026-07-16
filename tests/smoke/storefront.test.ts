@@ -2155,6 +2155,16 @@ describe("Storefront Service - Smoke Tests", () => {
         action: "Check admin team route mount en requireAdmin guard",
       },
       {
+        testName: "admin-ops-health-route",
+        path: "/api/admin/ops/health",
+        action: "Check Mission 6 tenant health route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-ops-alerts-route",
+        path: "/api/admin/ops/alerts",
+        action: "Check Mission 6 alert ownership route mount en requireAdmin guard",
+      },
+      {
         testName: "admin-kv-sync-route",
         path: "/api/admin/kv-sync/status",
         action: "Check admin kv-sync route mount en requireAdmin guard",
