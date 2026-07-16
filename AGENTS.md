@@ -4,6 +4,10 @@
 `pagayo-maintenance` is de centrale kwaliteits- en smoke-suite voor het hele platform.
 Wijzigingen in andere repos moeten hier vaak worden gevalideerd.
 
+## Local source (verplicht)
+
+Volg [`../AGENTS.md`](../AGENTS.md) § Pagayo Project Source. Gebruik Pagayo Project Source (MCP) voor actuele lokale code, branches, dirty state en repository-context. GitHub is remote state — geen primaire lokale implementatiewaarheid.
+
 ## Leesvolgorde (verplicht)
 1. `../AGENTS.md`
 2. `../pagayo-vault/PAGAYO-NIVEAU.md`
