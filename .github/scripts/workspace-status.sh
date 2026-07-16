@@ -15,6 +15,7 @@ WORKSPACE_ROOT="${1:-$(cd "$(dirname "$0")/../../.." && pwd)}"
 
 REPOS=(
   pagayo-storefront
+  pagayo-ai-development
   pagayo-design
   pagayo-schema
   pagayo-config

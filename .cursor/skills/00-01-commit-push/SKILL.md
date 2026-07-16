@@ -11,6 +11,12 @@ Vergeet niet dirty files te mee te nemen.
 
 Je bent verantwoordelijk voor **lokale git-schrijfacties**: status, stage, commit, push, branchkeuze, preflight/postpush. **Geen** staging-deploy (02), **geen** productie (04), **geen** `gh workflow run` (behalve `gh run watch` na push waar van toepassing).
 
+## Manager-taal vs technisch pad (Fase 0)
+
+- **Sjoerd-taal:** Lane · Local Staging · RC · Production — zie `pagayo-vault/.github/release-playbooks/05-daily-workflow-v2.md`.
+- **Technisch pad (tot cutover):** `feature/batch-staging-YYYYMMDD` + playbooks 00–04.
+- Rapporteer naar Sjoerd in lane-begrippen; gebruik batch-staging alleen in technische rapportage aan jezelf of bij preflight.
+
 ## Leesvolgorde
 
 1. `pagayo-vault/.github/release-playbooks/README.md` (index + design-parity invariant)
@@ -28,7 +34,8 @@ Uitgebreide referentie: [reference.md](reference.md)
 2. **Stage expliciet:** `git add` op alle scope-bestanden (generated output, lockfiles, `.pagayo/preflight-attestation.json`, `design-asset-version.ts`, manifest entries, enz.).
 3. **Vóór branch-switch/checkout/merge/rebase:** dirty tree = stop. Eerst committen of stashen — nooit wisselen met onbedoeld achtergelaten werk.
 4. **Sibling-repo's:** storefront-preflight faalt als **`pagayo-design` nog open wijzigingen** heeft (CHECK 7) — commit design eerst of neem mee in dezelfde batch.
-5. **Niet committen:** secrets, `.env`, tijdelijke logs, build-artefacts die repo-policy uitsluit (check `git status` + `.gitignore`).
+5. **`pagayo-ai-development` (verplicht bij productwerk):** na elke product-commit/push altijd `git status` in `pagayo-ai-development`. Dirty mission-/kennisdocs (`missions/**`, `CURRENT-DEVELOPMENT-STATE.md`, `ROADMAP.md`, `capability-register/**`) horen in **dezelfde 00/01-sessie** gecommit — niet als losse achteraf-stap. Branch: `main`. Push alleen met expliciete Sjoerd-go.
+6. **Niet committen:** secrets, `.env`, tijdelijke logs, build-artefacts die repo-policy uitsluit (check `git status` + `.gitignore`).
 
 ## Fase A — Playbook 00 (pre-commit, lokaal)
 
@@ -37,6 +44,7 @@ Task Progress:
 - [ ] 0. workspace-status.sh (read-only dashboard)
 - [ ] 1. ensure-branch.sh per repo
 - [ ] 2. git status + scope-review (alle dirty files bij onderwerp?)
+- [ ] 2b. pagayo-ai-development: mission-/kennis-sync dirty? → commit op main (zelfde sessie)
 - [ ] 3. Schema/migration? → copilot-migration-check.sh
 - [ ] 4. Design-triggers? → README-keten (zie reference.md)
 - [ ] 5. Logische commit(s); WIP → prefix wip:
@@ -85,7 +93,8 @@ Task Progress:
 - [ ] 7. git push (niet naar main zonder expliciete toestemming Sjoerd)
 - [ ] 8. Push main? → deployer-postpush.sh
 - [ ] 9. gh run watch --exit-status tot eindstatus
-- [ ] 10. Rapportage (template onder)
+- [ ] 10. pagayo-ai-development: resterende dirty mission-docs commit/push (zelfde sessie)
+- [ ] 11. Rapportage (template onder)
 ```
 
 ### Preflight (verplicht vóór push)
@@ -154,6 +163,7 @@ Bij CI-failure na push: geen blind her-dispatchen. Logs → foutklasse → repo-
 | PR/merge-readiness | `03-main-parity.md` |
 | Productie | `04-production.md` (alleen expliciete opdracht Sjoerd) |
 | Parallelle chats / manager-ritueel | `00-manager-workflow.md` |
+| Dagelijkse workflow v2 (Fase 0) | `05-daily-workflow-v2.md` |
 
 ## Rapportage
 
@@ -161,6 +171,7 @@ Bij CI-failure na push: geen blind her-dispatchen. Logs → foutklasse → repo-
 Commit: <short-sha>
 Branch: <branch>
 Pushed: ja/nee
+pagayo-ai-development: gecommit/gepusht/n.v.t./schoon
 Dirty files meegenomen: ja/nee (lijst kort indien nee → gefixt)
 CI: geslaagd/gefaald/n.v.t.
 Deploy: geslaagd/gefaald/n.v.t.

@@ -14,6 +14,7 @@ Canonieke bronnen:
 | `.pagayo/preflight-attestation.json` gewijzigd | Commit vóór push |
 | `@pagayo/design` lockfile bump | + `design-asset-version.ts` + `copy-design` output |
 | Open wijzigingen in sibling `pagayo-design` bij storefront push | Eerst design committen (preflight CHECK 7) |
+| Dirty mission-/kennisdocs in `pagayo-ai-development` na productwerk | Commit op `main` in dezelfde 00/01-sessie; push alleen met Sjoerd-go |
 | Ander onderwerp inzelfde tree | Aparte commit of stash |
 | Secrets / `.env` | Nooit committen |
 
@@ -54,6 +55,14 @@ Deploy vereist geslaagde CI op **dezelfde SHA** (~30 min poll).
 ## Consumer-packages
 
 `pagayo-schema`, `pagayo-config`, `pagayo-design`: publish-pad, geen Workers-deploy. Noteer `n.v.t.` + reden in rapportage.
+
+## pagayo-ai-development (knowledge sync)
+
+- Altijd in `workspace-status.sh` en 00/01 dirty-scan.
+- Branch: `main` (geen feature-lane).
+- Scope bij productwerk: `missions/**`, `CURRENT-DEVELOPMENT-STATE.md`, `ROADMAP.md`, `capability-register/**`, governance contracts.
+- Commit in dezelfde sessie als productrepo-commit; niet als losse achteraf-stap.
+- Push naar `main` alleen met expliciete Sjoerd-go.
 
 ## Sync-check (optioneel na push)
 
