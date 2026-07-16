@@ -37,6 +37,7 @@
     "cloudflare:token:check": "node scripts/cloudflare/token-expiry-check.mjs",
     "cloudflare:token:check:json": "node scripts/cloudflare/token-expiry-check.mjs --json",
     "cloudflare:token:check:dry": "node scripts/cloudflare/token-expiry-check.mjs --dry-run --json",
+    "d1:backup:retention:policy": "node scripts/d1-backup-retention.mjs --policy",
     "smoke:fulfillment-maturity-v2": "bash scripts/smoke/fulfillment-maturity-v2.sh",
     "smoke:payments-operational-maturity-v1": "bash scripts/smoke/payments-operational-maturity-v1.sh",
     "smoke:bookings-operational-maturity-v1": "vitest run tests/smoke/bookings-operational-maturity-v1.test.ts",
