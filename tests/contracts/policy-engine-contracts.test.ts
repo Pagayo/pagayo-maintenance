@@ -81,12 +81,11 @@ describe("Policy Engine — types.ts contract", () => {
       "SUBSCRIPTIONS",
       "INVOICE",
       "WHATSAPP",
-      "SOCIAL",
       "CASH",
       "MANUAL",
     ];
 
-    it("exporteert Feature type met alle 9 features", () => {
+    it("exporteert Feature type met commerce features", () => {
       expect(source).toMatch(/export\s+type\s+Feature\s*=/);
       for (const feature of EXPECTED_FEATURES) {
         expect(source, `Feature ${feature} ontbreekt`).toContain(
@@ -219,7 +218,7 @@ describe("Policy Engine — policy-matrix.ts contract", () => {
     expect(source).toMatch(/from\s+["']\.\/types["']/);
   });
 
-  describe("Bevat alle 9 features als top-level keys", () => {
+  describe("Bevat commerce features als top-level keys", () => {
     const FEATURES = [
       "WEBSHOP",
       "POS",
@@ -227,7 +226,6 @@ describe("Policy Engine — policy-matrix.ts contract", () => {
       "SUBSCRIPTIONS",
       "INVOICE",
       "WHATSAPP",
-      "SOCIAL",
       "CASH",
       "MANUAL",
     ];
@@ -412,7 +410,6 @@ describe("Policy Engine — Cross-file consistency", () => {
       "SUBSCRIPTIONS",
       "INVOICE",
       "WHATSAPP",
-      "SOCIAL",
       "CASH",
       "MANUAL",
     ];

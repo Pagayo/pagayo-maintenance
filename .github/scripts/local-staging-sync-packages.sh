@@ -46,7 +46,12 @@ build_if_stale() {
 
 build_if_stale "pagayo-config" "$STALE_CONFIG"
 build_if_stale "pagayo-schema" "$STALE_SCHEMA"
-build_if_stale "pagayo-design" "$STALE_DESIGN"
+# Local Staging uses lockfile/node_modules design — never rebuild sibling
+# pagayo-design here (that dirties dist/ and blocks the next start).
+if [[ -n "$STALE_DESIGN" ]]; then
+  echo "   ℹ️  design src newer than sibling dist — skip rebuild (PAGAYO_DESIGN_SOURCE=node_modules)"
+  echo "      Publiceer + bump lockfile vóór RC als visuele wijziging online moet."
+fi
 
 sync_dist() {
   local from_pkg="$1"
@@ -70,12 +75,6 @@ for consumer in "${CONSUMERS[@]}"; do
     sync_dist "schema" "$consumer"
   fi
 done
-
-# Local Staging gebruikt node_modules design — geen sibling dist copy naar storefront public
-if [[ -n "$STALE_DESIGN" && -d "$WS/pagayo-storefront" ]]; then
-  echo "   ℹ️  design stale — Local Staging gebruikt lockfile (PAGAYO_DESIGN_SOURCE=node_modules)"
-  echo "      Publiceer + bump lockfile vóór RC als visuele wijziging online moet."
-fi
 
 # Optionele migration check als schema lockfiles gewijzigd zijn
 MIGRATION_SCRIPT="$SCRIPT_DIR/copilot-migration-check.sh"
