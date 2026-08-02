@@ -2204,6 +2204,61 @@ describe("Storefront Service - Smoke Tests", () => {
   });
 
   describe("New Endpoints - Auth Required", () => {
+    it("POST /api/internal/commerce-import/jobs/:id/batch requires internal auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/internal/commerce-import/jobs/1/batch`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenantSlug: "smoke-tenant",
+            offset: 0,
+            limit: 50,
+            confirmOverwrite: true,
+          }),
+        },
+      );
+
+      if (response.status === 401) {
+        log(
+          "internal-commerce-import-batch-auth",
+          "PASS",
+          "Internal commerce-import batch endpoint requires X-Internal-Secret auth",
+        );
+      } else if (response.status >= 500) {
+        log(
+          "internal-commerce-import-batch-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check /api/internal/commerce-import/jobs/:id/batch auth middleware",
+          "HIGH",
+        );
+      } else {
+        log(
+          "internal-commerce-import-batch-auth",
+          "WARN",
+          `Unexpected status without secret: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBe(401);
+    });
+
+    it("POST /api/internal/commerce-import/jobs/:id/finalize requires internal auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/internal/commerce-import/jobs/1/finalize`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenantSlug: "smoke-tenant",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(401);
+    });
+
     it("POST /api/internal/google-drive/sync/scheduled vereist internal auth", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/internal/google-drive/sync/scheduled`,
