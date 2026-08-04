@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "updated_at": "2026-08-04T06:59:06Z",
+  "updated_at": "2026-08-04T08:56:23Z",
   "updated_by": "Pagayo",
   "repos": {
     "pagayo-storefront": {
-      "staging_sha": "d133fa1e186c3b02216b4418f027c0f297f4469a",
-      "verified_at": "2026-08-04T06:59:06Z"
+      "staging_sha": "4aa42d6c99ae77fda99657612ebe53d7d46b8c36",
+      "verified_at": "2026-08-04T08:56:23Z"
     },
     "pagayo-api-stack": {
       "staging_sha": "0f0fe65e73c85a2253883e2f19c802357e8b183b",
