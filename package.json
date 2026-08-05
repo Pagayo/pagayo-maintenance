@@ -8,6 +8,7 @@
     "test:watch": "vitest",
     "test:smoke": "vitest run tests/smoke/",
     "test:smoke:headers": "vitest run tests/smoke/header-compliance.test.ts",
+    "test:smoke:staging-rc": "bash .github/scripts/staging-rc-smoke.sh",
     "test:smoke:all": "./scripts/run-all-smoke-tests.sh",
     "test:integration": "vitest run tests/integration/",
     "test:security": "vitest run tests/security/",

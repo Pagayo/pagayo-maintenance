@@ -37,6 +37,16 @@ Legacy batch-branches: zet `PAGAYO_LANE_MODE=legacy` voor `ensure-branch.sh` ged
 - Edge/Provisioning contracten: `tests/smoke/edge-provisioning-contracts.test.ts`
 - Infra/routing/SSL: `tests/smoke/infrastructure.test.ts`
 
+## Smoke vs verifyMode (PDC-011)
+
+| Suite | Wanneer | Commando |
+|-------|---------|----------|
+| Local Staging smoke | Lokale stack alive (Local Staging v1) | `.github/scripts/local-staging-smoke.sh` |
+| Staging RC smoke | **`verifyMode=rc`** (A-RC claim) — smal, demo-only | `npm run test:smoke:staging-rc` |
+| Full platform smoke | **`verifyMode=production`** / expliciete prod-go | `npm run test:smoke` |
+
+**Niet** `test:smoke:staging-rc` of full `test:smoke` na elke Path A deploy. Storefront `deploy:staging:direct` roept maintenance smoke niet aan. Canon: `pagayo-development-cloud/canon/daily/PATHS.json` → `verifyModes`.
+
 ## Mission 7 — Recovery runbooks (in this repo)
 
 - Multi-tenant D1 backup: `scripts/d1-multi-tenant-backup.sh` + `.github/workflows/d1-backup-nightly.yml`
