@@ -2105,6 +2105,11 @@ describe("Storefront Service - Smoke Tests", () => {
   describe("Admin Surface Contracts", () => {
     const protectedAdminRoutes = [
       {
+        testName: "admin-today-signals-route",
+        path: "/api/admin/today/signals",
+        action: "Check canonical Today dashboard route mount en requireAdmin guard",
+      },
+      {
         testName: "admin-domain-route",
         path: "/api/admin/domain",
         action: "Check admin domain route mount en requireAdmin guard",
