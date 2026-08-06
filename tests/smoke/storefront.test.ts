@@ -746,6 +746,26 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(Array.isArray(placements)).toBe(true);
     });
 
+    it("Public settings envelope exposes a compatible storefront appearance contract", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/settings/public`);
+      if (skipIfNoTenant(response, "public-settings-storefront-appearance")) return;
+      const body = response.status === 200 ? await response.json() : null;
+      const appearance = body?.data?.storefrontAppearanceSettings;
+      const isUnset = appearance === null || appearance === undefined;
+      const isV2 = appearance?.version === 2
+        && (appearance.source === "basic" || appearance.source === "custom")
+        && (appearance.mode === "light" || appearance.mode === "dark")
+        && (appearance.source !== "custom" || /^#[0-9A-F]{6}$/.test(appearance.brandColor));
+      const isLegacy = typeof appearance?.backgroundPaletteId === "string"
+        && (appearance.backgroundTone === "light" || appearance.backgroundTone === "dark");
+
+      expect(response.status).toBe(200);
+      expect(body?.success).toBe(true);
+      expect(typeof body?.requestId).toBe("string");
+      expect(isUnset || isV2 || isLegacy).toBe(true);
+      log("public-settings-storefront-appearance", "PASS", isV2 ? "V2 contract" : isLegacy ? "legacy adapter contract" : "legacy-unset contract");
+    });
+
     it("SSR storefront block zones render for configured surfaces", async () => {
       const publicSettingsResponse = await fetch(
         `${STOREFRONT_URL}/api/settings/public`,
@@ -4653,6 +4673,16 @@ describe("Storefront Service - Smoke Tests", () => {
   });
 
   describe("Theme Settings API", () => {
+    it("POST apply-skin rejects unauthenticated V2 writes without mutating staging data", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/website-editor/apply-skin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ colorChoice: { version: 2, source: "basic", mode: "light" } }),
+      });
+      expect([401, 403]).toContain(response.status);
+      log("website-editor-apply-color-auth", "PASS", `Unauthenticated write blocked: HTTP ${response.status}`);
+    });
+
     it("GET /api/admin/settings/theme requires auth (401/403)", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/settings/theme`,

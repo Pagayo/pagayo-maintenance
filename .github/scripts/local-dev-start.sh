@@ -31,6 +31,12 @@ local_dev_stop_wrangler_and_ports
 local_dev_stop_background_pids
 echo ""
 
+# Packages terwijl stack down is — voorkomt api-stack schema-symlink mid-build crashes.
+local_dev_sync_stale_packages "$WS"
+
+# Fix workerd _cf_ALARM schema drift without wiping tenant D1.
+local_dev_repair_wrangler_alarm_metadata "$WS"
+
 local_dev_bootstrap_preserve "$WS"
 local_dev_apply_tenant_migrations "$WS"
 local_dev_apply_api_migrations "$WS"
