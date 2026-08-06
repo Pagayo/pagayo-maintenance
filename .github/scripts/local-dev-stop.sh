@@ -15,5 +15,6 @@ pkill -f "serve public" 2>/dev/null || true
 pkill -f "pagayo-storefront/node_modules/.bin/vite" 2>/dev/null || true
 pkill -f "astro dev" 2>/dev/null || true
 pkill -f "concurrently" 2>/dev/null || true
+pkill -f "local-dev-watchdog.py" 2>/dev/null || true
 
 echo "✅ Local dev stack gestopt"

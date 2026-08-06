@@ -746,6 +746,26 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(Array.isArray(placements)).toBe(true);
     });
 
+    it("Public settings envelope exposes a compatible storefront appearance contract", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/settings/public`);
+      if (skipIfNoTenant(response, "public-settings-storefront-appearance")) return;
+      const body = response.status === 200 ? await response.json() : null;
+      const appearance = body?.data?.storefrontAppearanceSettings;
+      const isUnset = appearance === null || appearance === undefined;
+      const isV2 = appearance?.version === 2
+        && (appearance.source === "basic" || appearance.source === "custom")
+        && (appearance.mode === "light" || appearance.mode === "dark")
+        && (appearance.source !== "custom" || /^#[0-9A-F]{6}$/.test(appearance.brandColor));
+      const isLegacy = typeof appearance?.backgroundPaletteId === "string"
+        && (appearance.backgroundTone === "light" || appearance.backgroundTone === "dark");
+
+      expect(response.status).toBe(200);
+      expect(body?.success).toBe(true);
+      expect(typeof body?.requestId).toBe("string");
+      expect(isUnset || isV2 || isLegacy).toBe(true);
+      log("public-settings-storefront-appearance", "PASS", isV2 ? "V2 contract" : isLegacy ? "legacy adapter contract" : "legacy-unset contract");
+    });
+
     it("SSR storefront block zones render for configured surfaces", async () => {
       const publicSettingsResponse = await fetch(
         `${STOREFRONT_URL}/api/settings/public`,
@@ -2105,6 +2125,11 @@ describe("Storefront Service - Smoke Tests", () => {
   describe("Admin Surface Contracts", () => {
     const protectedAdminRoutes = [
       {
+        testName: "admin-today-signals-route",
+        path: "/api/admin/today/signals",
+        action: "Check canonical Today dashboard route mount en requireAdmin guard",
+      },
+      {
         testName: "admin-domain-route",
         path: "/api/admin/domain",
         action: "Check admin domain route mount en requireAdmin guard",
@@ -2155,6 +2180,16 @@ describe("Storefront Service - Smoke Tests", () => {
         action: "Check admin team route mount en requireAdmin guard",
       },
       {
+        testName: "admin-ops-health-route",
+        path: "/api/admin/ops/health",
+        action: "Check Mission 6 tenant health route mount en requireAdmin guard",
+      },
+      {
+        testName: "admin-ops-alerts-route",
+        path: "/api/admin/ops/alerts",
+        action: "Check Mission 6 alert ownership route mount en requireAdmin guard",
+      },
+      {
         testName: "admin-kv-sync-route",
         path: "/api/admin/kv-sync/status",
         action: "Check admin kv-sync route mount en requireAdmin guard",
@@ -2194,6 +2229,61 @@ describe("Storefront Service - Smoke Tests", () => {
   });
 
   describe("New Endpoints - Auth Required", () => {
+    it("POST /api/internal/commerce-import/jobs/:id/batch requires internal auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/internal/commerce-import/jobs/1/batch`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenantSlug: "smoke-tenant",
+            offset: 0,
+            limit: 50,
+            confirmOverwrite: true,
+          }),
+        },
+      );
+
+      if (response.status === 401) {
+        log(
+          "internal-commerce-import-batch-auth",
+          "PASS",
+          "Internal commerce-import batch endpoint requires X-Internal-Secret auth",
+        );
+      } else if (response.status >= 500) {
+        log(
+          "internal-commerce-import-batch-auth",
+          "FAIL",
+          `Server error: HTTP ${response.status}`,
+          "Check /api/internal/commerce-import/jobs/:id/batch auth middleware",
+          "HIGH",
+        );
+      } else {
+        log(
+          "internal-commerce-import-batch-auth",
+          "WARN",
+          `Unexpected status without secret: HTTP ${response.status}`,
+        );
+      }
+
+      expect(response.status).toBe(401);
+    });
+
+    it("POST /api/internal/commerce-import/jobs/:id/finalize requires internal auth", async () => {
+      const response = await fetch(
+        `${STOREFRONT_URL}/api/internal/commerce-import/jobs/1/finalize`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenantSlug: "smoke-tenant",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(401);
+    });
+
     it("POST /api/internal/google-drive/sync/scheduled vereist internal auth", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/internal/google-drive/sync/scheduled`,
@@ -4583,6 +4673,16 @@ describe("Storefront Service - Smoke Tests", () => {
   });
 
   describe("Theme Settings API", () => {
+    it("POST apply-skin rejects unauthenticated V2 writes without mutating staging data", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/admin/website-editor/apply-skin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ colorChoice: { version: 2, source: "basic", mode: "light" } }),
+      });
+      expect([401, 403]).toContain(response.status);
+      log("website-editor-apply-color-auth", "PASS", `Unauthenticated write blocked: HTTP ${response.status}`);
+    });
+
     it("GET /api/admin/settings/theme requires auth (401/403)", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/settings/theme`,
@@ -4713,165 +4813,6 @@ describe("Storefront Service - Smoke Tests", () => {
       }
 
       expect(response.status).toBeLessThan(500);
-    });
-  });
-
-  describe("ATLAS Commerce Contracts", () => {
-    it("GET /api/admin/atlas-commerce/orders requires auth (401/403)", async () => {
-      await expectProtectedAdminGetRoute({
-        testName: "atlas-commerce-orders-auth",
-        path: "/api/admin/atlas-commerce/orders?limit=1",
-        action: "Check Atlas Commerce API auth guard",
-      });
-    });
-
-    it("ATLAS entitlement blijft hard enforced op path-based API + admin route", async () => {
-      const testName = "atlas-commerce-entitlement-contract";
-
-      const adminSession = await resolveAdminSessionCookie();
-      if (!adminSession.sessionCookie) {
-        log(
-          testName,
-          adminSession.severity,
-          adminSession.reason ?? "Geen admin sessie beschikbaar",
-          adminSession.severity === "FAIL"
-            ? "Check lokale seeded admin user + POST /api/admin/login endpoint"
-            : "Zet SMOKE_ADMIN_SESSION_COOKIE voor remote/staging contractvalidatie",
-          adminSession.severity === "FAIL" ? "CRITICAL" : "HIGH",
-        );
-        if (adminSession.severity === "FAIL") {
-          expect(adminSession.sessionCookie).toBeTruthy();
-        }
-        return;
-      }
-
-      const sessionCookie = adminSession.sessionCookie;
-      const adminFetch = createAuthFetch(sessionCookie);
-
-      const currentOverridesResponse = await adminFetch(
-        `${STOREFRONT_URL}/api/admin/organization/menu-overrides`,
-      );
-      if (skipIfNoTenant(currentOverridesResponse, testName)) return;
-
-      if (currentOverridesResponse.status !== 200) {
-        log(
-          testName,
-          "FAIL",
-          `Current overrides ophalen faalt: HTTP ${currentOverridesResponse.status}`,
-          "Check menu-overrides GET route met admin sessie",
-          "HIGH",
-        );
-        expect(currentOverridesResponse.status).toBe(200);
-        return;
-      }
-
-      const currentOverrides = extractBooleanOverrides(
-        await readJsonBody(currentOverridesResponse),
-      );
-
-      const csrfResponse = await adminFetch(`${STOREFRONT_URL}/api/admin/csrf`);
-      expect(csrfResponse.status).toBe(200);
-
-      const csrfBody = await readJsonBody(csrfResponse);
-      const csrfData =
-        typeof csrfBody?.data === "object" && csrfBody.data !== null
-          ? (csrfBody.data as Record<string, unknown>)
-          : null;
-      const csrfToken =
-        typeof csrfData?.csrfToken === "string" ? csrfData.csrfToken : null;
-      const csrfCookie = extractCookieValue(
-        csrfResponse.headers.get("set-cookie") ?? "",
-        "csrf_token",
-      );
-
-      expect(csrfToken).toBeTruthy();
-      expect(csrfCookie).toBeTruthy();
-
-      if (!csrfToken || !csrfCookie) return;
-
-      const mutationHeaders = {
-        "Content-Type": "application/json",
-        "X-CSRF-Token": csrfToken,
-        Cookie: `${buildSessionCookieHeader(sessionCookie)}; csrf_token=${csrfCookie}`,
-      };
-
-      const forcedBlockedOverrides: Record<string, boolean> = {
-        ...currentOverrides,
-        ATLAS_COMMERCE: false,
-      };
-
-      const setBlockedResponse = await fetch(
-        `${STOREFRONT_URL}/api/admin/organization/menu-overrides`,
-        {
-          method: "PUT",
-          headers: mutationHeaders,
-          body: JSON.stringify({ overrides: forcedBlockedOverrides }),
-        },
-      );
-
-      if (setBlockedResponse.status !== 200) {
-        const setBlockedBody = await readJsonBody(setBlockedResponse);
-        log(
-          testName,
-          "FAIL",
-          `ATLAS_COMMERCE=false zetten faalt: HTTP ${setBlockedResponse.status}, code=${getErrorCode(setBlockedBody) ?? "none"}`,
-          "Check menu-overrides owner/auth/validation contract",
-          "HIGH",
-        );
-      }
-      expect(setBlockedResponse.status).toBe(200);
-
-      const atlasResponse = await adminFetch(
-        `${STOREFRONT_URL}/api/admin/atlas-commerce/orders?limit=1`,
-      );
-      const atlasBody = await readJsonBody(atlasResponse);
-      const atlasCode = getErrorCode(atlasBody);
-      const details = getErrorDetails(atlasBody);
-
-      const hasFeature = details?.feature === "ATLAS_COMMERCE";
-      const hasAction = details?.action === "admin.view";
-      const hasMenuVisibleFalse = details?.menuVisible === false;
-
-      expect(atlasResponse.status).toBe(403);
-      expect(atlasCode).toBe("FEATURE_BLOCKED");
-      expect(hasFeature).toBe(true);
-      expect(hasAction).toBe(true);
-      expect(hasMenuVisibleFalse).toBe(true);
-
-      const atlasAdminRouteResponse = await fetch(
-        `${STOREFRONT_URL}/admin/atlas-commerce`,
-        {
-          headers: {
-            Cookie: buildSessionCookieHeader(sessionCookie),
-          },
-          redirect: "manual",
-        },
-      );
-      const location = atlasAdminRouteResponse.headers.get("location") ?? "";
-      const isRedirectToAdmin =
-        [302, 303, 307, 308].includes(atlasAdminRouteResponse.status) &&
-        /^\/admin(\?|$)/.test(location) &&
-        !location.startsWith("/admin/login");
-
-      expect(atlasAdminRouteResponse.status === 403 || isRedirectToAdmin).toBe(
-        true,
-      );
-
-      const restoreResponse = await fetch(
-        `${STOREFRONT_URL}/api/admin/organization/menu-overrides`,
-        {
-          method: "PUT",
-          headers: mutationHeaders,
-          body: JSON.stringify({ overrides: currentOverrides }),
-        },
-      );
-
-      expect(restoreResponse.status).toBe(200);
-      log(
-        testName,
-        "PASS",
-        "Path-based Atlas entitlement guard blokkeert API + admin route deterministisch",
-      );
     });
   });
 

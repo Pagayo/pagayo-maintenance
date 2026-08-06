@@ -4,6 +4,10 @@
 `pagayo-maintenance` is de centrale kwaliteits- en smoke-suite voor het hele platform.
 Wijzigingen in andere repos moeten hier vaak worden gevalideerd.
 
+## Local source (verplicht)
+
+Volg [`../AGENTS.md`](../AGENTS.md) § Pagayo Project Source. Gebruik Pagayo Project Source (MCP) voor actuele lokale code, branches, dirty state en repository-context. GitHub is remote state — geen primaire lokale implementatiewaarheid.
+
 ## Leesvolgorde (verplicht)
 1. `../AGENTS.md`
 2. `../pagayo-vault/PAGAYO-NIVEAU.md`
@@ -32,6 +36,24 @@ Legacy batch-branches: zet `PAGAYO_LANE_MODE=legacy` voor `ensure-branch.sh` ged
 - Marketing (`www.pagayo.com`): `tests/smoke/marketing.test.ts`
 - Edge/Provisioning contracten: `tests/smoke/edge-provisioning-contracts.test.ts`
 - Infra/routing/SSL: `tests/smoke/infrastructure.test.ts`
+
+## Smoke vs verifyMode (PDC-011)
+
+| Suite | Wanneer | Commando |
+|-------|---------|----------|
+| Local Staging smoke | Lokale stack alive (Local Staging v1) | `.github/scripts/local-staging-smoke.sh` |
+| Staging RC smoke | **`verifyMode=rc`** (A-RC claim) — smal, demo-only | `npm run test:smoke:staging-rc` |
+| Full platform smoke | **`verifyMode=production`** / expliciete prod-go | `npm run test:smoke` |
+
+**Niet** `test:smoke:staging-rc` of full `test:smoke` na elke Path A deploy. Storefront `deploy:staging:direct` roept maintenance smoke niet aan. Canon: `pagayo-development-cloud/canon/daily/PATHS.json` → `verifyModes`.
+
+## Mission 7 — Recovery runbooks (in this repo)
+
+- Multi-tenant D1 backup: `scripts/d1-multi-tenant-backup.sh` + `.github/workflows/d1-backup-nightly.yml`
+- Migration rollback / forward-fix: `RUNBOOK-migration-rollback.md`
+- Secret inventory / rotation drill: `SECRET-INVENTORY.md`
+- Incident mapping (× Mission 6 ops): `RUNBOOK-recovery-incidents.md`
+- Restore drill + C-18: `../pagayo-docs/cloudflare-ops-agent/d1-multi-tenant-restore-runbook.md`
 
 ## Verificatiecommando's
 ```bash

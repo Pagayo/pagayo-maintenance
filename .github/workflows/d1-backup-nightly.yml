@@ -1,0 +1,142 @@
+# =============================================================================
+# Nightly multi-tenant D1 backup (Mission 7 — CPR-006)
+# =============================================================================
+# - Lists active tenants from PLATFORM_DB and exports each tenant D1
+# - Writes checksum manifest; optional R2 upload when D1_BACKUP_R2_BUCKET set
+# - Fails the job on any export/upload failure (alert via GitHub Actions)
+# =============================================================================
+
+name: D1 Multi-Tenant Backup
+
+on:
+  schedule:
+    # 02:30 UTC — after edge catalog snapshot cron (0 2 * * *)
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+    inputs:
+      tenant_slug:
+        description: "Optional single tenant slug filter"
+        required: false
+        type: string
+      dry_run:
+        description: "List tenants only (no export)"
+        required: false
+        type: boolean
+        default: false
+      local_only:
+        description: "Skip R2 upload even if bucket secret is set"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: d1-multi-tenant-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: "Tenant D1 backup"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CLOUDFLARE_ACCOUNT_ID: 5d4d9b7bcdf6a836c16b19e09d198047
+      D1_BACKUP_TRIGGER: scheduled
+      D1_BACKUP_R2_BUCKET: ${{ secrets.D1_BACKUP_R2_BUCKET }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout maintenance
+        uses: actions/checkout@v5
+
+      - name: Checkout storefront (wrangler.toml + bindings)
+        uses: actions/checkout@v5
+        with:
+          repository: Pagayo/pagayo-storefront
+          path: pagayo-storefront
+          # Same-org read PAT; configure GH_PACKAGES_READ_TOKEN on pagayo-maintenance
+          token: ${{ secrets.GH_PACKAGES_READ_TOKEN }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: pagayo-storefront/package-lock.json
+
+      - name: Install storefront deps (wrangler)
+        working-directory: pagayo-storefront
+        run: npm ci --ignore-scripts
+
+      - name: Ensure backup script executable
+        run: chmod +x scripts/d1-multi-tenant-backup.sh
+
+      - name: Run multi-tenant D1 backup
+        id: backup
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          STOREFRONT_DIR: ${{ github.workspace }}/pagayo-storefront
+          D1_BACKUP_DIR: ${{ github.workspace }}/d1-backup-run
+          PLATFORM_DB: pagayo-platform
+        run: |
+          set -o pipefail
+          ARGS=()
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS+=(--dry-run)
+          fi
+          if [ "${{ inputs.local_only }}" = "true" ]; then
+            ARGS+=(--local-only)
+          fi
+          if [ -n "${{ inputs.tenant_slug }}" ]; then
+            ARGS+=(--tenant-slug=${{ inputs.tenant_slug }})
+          fi
+          # Scheduled runs always use scheduled trigger; dispatch may override via env
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            export D1_BACKUP_TRIGGER=manual
+          fi
+          ./scripts/d1-multi-tenant-backup.sh "${ARGS[@]}" | tee backup-output.log
+
+      - name: Upload local backup artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-backup-${{ github.run_id }}
+          path: |
+            d1-backup-run/
+            backup-output.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish summary
+        if: always()
+        run: |
+          echo "## D1 Multi-Tenant Backup" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f d1-backup-run/manifest.json ]; then
+            # Find nested manifest if script created run subdirectory
+            MANIFEST="$(find d1-backup-run -name manifest.json | head -1)"
+            if [ -n "$MANIFEST" ]; then
+              echo "Manifest: \`$MANIFEST\`" >> "$GITHUB_STEP_SUMMARY"
+              node -e '
+                const fs = require("node:fs");
+                const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+                const lines = [
+                  `- success: ${m.success}`,
+                  `- runId: ${m.runId}`,
+                  `- trigger: ${m.trigger}`,
+                  `- successes: ${m.successes}`,
+                  `- failures: ${m.failures}`,
+                  `- skipped: ${m.skipped}`,
+                ];
+                fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+              ' "$MANIFEST"
+            fi
+          else
+            echo "No manifest produced — backup likely failed before write." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail loudly for alerting
+        if: steps.backup.outcome == 'failure'
+        run: |
+          echo "D1 multi-tenant backup failed — investigate CLOUDFLARE_API_TOKEN, tenant D1 bindings, and R2 bucket secret."
+          exit 1

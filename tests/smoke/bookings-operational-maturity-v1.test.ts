@@ -145,6 +145,30 @@ describe("Bookings Operational Maturity V1", () => {
     expect([401, 403]).toContain(response.status);
   });
 
+  it("keeps customer booking list protected for anonymous callers", async () => {
+    const response = await request("/api/bookings/me");
+    expect([401, 403]).toContain(response.status);
+  });
+
+  it("keeps admin walk-in create protected for anonymous callers", async () => {
+    const response = await request("/api/admin/bookings/reservations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        offerId: 1,
+        startsAt: "2026-07-05T09:00:00.000Z",
+        endsAt: "2026-07-05T10:00:00.000Z",
+        customerEmail: "walkin@example.com",
+      }),
+    });
+    expect([401, 403]).toContain(response.status);
+  });
+
+  it("keeps booking setup status protected for anonymous callers", async () => {
+    const response = await request("/api/admin/bookings/setup");
+    expect([401, 403]).toContain(response.status);
+  });
+
   it.skipIf(!SMOKE_ADMIN_SESSION_COOKIE)(
     "returns a bounded read-only consistency diagnostic for an authenticated admin",
     async () => {
