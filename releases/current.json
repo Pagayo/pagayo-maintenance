@@ -4,10 +4,10 @@
   "updated_by": "Pagayo",
   "repos": {
     "pagayo-storefront": {
-      "staging_sha": "08d149bd79005955ade2907cc85930cfa999bb62",
+      "staging_sha": "1eb55fff704f4be96144c4d56441b535ca17564f",
       "production_sha": "b52a4983376806a8b2c5beedf917ad6c74888d45",
       "production_worker_version_id": "283c8bc3-eb51-4da2-b1ac-a114b1316da7",
-      "verified_at": "2026-08-07T07:45:00Z",
+      "verified_at": "2026-08-07T09:53:05Z",
       "production_verified_at": "2026-08-07T07:53:00Z"
     },
     "pagayo-api-stack": {
