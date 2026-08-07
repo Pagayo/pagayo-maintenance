@@ -1,8 +1,16 @@
 # Release Manifest
 
-`current.json` is de **single source of truth** voor welke commit per Pagayo-repo als laatste succesvol door de staging-pipeline is gekomen (inclusief smoke tests).
+`current.json` tracks which commit per Pagayo-repo last succeeded through the **GitHub Actions** staging pipeline (including smoke).
 
-Productie-deploys valideren de deploy-SHA tegen dit manifest via de `reusable-preprod-guard.yml` workflow. Zonder match wordt de deploy geweigerd.
+**PDC-012 note:** For the PDC durable promote path, **PDC `environment_heads` is the SSoT** for “what artifact is active on staging/production”. This file remains a **generated mirror / fallback input** for:
+
+- GitHub Actions `reusable-preprod-guard.yml` (playbook 04 fallback)
+- Wave 1 `deploy:production:direct` pending-migration check (`staging_sha`)
+- `workspace-status.sh` local reads
+
+Do not treat this file as the sole production truth once Wave 2 environment heads are in use.
+
+Productie-deploys via **GitHub fallback** valideren de deploy-SHA tegen dit manifest via de `reusable-preprod-guard.yml` workflow. Zonder match wordt die fallback-deploy geweigerd.
 
 ## Structuur (v1 + v2 velden)
 
