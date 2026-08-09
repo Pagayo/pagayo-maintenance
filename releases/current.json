@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "updated_at": "2026-08-08T16:46:58Z",
-  "updated_by": "Cursor agent (Path A schema ACTIVE 5d06a303 \u2192 tip)",
+  "updated_at": "2026-08-09T05:26:10Z",
+  "updated_by": "Cursor agent (Path A staging direct after e2e commit)",
   "repos": {
     "pagayo-storefront": {
-      "staging_sha": "0c1abcfc355822a414bd1c98d465bbac0069934e",
-      "production_sha": "ce499c93566fe49501ed30ee4aa8fd8c1694832e",
-      "production_worker_version_id": "c724ad7d-7b56-4d22-8019-92e4ee4a17cc",
-      "verified_at": "2026-08-08T16:46:58Z",
-      "production_verified_at": "2026-08-07T10:31:30Z",
-      "staging_worker_version_id": "1f11aa27-a2b7-4393-b954-4beb65b58324"
+      "staging_sha": "f5f8f44ae95c249f5b1bf95315e7b8e35f19b0e7",
+      "production_sha": "0c1abcfc355822a414bd1c98d465bbac0069934e",
+      "production_worker_version_id": "9a59a353-8497-4ae6-92c0-1dd8132581d5",
+      "verified_at": "2026-08-09T05:26:10Z",
+      "production_verified_at": "2026-08-08T19:56:42Z",
+      "staging_worker_version_id": "10bf8da8-f4f5-4bb7-9674-09affffc1530"
     },
     "pagayo-api-stack": {
       "staging_sha": "211d316ac3ce45d811e2b79db911946336433bee",
