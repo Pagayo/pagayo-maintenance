@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "updated_at": "2026-08-09T05:26:10Z",
-  "updated_by": "Cursor agent (Path A staging direct after e2e commit)",
+  "updated_at": "2026-08-09T05:44:00Z",
+  "updated_by": "Cursor agent (02-staging)",
   "repos": {
     "pagayo-storefront": {
-      "staging_sha": "f5f8f44ae95c249f5b1bf95315e7b8e35f19b0e7",
+      "staging_sha": "f2f37c19620b0b71da2385f1b0f86e85b533aef2",
       "production_sha": "0c1abcfc355822a414bd1c98d465bbac0069934e",
       "production_worker_version_id": "9a59a353-8497-4ae6-92c0-1dd8132581d5",
-      "verified_at": "2026-08-09T05:26:10Z",
+      "verified_at": "2026-08-09T05:44:00Z",
       "production_verified_at": "2026-08-08T19:56:42Z",
-      "staging_worker_version_id": "10bf8da8-f4f5-4bb7-9674-09affffc1530"
+      "staging_worker_version_id": "a085f7e9-c99d-4014-a4a5-8060d9d6269c"
     },
     "pagayo-api-stack": {
       "staging_sha": "211d316ac3ce45d811e2b79db911946336433bee",
