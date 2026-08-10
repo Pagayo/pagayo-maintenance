@@ -83,39 +83,45 @@ local_dev_apply_api_migrations() {
     cd "$ws/pagayo-api-stack" || exit 1
     local_dev_export_wrangler_env
 
-    local api_migration_dir="node_modules/@pagayo/schema/migrations/api-v2"
+    # Prefer package folder layout (migrations/api/<id>/migration.sql); legacy flat api-v2/*.sql fallback.
+    local api_migration_dir="node_modules/@pagayo/schema/migrations/api"
+    local api_legacy_dir="node_modules/@pagayo/schema/migrations/api-v2"
     local api_db_name="pagayo-api"
 
-    if [[ ! -d "$api_migration_dir" ]]; then
-      echo "⚠️  Geen API migratie directory: $api_migration_dir"
+    if [[ ! -d "$api_migration_dir" && ! -d "$api_legacy_dir" ]]; then
+      echo "⚠️  Geen API migratie directory: migrations/api of migrations/api-v2"
       return 0
     fi
 
     npx wrangler d1 execute "$api_db_name" \
       --local \
+      --persist-to ../.wrangler-shared \
       --yes \
       --command="CREATE TABLE IF NOT EXISTS _migration_log (filename TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now')), checksum TEXT NOT NULL);" >/dev/null
 
     local applied=0 skipped=0
     local sql_file filename checksum result output apply_ok
 
-    while IFS= read -r sql_file; do
-      filename="$(basename "$sql_file")"
+    apply_one_api_sql() {
+      sql_file="$1"
+      filename="$2"
       checksum="$(shasum -a 256 "$sql_file" | awk '{print $1}')"
 
       result="$(npx wrangler d1 execute "$api_db_name" \
         --local \
+        --persist-to ../.wrangler-shared \
         --yes \
         --command="SELECT filename FROM _migration_log WHERE filename='$filename';" 2>&1)" || true
 
       if echo "$result" | grep -q "$filename"; then
         skipped=$((skipped + 1))
-        continue
+        return 0
       fi
 
       apply_ok=false
       if output="$(npx wrangler d1 execute "$api_db_name" \
         --local \
+        --persist-to ../.wrangler-shared \
         --yes \
         --file="$sql_file" 2>&1)"; then
         apply_ok=true
@@ -124,12 +130,14 @@ local_dev_apply_api_migrations() {
       if [[ "$apply_ok" == true ]]; then
         npx wrangler d1 execute "$api_db_name" \
           --local \
+          --persist-to ../.wrangler-shared \
           --yes \
           --command="INSERT OR REPLACE INTO _migration_log (filename, checksum) VALUES ('$filename', '$checksum');" >/dev/null || true
         applied=$((applied + 1))
       elif echo "$output" | grep -qiE "already exists|duplicate column|UNIQUE constraint.*_migration_log|SQLITE_CONSTRAINT.*_migration_log"; then
         npx wrangler d1 execute "$api_db_name" \
           --local \
+          --persist-to ../.wrangler-shared \
           --yes \
           --command="INSERT OR REPLACE INTO _migration_log (filename, checksum) VALUES ('$filename', '$checksum');" >/dev/null || true
         applied=$((applied + 1))
@@ -138,7 +146,21 @@ local_dev_apply_api_migrations() {
         echo "$output"
         return 1
       fi
-    done < <(find "$api_migration_dir" -maxdepth 1 -name "*.sql" -type f | sort)
+    }
+
+    if [[ -d "$api_migration_dir" ]]; then
+      while IFS= read -r sql_file; do
+        filename="$(basename "$(dirname "$sql_file")").sql"
+        apply_one_api_sql "$sql_file" "$filename" || return 1
+      done < <(find "$api_migration_dir" -mindepth 2 -maxdepth 2 -name "migration.sql" -type f | sort)
+    fi
+
+    if [[ -d "$api_legacy_dir" ]]; then
+      while IFS= read -r sql_file; do
+        filename="$(basename "$sql_file")"
+        apply_one_api_sql "$sql_file" "$filename" || return 1
+      done < <(find "$api_legacy_dir" -maxdepth 1 -name "*.sql" -type f | sort)
+    fi
 
     echo "   ✅ API D1: $applied toegepast, $skipped overgeslagen"
   )
