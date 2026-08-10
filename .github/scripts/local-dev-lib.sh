@@ -69,6 +69,8 @@ local_dev_apply_tenant_migrations() {
   (
     cd "$ws/pagayo-storefront" || exit 1
     local_dev_export_wrangler_env
+    # Local-only: repair checksum drift so preserve-start doesn't abort on append-only catalog skew.
+    export PAGAYO_ALLOW_LOCAL_CHECKSUM_REPAIR=1
     npx tsx ./scripts/apply-local-tenant-migrations.ts
   )
   echo ""
