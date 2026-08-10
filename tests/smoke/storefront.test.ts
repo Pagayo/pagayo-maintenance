@@ -4963,6 +4963,50 @@ describe("Storefront Service - Smoke Tests", () => {
       expect(hasNoPii).toBe(true);
     });
 
+    // Booking event tickets share POST /api/check-in/verify (passCode TKT-*).
+    // Stub: unknown ticket → success envelope + NOT_FOUND (no seeded ticket required).
+    it("POST /api/check-in/verify accepts booking ticket passCode shape", async () => {
+      const response = await fetch(`${STOREFRONT_URL}/api/check-in/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ passCode: "TKT-SMOKE-VERIFY-001" }),
+      });
+
+      if (skipIfNoTenant(response, "check-in-verify-booking-ticket")) return;
+
+      const body = await readJsonBody(response);
+
+      const isBookingTicketContract =
+        body !== null &&
+        body.success === true &&
+        typeof body.data === "object" &&
+        body.data !== null &&
+        (body.data as { kind?: string }).kind === "booking_ticket" &&
+        (body.data as { validationResult?: string }).validationResult ===
+          "NOT_FOUND";
+
+      if (response.status === 200 && isBookingTicketContract) {
+        log(
+          "check-in-verify-booking-ticket",
+          "PASS",
+          `Status: ${response.status}, booking_ticket NOT_FOUND contract`,
+        );
+      } else {
+        log(
+          "check-in-verify-booking-ticket",
+          "FAIL",
+          `HTTP ${response.status} of onverwacht booking ticket contract`,
+          "Check public check-in verify booking ticket (TKT-*) branch",
+          "MEDIUM",
+        );
+      }
+
+      expect(response.status).toBe(200);
+      expect(isBookingTicketContract).toBe(true);
+    });
+
     it("GET /api/admin/settings/opening-hours requires auth", async () => {
       const response = await fetch(
         `${STOREFRONT_URL}/api/admin/settings/opening-hours`,
