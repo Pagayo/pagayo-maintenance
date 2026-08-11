@@ -12,11 +12,12 @@
       "staging_worker_version_id": "7940895f-2de2-4a5b-a73a-16cfc12c3856"
     },
     "pagayo-api-stack": {
-      "staging_sha": "211d316ac3ce45d811e2b79db911946336433bee",
-      "verified_at": "2026-07-16T16:04:18Z",
+      "staging_sha": "7a68fcc3c1fc8d323be47e702315ec93582df4ec",
+      "verified_at": "2026-08-11T07:00:46Z",
       "production_sha": "7a68fcc3c1fc8d323be47e702315ec93582df4ec",
       "production_worker_version_id": "6f6cb3bb-74b1-4ebd-84a6-4e1a42ff9f2f",
-      "production_verified_at": "2026-08-11T07:00:46Z"
+      "production_verified_at": "2026-08-11T07:00:46Z",
+      "staging_worker_version_id": "439bcf69-bd6a-4d89-bd02-8fdc2c577551"
     },
     "pagayo-edge": {
       "staging_sha": "40e5f9a0ee3863fa678dd1ec8f9d6368c5f086cc",
