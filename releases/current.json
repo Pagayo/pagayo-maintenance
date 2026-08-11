@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "updated_at": "2026-08-11T07:01:03Z",
-  "updated_by": "Cursor agent (api-stack Sendcloud auth fix tip correction)",
+  "updated_at": "2026-08-11T07:10:23Z",
+  "updated_by": "Cursor agent (release:tip)",
   "repos": {
     "pagayo-storefront": {
-      "staging_sha": "7a68fcc3c1fc8d323be47e702315ec93582df4ec",
+      "staging_sha": "55394aad31be579e0b2abb94233df4ae1fc3d0a5",
       "production_sha": "7a68fcc3c1fc8d323be47e702315ec93582df4ec",
       "production_worker_version_id": "51553df2-8e16-4671-baaf-da97a4c251a6",
-      "verified_at": "2026-08-11T06:39:12Z",
+      "verified_at": "2026-08-11T07:10:23Z",
       "production_verified_at": "2026-08-11T06:54:21Z",
-      "staging_worker_version_id": "7940895f-2de2-4a5b-a73a-16cfc12c3856"
+      "staging_worker_version_id": "3b3ec269-43f1-4fea-b61f-40c2d28eb743"
     },
     "pagayo-api-stack": {
       "staging_sha": "159000104540f1f6c7692bfadba01bedd664dcc0",
