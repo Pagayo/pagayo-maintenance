@@ -240,6 +240,39 @@ describe("API Stack Service - Smoke Tests", () => {
       expect(response.status).toBe(401);
     });
 
+    it.each([
+      {
+        name: "shipping-credentials-put-envelope",
+        path: "/api/shipping/credentials",
+        method: "PUT",
+        body: { publicKey: "smoke-public", secretKey: "smoke-secret" },
+      },
+      {
+        name: "shipping-options-post-envelope",
+        path: "/api/shipping/options",
+        method: "POST",
+        body: { weight: 1 },
+      },
+    ])("$name requires auth and returns the API envelope", async ({ name, path, method, body }) => {
+      const response = await fetch(`${API_URL}${path}`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const payload = await response.json() as {
+        success?: boolean;
+        error?: { code?: string; message?: string };
+        requestId?: string;
+      };
+
+      log(name, response.status === 401 ? "PASS" : "FAIL", `HTTP ${response.status}`);
+      expect(response.status).toBe(401);
+      expect(payload.success).toBe(false);
+      expect(typeof payload.error?.code).toBe("string");
+      expect(typeof payload.error?.message).toBe("string");
+      expect(typeof payload.requestId).toBe("string");
+    });
+
     it("Bunq accounts endpoint requires auth", async () => {
       const response = await fetch(`${API_URL}/api/bunq/accounts`);
 

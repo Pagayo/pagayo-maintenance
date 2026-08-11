@@ -2195,6 +2195,11 @@ describe("Storefront Service - Smoke Tests", () => {
         action: "Check admin kv-sync route mount en requireAdmin guard",
       },
       {
+        testName: "admin-shipping-credentials-status-route",
+        path: "/api/admin/shipping/credentials/status",
+        action: "Check shipping credentials proxy mount en requireAdmin guard",
+      },
+      {
         testName: "admin-print-context-route",
         path: "/api/admin/print-context/test-id",
         action: "Check admin print-context route mount en requireAdmin guard",
