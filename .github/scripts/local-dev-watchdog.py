@@ -25,13 +25,16 @@ INTERVAL_SEC = int(os.environ.get("PAGAYO_LOCAL_DEV_WATCHDOG_INTERVAL", "8"))
 FAIL_THRESHOLD = int(os.environ.get("PAGAYO_LOCAL_DEV_WATCHDOG_FAILS", "2"))
 DAEMON = Path(__file__).with_name("local-dev-daemon.py")
 
-# name → (health_url, workdir relative to workspace — unused; cmdfile has full cmd)
+# name → health URL
 SERVICES: dict[str, str] = {
     "storefront": "http://demo.localhost:3000/",
     "vite": "http://localhost:5173/assets/",
     "api-stack": "http://localhost:8787/",
     "marketing": "http://localhost:4321/",
 }
+
+# Cursor mcp-process often steals 8787 and answers 404 — treat as unhealthy.
+API_PORT = 8787
 
 
 def log(msg: str) -> None:
@@ -65,13 +68,59 @@ def pid_alive(pid: int | None) -> bool:
         return False
 
 
-def health_ok(url: str) -> bool:
+def health_ok(name: str, url: str) -> bool:
     try:
         req = urllib.request.Request(url, method="GET")
         with urllib.request.urlopen(req, timeout=3) as resp:
-            return 200 <= getattr(resp, "status", 200) < 500
+            status = getattr(resp, "status", 200)
+            if name == "api-stack":
+                body = resp.read(512).decode("utf-8", errors="ignore")
+                # Real api-stack root is JSON operational; Cursor MCP returns plain 404.
+                return status == 200 and ("operational" in body or '"success":true' in body.replace(" ", ""))
+            if name == "storefront":
+                return status == 200
+            if name == "vite":
+                return status == 200
+            return 200 <= status < 500
     except (urllib.error.URLError, TimeoutError, OSError):
         return False
+
+
+def free_port_intruders(port: int) -> None:
+    """Kill non-workerd listeners on port (e.g. Cursor mcp-process on 8787)."""
+    try:
+        out = subprocess.check_output(
+            ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return
+    for pid_s in out.split():
+        try:
+            pid = int(pid_s.strip())
+        except ValueError:
+            continue
+        try:
+            comm = subprocess.check_output(["ps", "-p", str(pid), "-o", "comm="], text=True).strip()
+        except (subprocess.CalledProcessError, OSError):
+            comm = ""
+        # Never kill the main Cursor app binary — only helpers / strangers.
+        if comm == "Cursor":
+            continue
+        if "workerd" in comm or "wrangler" in comm:
+            continue
+        log(f"port {port}: freeing intruder PID {pid} ({comm or '?'})")
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            continue
+        time.sleep(0.5)
+        if pid_alive(pid):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except OSError:
+                pass
 
 
 def kill_tree(pid: int) -> None:
@@ -117,6 +166,9 @@ def respawn(name: str) -> None:
         log(f"{name}: cannot respawn — empty cmd")
         return
 
+    if name == "api-stack":
+        free_port_intruders(API_PORT)
+
     log_path = str(RUNTIME / f"{name}.log")
     pidfile = str(RUNTIME / f"{name}.pid")
     log(f"{name}: respawning…")
@@ -153,7 +205,7 @@ def main() -> None:
         for name, url in SERVICES.items():
             pid = read_pid(name)
             alive = pid_alive(pid)
-            ok = health_ok(url)
+            ok = health_ok(name, url)
 
             if ok:
                 fails[name] = 0
@@ -161,6 +213,9 @@ def main() -> None:
 
             fails[name] += 1
             log(f"{name}: health FAIL ({fails[name]}/{FAIL_THRESHOLD}) pid={'alive' if alive else 'dead'} url={url}")
+
+            if name == "api-stack" and fails[name] >= 1:
+                free_port_intruders(API_PORT)
 
             if not alive:
                 if fails[name] >= 2:
