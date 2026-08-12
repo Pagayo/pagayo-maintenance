@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "updated_at": "2026-08-12T08:21:04Z",
+  "updated_at": "2026-08-12T08:31:25Z",
   "updated_by": "Cursor agent (release:tip)",
   "repos": {
     "pagayo-storefront": {
-      "staging_sha": "fd27d13c3bf30840e2b17a8e5a5ba73a7f093a8c",
+      "staging_sha": "e4945460eec798baa01bc0bfe36fcbb850bdd583",
       "production_sha": "edf486fe1d8a335bef3fc691c46ab000bb7f3c9e",
       "production_worker_version_id": "1b55f5d9-37d3-46a8-8eaa-09031608bb5f",
-      "verified_at": "2026-08-12T08:21:04Z",
+      "verified_at": "2026-08-12T08:31:25Z",
       "production_verified_at": "2026-08-12T06:14:06Z",
-      "staging_worker_version_id": "301f89f4-75ac-4d00-b4ec-a36bfe3fadfc"
+      "staging_worker_version_id": "40199e0b-d0a3-4882-a560-0734f28f05c7"
     },
     "pagayo-api-stack": {
       "staging_sha": "159000104540f1f6c7692bfadba01bedd664dcc0",
