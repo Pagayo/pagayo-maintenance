@@ -78,7 +78,11 @@ Probe codes:
 
 ## Rollout
 
-1. Implement + deploy endpoint on **staging** storefront.
-2. Set Cursor secret `SMOKE_INTERNAL_SERVICE_KEY` (same as storefront internal secret for staging).
+1. Endpoint on staging: `GET /api/internal/key-features/stripe` is already live
+   (401 missing/invalid `X-Internal-Secret`). Worker secrets on
+   `pagayo-storefront-staging` include `INTERNAL_SERVICE_KEY` and
+   `INTERNAL_API_SECRET` (values not readable via API).
+2. Set Cursor secret `SMOKE_INTERNAL_SERVICE_KEY` to the same value the route
+   validates (prefer `INTERNAL_SERVICE_KEY` from vault/password manager).
 3. Remove reliance on `SMOKE_ADMIN_SESSION_COOKIE` for this automation.
 4. Confirm `npm run smoke:key-features` → `STRIPE_OK`.
