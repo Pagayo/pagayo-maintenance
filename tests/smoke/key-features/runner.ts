@@ -2,13 +2,15 @@
  * Key-feature smoke runner — script-first, no Playwright.
  * Output: one JSON line per feature. Exit 1 if any status=fail.
  *
+ * Auth: long-lived SMOKE_INTERNAL_SERVICE_KEY (X-Internal-Secret),
+ * not an admin session cookie.
+ *
  * @module tests/smoke/key-features/runner
  */
 
 import { probeStripe } from "./features/stripe.js";
 import { runFeature, type FeatureResult } from "./features/_contract.js";
-import { SMOKE_ADMIN_SESSION_COOKIE } from "../../utils/test-config.js";
-import { isLocalEnvironment, loginAsAdmin } from "../../utils/auth-helper.js";
+import { SMOKE_INTERNAL_SERVICE_KEY } from "../../utils/test-config.js";
 
 const DEFAULT_STAGING_URL = "https://demo.staging.pagayo.app";
 
@@ -20,39 +22,21 @@ export function resolveKeyFeatureBaseUrl(): string {
   );
 }
 
-async function resolveAdminCookie(baseUrl: string): Promise<string | null> {
-  if (SMOKE_ADMIN_SESSION_COOKIE) {
-    return SMOKE_ADMIN_SESSION_COOKIE;
-  }
-
-  // loginAsAdmin uses STOREFRONT_URL from test-config — only safe for localhost.
-  const local =
-    baseUrl.includes("localhost") ||
-    baseUrl.includes("127.0.0.1") ||
-    isLocalEnvironment();
-  if (!local) {
-    return null;
-  }
-
-  const login = await loginAsAdmin();
-  return login.success ? login.sessionCookie : null;
-}
-
 export async function runKeyFeatures(options?: {
   baseUrl?: string;
-  sessionCookie?: string | null;
+  internalSecret?: string | null;
 }): Promise<FeatureResult[]> {
   const baseUrl = options?.baseUrl ?? resolveKeyFeatureBaseUrl();
-  const sessionCookie =
-    options?.sessionCookie !== undefined
-      ? options.sessionCookie
-      : await resolveAdminCookie(baseUrl);
+  const internalSecret =
+    options?.internalSecret !== undefined
+      ? options.internalSecret
+      : SMOKE_INTERNAL_SERVICE_KEY;
 
   const results: FeatureResult[] = [];
 
   results.push(
     await runFeature("stripe", () =>
-      probeStripe({ baseUrl, sessionCookie }),
+      probeStripe({ baseUrl, internalSecret }),
     ),
   );
 
