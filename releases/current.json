@@ -1,19 +1,20 @@
 {
   "version": 1,
-  "updated_at": "2026-08-13T10:12:06Z",
+  "updated_at": "2026-08-13T10:34:07Z",
   "updated_by": "Cursor agent (release:tip)",
   "repos": {
     "pagayo-storefront": {
       "working_branch": "pdc/current",
       "staging_sha": "fd53a8649b0c952c30d799cc0366ac8fd3a15536",
-      "production_sha": "70f807c3dcce0be81df392bf2d3f1d9213dcb4a1",
-      "production_worker_version_id": "5d65991c-ff54-45aa-b4a0-c62179f7d653",
+      "production_sha": "fd53a8649b0c952c30d799cc0366ac8fd3a15536",
+      "production_worker_version_id": "e8c1a2ce-505e-4891-ac8c-aa993d19dc84",
       "verified_at": "2026-08-13T10:12:06Z",
-      "production_verified_at": "2026-08-12T15:19:38Z",
+      "production_verified_at": "2026-08-13T10:34:07Z",
       "staging_worker_version_id": "609a63cd-179d-41bc-a908-d5d9342e9afc",
       "staging_path_a_worker_version_id": "609a63cd-179d-41bc-a908-d5d9342e9afc",
       "staging_tip_source": "path-a",
-      "staging_pdc_head_note": "Path A Wrangler tip — PDC environment_heads only updates via schema/reattach promote"
+      "staging_pdc_head_note": "Path A Wrangler tip — PDC environment_heads only updates via schema/reattach promote",
+      "production_tip_source": "path-a"
     },
     "pagayo-api-stack": {
       "staging_sha": "159000104540f1f6c7692bfadba01bedd664dcc0",
