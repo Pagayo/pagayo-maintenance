@@ -41,6 +41,13 @@ export const SMOKE_CUSTOMER_SESSION_COOKIE =
 export const SMOKE_ADMIN_SESSION_COOKIE =
   process.env.SMOKE_ADMIN_SESSION_COOKIE?.trim() || null;
 
+/**
+ * Long-lived storefront internal secret for key-feature smoke (machine auth).
+ * Sent as `X-Internal-Secret` — not a session cookie.
+ */
+export const SMOKE_INTERNAL_SERVICE_KEY =
+  process.env.SMOKE_INTERNAL_SERVICE_KEY?.trim() || null;
+
 /** Optionele admin-customer fixture voor save-contract smoke test */
 export const SMOKE_ADMIN_CUSTOMER_ID = Number.parseInt(
   process.env.SMOKE_ADMIN_CUSTOMER_ID ?? "",
