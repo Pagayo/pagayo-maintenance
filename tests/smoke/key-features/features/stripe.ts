@@ -1,6 +1,6 @@
 /**
- * Stripe Tier-1 key-feature probe (admin session required).
- * GET /api/payments/stripe/test + /api/payments/stripe/balance
+ * Stripe Tier-1 key-feature probe (machine auth, no admin session).
+ * GET /api/internal/key-features/stripe with X-Internal-Secret.
  * @module tests/smoke/key-features/features/stripe
  */
 
@@ -11,26 +11,28 @@ import {
   type FeatureResult,
 } from "./_contract.js";
 
+/** Storefront contract path — see docs/key-features/stripe-internal-probe.md */
+export const STRIPE_KEY_FEATURE_PATH = "/api/internal/key-features/stripe";
+export const INTERNAL_SECRET_HEADER = "X-Internal-Secret";
+
 export interface StripeProbeDeps {
   baseUrl: string;
-  sessionCookie: string | null;
+  /** Long-lived storefront internal secret (not a session cookie). */
+  internalSecret: string | null;
   fetchImpl?: typeof fetch;
 }
 
 type ApiEnvelope = {
   success?: boolean;
   data?: {
+    feature?: string;
     mode?: string;
     accountId?: string;
+    balanceOk?: boolean;
     message?: string;
-    balance?: unknown;
   };
   error?: { code?: string; message?: string };
 };
-
-function cookieHeader(sessionCookie: string): string {
-  return `pagayo_session=${sessionCookie}`;
-}
 
 async function readJson(response: Response): Promise<ApiEnvelope | null> {
   try {
@@ -50,95 +52,87 @@ export async function probeStripe(
   const fetchImpl = deps.fetchImpl ?? fetch;
   const base = deps.baseUrl.replace(/\/$/, "");
 
-  if (!deps.sessionCookie) {
+  if (!deps.internalSecret) {
     return skip(
       feature,
       "AUTH_REQUIRED",
-      "SMOKE_ADMIN_SESSION_COOKIE ontbreekt (of lokale loginAsAdmin faalde)",
+      "SMOKE_INTERNAL_SERVICE_KEY ontbreekt (machine-auth voor key-feature probe)",
     );
   }
 
-  const headers = {
-    Cookie: cookieHeader(deps.sessionCookie),
-    Accept: "application/json",
-  };
-
-  let testResponse: Response;
+  let response: Response;
   try {
-    testResponse = await fetchImpl(`${base}/api/payments/stripe/test`, {
-      headers,
+    response = await fetchImpl(`${base}${STRIPE_KEY_FEATURE_PATH}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        [INTERNAL_SECRET_HEADER]: deps.internalSecret,
+      },
     });
   } catch (error) {
     return fail(
       feature,
       "NETWORK_ERROR",
       error instanceof Error ? error.message : String(error),
-      { step: "test" },
     );
   }
 
-  const testBody = await readJson(testResponse);
-  if (testResponse.status === 401 || testResponse.status === 403) {
-    return fail(feature, "AUTH_FAILED", "Admin sessie geweigerd op /stripe/test", {
-      status: testResponse.status,
-    });
+  if (response.status === 404) {
+    return fail(
+      feature,
+      "ENDPOINT_MISSING",
+      "Storefront mist GET /api/internal/key-features/stripe — implementeer contract",
+      { status: 404 },
+    );
   }
 
-  if (!testResponse.ok || testBody?.success !== true) {
+  if (response.status === 401 || response.status === 403) {
+    return fail(
+      feature,
+      "AUTH_FAILED",
+      "Internal secret geweigerd op key-features/stripe",
+      { status: response.status },
+    );
+  }
+
+  const body = await readJson(response);
+
+  if (!response.ok || body?.success !== true) {
     const code =
-      testBody?.error?.code ??
-      (testResponse.status === 400 ? "CONFIGURATION_OR_STRIPE_ERROR" : "HTTP_ERROR");
+      body?.error?.code ??
+      (response.status === 400
+        ? "CONFIGURATION_OR_STRIPE_ERROR"
+        : "HTTP_ERROR");
     return fail(
       feature,
       code,
-      testBody?.error?.message ??
-        `GET /stripe/test HTTP ${testResponse.status}`,
-      { status: testResponse.status, body: testBody },
+      body?.error?.message ??
+        `GET ${STRIPE_KEY_FEATURE_PATH} HTTP ${response.status}`,
+      { status: response.status, body },
     );
   }
 
-  const mode = testBody?.data?.mode;
+  const mode = body?.data?.mode;
   if (mode !== "TEST") {
     return fail(
       feature,
       "MODE_NOT_TEST",
       `Verwacht stripeMode TEST, kreeg ${String(mode)}`,
-      { mode, accountId: testBody?.data?.accountId },
+      { mode, accountId: body?.data?.accountId },
     );
   }
 
-  let balanceResponse: Response;
-  try {
-    balanceResponse = await fetchImpl(`${base}/api/payments/stripe/balance`, {
-      headers,
-    });
-  } catch (error) {
+  if (body?.data?.balanceOk !== true) {
     return fail(
       feature,
-      "NETWORK_ERROR",
-      error instanceof Error ? error.message : String(error),
-      { step: "balance" },
+      "BALANCE_NOT_OK",
+      "Stripe balance check faalde (balanceOk !== true)",
+      { accountId: body?.data?.accountId },
     );
   }
 
-  const balanceBody = await readJson(balanceResponse);
-  if (!balanceResponse.ok || balanceBody?.success !== true) {
-    return fail(
-      feature,
-      balanceBody?.error?.code ?? "BALANCE_HTTP_ERROR",
-      balanceBody?.error?.message ??
-        `GET /stripe/balance HTTP ${balanceResponse.status}`,
-      { status: balanceResponse.status, body: balanceBody },
-    );
-  }
-
-  return pass(
-    feature,
-    "STRIPE_OK",
-    "Stripe test+balance bereikbaar",
-    {
-      mode,
-      accountId: testBody?.data?.accountId,
-    },
-  );
+  return pass(feature, "STRIPE_OK", "Stripe TEST + balance bereikbaar (machine auth)", {
+    mode,
+    accountId: body?.data?.accountId,
+  });
 }
