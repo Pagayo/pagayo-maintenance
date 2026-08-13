@@ -7,6 +7,9 @@ description: Diagnoses and prepares fixes when hourly key-feature smoke fails (S
 
 Canon: `pagayo-maintenance` `npm run smoke:key-features`  
 Staging URL: `https://demo.staging.pagayo.app`  
+Auth: machine secret `SMOKE_INTERNAL_SERVICE_KEY` → header `X-Internal-Secret`  
+Endpoint: `GET /api/internal/key-features/stripe`  
+Contract: `docs/key-features/stripe-internal-probe.md`  
 MCP: Cloudflare Observability (read) · Stripe MCP **read-first** (test mode)
 
 **Invariant:** geen `git push`, geen staging/prod deploy, geen Stripe writes (refunds/cancel/payouts), geen secrets in chat. Productie-herstel alleen via skill **04** na expliciete `go`.
@@ -17,6 +20,7 @@ MCP: Cloudflare Observability (read) · Stripe MCP **read-first** (test mode)
 - Alarm = diagnose + fix-branch klaarzetten — **niet** zelf deployen.
 - Stripe MCP: alleen read (`stripe_api_read` / search / docs). Geen `stripe_api_write` / `create_refund`.
 - Push alleen op expliciete Sjoerd-vraag (playbook 01).
+- **Geen admin session cookie** voor key-feature probes (verlopen → false alarms).
 
 ## Trigger → actie
 
@@ -47,7 +51,9 @@ Elke stdout-regel is JSON:
 ```
 
 - `fail` → diagnose
-- `skip` (bijv. `AUTH_REQUIRED`) → alarm op secrets/cookie, geen productbug
+- `skip` (`AUTH_REQUIRED`) → alarm op secrets/config (`SMOKE_INTERNAL_SERVICE_KEY`), geen productbug
+- `fail` (`AUTH_FAILED`) → secret mismatch/rotatie, geen Stripe productbug
+- `fail` (`ENDPOINT_MISSING`) → storefront route nog niet gedeployed; implementeer contract
 - `pass` → negeer
 
 ### Stap 2 — Diagnose per feature
@@ -88,4 +94,9 @@ Voorstel: …
 
 ## Secrets (automation)
 
-Cursor-dashboard (niet in repo): `SMOKE_ADMIN_SESSION_COOKIE`, `SMOKE_STOREFRONT_URL` (default staging demo), later `API_INTERNAL_SERVICE_KEY`.
+Cursor-dashboard (niet in repo):
+
+- `SMOKE_INTERNAL_SERVICE_KEY` (required) — storefront `X-Internal-Secret`
+- `SMOKE_STOREFRONT_URL` (optional; default staging demo)
+
+Deprecated for this automation: `SMOKE_ADMIN_SESSION_COOKIE` (session expiry false alarms).
