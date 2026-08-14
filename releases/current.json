@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "updated_at": "2026-08-14T11:53:14Z",
+  "updated_at": "2026-08-14T12:33:46Z",
   "updated_by": "Cursor agent (release:tip)",
   "repos": {
     "pagayo-storefront": {
       "working_branch": "pdc/current",
-      "staging_sha": "e6f4a642c6891bf4ec5da3e0fae40a8a766b6ee1",
+      "staging_sha": "c87b95e4397a2e40b12343ca41c0e315bb2f97ca",
       "production_sha": "fd53a8649b0c952c30d799cc0366ac8fd3a15536",
       "production_worker_version_id": "e8c1a2ce-505e-4891-ac8c-aa993d19dc84",
-      "verified_at": "2026-08-14T07:30:01Z",
+      "verified_at": "2026-08-14T12:33:46Z",
       "production_verified_at": "2026-08-13T10:34:07Z",
-      "staging_worker_version_id": "4f4ec0d2-a5bb-402d-906d-ae6d9c754617",
+      "staging_worker_version_id": "5e588698-c397-4e57-9ba6-6f1df4e22f46",
       "staging_tip_source": "pdc-schema",
       "staging_pdc_head_note": "PDC promote tip — environment_heads should match this artifact after ACTIVE",
       "production_tip_source": "path-a"
