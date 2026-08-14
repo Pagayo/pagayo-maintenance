@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-14T13:30:30Z",
+  "updated_at": "2026-08-14T13:45:54Z",
   "updated_by": "Cursor agent (release:tip)",
   "repos": {
     "pagayo-storefront": {
@@ -8,13 +8,12 @@
       "staging_sha": "5a9ab5cf158f95efbca7a9e5a5a7b1a32bb3535a",
       "production_sha": "fd53a8649b0c952c30d799cc0366ac8fd3a15536",
       "production_worker_version_id": "e8c1a2ce-505e-4891-ac8c-aa993d19dc84",
-      "verified_at": "2026-08-14T13:30:30Z",
+      "verified_at": "2026-08-14T13:45:54Z",
       "production_verified_at": "2026-08-13T10:34:07Z",
-      "staging_worker_version_id": "b8055987-3df6-40fe-a0fd-1f4fe07bce6a",
-      "staging_tip_source": "path-a",
-      "staging_pdc_head_note": "Path A Wrangler tip — PDC environment_heads only updates via schema/reattach promote",
-      "production_tip_source": "path-a",
-      "staging_path_a_worker_version_id": "b8055987-3df6-40fe-a0fd-1f4fe07bce6a"
+      "staging_worker_version_id": "41133959-244a-475b-baad-267f7109060e",
+      "staging_tip_source": "pdc-reattach",
+      "staging_pdc_head_note": "PDC promote tip — environment_heads should match this artifact after ACTIVE",
+      "production_tip_source": "path-a"
     },
     "pagayo-api-stack": {
       "staging_sha": "0c8f4f80403ca1eb743e3a66acb11d67eebfd555",
