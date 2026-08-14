@@ -27,6 +27,16 @@ echo "🚀 Pagayo Local Dev — start (data behouden, $MODE)"
 echo "   Workspace: $WS"
 echo ""
 
+# One working lane — never start Wrangler on stale main / a leftover feature branch.
+if [[ -x "$SCRIPT_DIR/ensure-working-lane.sh" ]]; then
+  "$SCRIPT_DIR/ensure-working-lane.sh" "$WS/pagayo-storefront"
+  if [[ -d "$WS/pagayo-api-stack/.git" ]]; then
+    "$SCRIPT_DIR/ensure-working-lane.sh" "$WS/pagayo-api-stack" || true
+  fi
+  echo ""
+fi
+
+
 local_dev_stop_wrangler_and_ports
 local_dev_stop_background_pids
 echo ""

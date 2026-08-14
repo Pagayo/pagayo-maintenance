@@ -27,6 +27,11 @@ echo "🚀 Pagayo Local Dev — fresh reset ($MODE)"
 echo "   Workspace: $WS"
 echo ""
 
+if [[ -x "$SCRIPT_DIR/ensure-working-lane.sh" ]]; then
+  "$SCRIPT_DIR/ensure-working-lane.sh" "$WS/pagayo-storefront"
+  echo ""
+fi
+
 local_dev_stop_wrangler_and_ports
 local_dev_stop_background_pids
 echo ""
