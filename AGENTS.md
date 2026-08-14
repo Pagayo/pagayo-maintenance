@@ -32,12 +32,15 @@ Legacy batch-branches: zet `PAGAYO_LANE_MODE=legacy` voor `ensure-branch.sh` ged
 - Marketing (`www.pagayo.com`): `tests/smoke/marketing.test.ts`
 - Edge/Provisioning contracten: `tests/smoke/edge-provisioning-contracts.test.ts`
 - Infra/routing/SSL: `tests/smoke/infrastructure.test.ts`
+- Key-features (hourly, machine auth): `tests/smoke/key-features/` → `npm run smoke:key-features`  
+  Contract: `docs/key-features/stripe-internal-probe.md` (`SMOKE_INTERNAL_SERVICE_KEY`)
 
 ## Verificatiecommando's
 ```bash
 npm run test:smoke
 npm run test:contracts
 npm run test:quality
+npm run smoke:key-features
 ```
 
 ## Workflow v2 — ochtend-status (Fase 0)
