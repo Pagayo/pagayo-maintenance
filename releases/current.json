@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-14T07:30:01Z",
+  "updated_at": "2026-08-14T10:18:16Z",
   "updated_by": "Cursor agent (release:tip)",
   "repos": {
     "pagayo-storefront": {
@@ -24,8 +24,12 @@
       "staging_worker_version_id": "439bcf69-bd6a-4d89-bd02-8fdc2c577551"
     },
     "pagayo-edge": {
-      "staging_sha": "40e5f9a0ee3863fa678dd1ec8f9d6368c5f086cc",
-      "verified_at": "2026-06-16T07:37:10Z"
+      "staging_sha": "6041e325161dec64d1eac38a7296ded9c03f5f4c",
+      "verified_at": "2026-08-14T10:18:16Z",
+      "staging_worker_version_id": "a53ceca1-9f8d-4de2-9484-87f40bba65a9",
+      "staging_path_a_worker_version_id": "a53ceca1-9f8d-4de2-9484-87f40bba65a9",
+      "staging_tip_source": "path-a",
+      "staging_pdc_head_note": "Path A Wrangler tip — edge has no PDC schema promote; GitHub Actions is fallback only"
     },
     "pagayo-workflows": {
       "staging_sha": "1bd8120681192654970f0167b9f30a9396cc0670",
