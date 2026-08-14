@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-14T11:37:08Z",
+  "updated_at": "2026-08-14T11:53:14Z",
   "updated_by": "Cursor agent (release:tip)",
   "repos": {
     "pagayo-storefront": {
@@ -64,8 +64,10 @@
       "verified_at": null
     },
     "pagayo-marketing": {
-      "staging_sha": null,
-      "verified_at": null
+      "staging_sha": "e87ad16f54b596bc42a87d1d95bb1c59663bd75b",
+      "verified_at": "2026-08-14T11:53:14Z",
+      "staging_tip_source": "path-a",
+      "staging_pdc_head_note": "Path A Pages preview tip — GitHub Actions push-to-main is fallback only"
     },
     "pagayo-solutions": {
       "staging_sha": "a7d076154c9704985b6b462e676a35ae2a25caaa",
