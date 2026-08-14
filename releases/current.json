@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-14T10:53:24Z",
+  "updated_at": "2026-08-14T11:04:53Z",
   "updated_by": "Cursor agent (release:tip)",
   "repos": {
     "pagayo-storefront": {
@@ -68,8 +68,12 @@
       "verified_at": null
     },
     "pagayo-cloudflare-proxy": {
-      "staging_sha": null,
-      "verified_at": null
+      "staging_sha": "6caa62c0802096cf0f641c5e5507cb7040be31ef",
+      "verified_at": "2026-08-14T11:04:53Z",
+      "staging_worker_version_id": "2c1d644b-0af8-466c-bbfd-9cdf57cdb069",
+      "staging_path_a_worker_version_id": "2c1d644b-0af8-466c-bbfd-9cdf57cdb069",
+      "staging_tip_source": "path-a",
+      "staging_pdc_head_note": "Path A Wrangler tip — proxy has no PDC schema promote; GitHub is stack-check only"
     },
     "pagayo-maintenance": {
       "staging_sha": null,
