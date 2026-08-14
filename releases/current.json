@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-14T10:24:22Z",
+  "updated_at": "2026-08-14T10:42:58Z",
   "updated_by": "Cursor agent (release:tip)",
   "repos": {
     "pagayo-storefront": {
@@ -16,12 +16,15 @@
       "production_tip_source": "path-a"
     },
     "pagayo-api-stack": {
-      "staging_sha": "159000104540f1f6c7692bfadba01bedd664dcc0",
-      "verified_at": "2026-08-11T07:01:03Z",
+      "staging_sha": "0c8f4f80403ca1eb743e3a66acb11d67eebfd555",
+      "verified_at": "2026-08-14T10:42:58Z",
       "production_sha": "159000104540f1f6c7692bfadba01bedd664dcc0",
       "production_worker_version_id": "6f6cb3bb-74b1-4ebd-84a6-4e1a42ff9f2f",
       "production_verified_at": "2026-08-11T07:01:03Z",
-      "staging_worker_version_id": "439bcf69-bd6a-4d89-bd02-8fdc2c577551"
+      "staging_worker_version_id": "0f616b1c-4736-4ca5-b20b-091e0b6ef216",
+      "staging_path_a_worker_version_id": "0f616b1c-4736-4ca5-b20b-091e0b6ef216",
+      "staging_tip_source": "path-a",
+      "staging_pdc_head_note": "Path A Wrangler tip — api-stack schema uses local D1 migrate; GitHub Actions is fallback only"
     },
     "pagayo-edge": {
       "staging_sha": "6041e325161dec64d1eac38a7296ded9c03f5f4c",
