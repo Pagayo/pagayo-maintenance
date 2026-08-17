@@ -73,3 +73,8 @@ Volledige suite:
 ```bash
 npm run test:all
 ```
+
+Admin compositie-drift (storefront matrix ↔ code):
+```bash
+../pagayo-maintenance/.github/scripts/admin-composition-drift-check.sh
+```

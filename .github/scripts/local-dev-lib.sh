@@ -196,11 +196,11 @@ local_dev_start_background_services() {
   echo "   Logs: $(local_dev_runtime_dir)/"
 
   local_dev_spawn_background "storefront" "$ws/pagayo-storefront" \
-    bash -lc "npm run copy-design && exec npx concurrently --names wrangler,static -c cyan,magenta 'wrangler dev --persist-to ../.wrangler-shared' 'npm run serve:public'"
+    bash -lc "export NODE_OPTIONS='--max-old-space-size=4096'; npm run copy-design && exec npx concurrently --names wrangler,static -c cyan,magenta 'wrangler dev --persist-to ../.wrangler-shared' 'npm run serve:public'"
 
   sleep 2
 
-  local_dev_spawn_background "vite" "$ws/pagayo-storefront" npm run dev:client
+  local_dev_spawn_background "vite" "$ws/pagayo-storefront" bash -lc "export NODE_OPTIONS='--max-old-space-size=4096'; exec npm run dev:client"
   sleep 1
   local_dev_spawn_background "api-stack" "$ws/pagayo-api-stack" npm run dev
   local_dev_spawn_background "marketing" "$ws/pagayo-marketing" npm run dev
